@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
-
+from app.core.time import utcnow
 from sqlalchemy import String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
@@ -59,7 +59,7 @@ class Identity(Base):
 
     created_at : Mapped[datetime] = mapped_column(
             DateTime,
-            default = datetime.utcnow,
+            default = utcnow,
             nullable = False,
 
     )
