@@ -1,0 +1,1501 @@
+NERDMAXXING — TECHNICAL PRODUCT & ARCHITECTURE ROADMAP
+========================================================
+
+Purpose
+-------
+This document translates the NerdMaxxing product philosophy into a technical roadmap covering:
+- Features
+- Pages
+- User flows
+- Core data models
+- Authentication
+- Challenge lifecycle
+- Verification
+- Community/social systems
+- Publishing and moderation
+- Backend architecture
+- Implementation phases
+
+
+1. PRODUCT SYSTEM OVERVIEW
+==========================
+
+NerdMaxxing is a challenge-based skill discovery, completion, verification, and social platform.
+
+The central domain object is the CHALLENGE.
+
+A challenge has:
+- A clear outcome
+- Instructions and requirements
+- Resources
+- Estimated effort
+- Estimated cost
+- A completion mechanism
+- A verification mechanism
+- Participants
+- Completions
+- Community contributions
+
+Core loop:
+
+DISCOVER
+  ↓
+ACCEPT CHALLENGE
+  ↓
+LEARN / PRACTICE / DO
+  ↓
+COMPLETE
+  ↓
+SUBMIT EVIDENCE
+  ↓
+VERIFY
+  ↓
+ACHIEVEMENT
+  ↓
+SKILL GRAPH
+  ↓
+SOCIAL DISCOVERY
+
+
+2. PRIMARY USER ROLES
+=====================
+
+A single user can occupy multiple roles.
+
+USER
+- Browse challenges
+- Accept challenges
+- Track progress
+- Submit evidence
+- Earn verified skills
+- Follow users
+- Contribute resources and insights
+
+PARTICIPANT
+A user who has accepted a challenge.
+
+CHALLENGE CREATOR
+A user who creates a private challenge and may later publish it.
+
+VERIFIER
+A user eligible to review evidence for a specific challenge or skill.
+
+TRUSTED VERIFIER
+A verifier with sufficient reliability and successful review history.
+
+MODERATOR / REVIEWER
+Internal NerdMaxxing role responsible for:
+- Challenge publication review
+- Community moderation
+- Reports
+- Disputes
+- Suspicious verification activity
+
+
+3. AUTHENTICATION AND IDENTITY
+==============================
+
+Recommended initial authentication:
+Google Sign-In / OAuth.
+
+Architecture:
+
+Google OAuth
+    ↓
+Authentication Identity
+    ↓
+NerdMaxxing User Account
+    ↓
+Public Username
+
+Authentication answers:
+"Who owns this account?"
+
+Username answers:
+"Who are you on NerdMaxxing?"
+
+Core models:
+
+User
+{
+    id
+    username
+    display_name
+    avatar_url
+    bio
+    created_at
+}
+
+AuthIdentity
+{
+    id
+    user_id
+    provider
+    provider_user_id
+    created_at
+}
+
+Future providers can include Apple, email, or other OAuth providers.
+
+
+4. GUEST MODE
+=============
+
+Users should be able to browse without logging in.
+
+Guest access:
+- Explore challenges
+- Search
+- View public challenge pages
+- View public profiles
+- View verified achievements
+- View resources
+
+Login required for:
+- Accepting a challenge
+- Saving progress
+- Creating challenges
+- Submitting evidence
+- Posting contributions
+- Following users
+- Verifying others
+
+
+5. APPLICATION NAVIGATION
+=========================
+
+Recommended primary navigation:
+
+EXPLORE
+CHALLENGES
+CREATE
+ACTIVITY
+PROFILE
+
+Possible mobile bottom navigation:
+
+[Explore] [Challenges] [+ Create] [Activity] [Profile]
+
+
+6. CORE PAGES
+=============
+
+6.1 EXPLORE
+-----------
+
+Purpose: discovery.
+
+Sections:
+- Recommended challenges
+- Trending challenges
+- New challenges
+- Categories
+- Continue your challenges
+- Challenges related to your skills
+- Recent verified achievements
+- Interesting people
+- Search
+
+New user priority:
+
+Challenge → Achievement → Person
+
+
+6.2 CHALLENGE DETAIL
+--------------------
+
+Contains:
+
+HEADER
+- Title
+- Description
+- Category
+- Difficulty
+- Estimated effort
+- Estimated cost
+- Verification type
+- Creator
+
+PRIMARY ACTION
+- Accept Challenge
+or
+- Resume Challenge
+
+SECTIONS
+1. Outcome
+2. Requirements
+3. Resources
+4. Verification
+5. Community insights
+6. Discussion
+7. Recent completions
+8. Related challenges
+
+
+6.3 MY CHALLENGES
+-----------------
+
+Sections:
+- Active
+- Paused
+- Submitted
+- Completed
+
+Potential initial active challenge limit:
+3–5 challenges.
+
+
+6.4 CREATE PRIVATE CHALLENGE
+----------------------------
+
+Minimal initial fields:
+- Title
+- Personal goal
+- Description
+- Optional deadline
+- Visibility: private or group
+
+Do not require full publishing information at creation.
+
+
+6.5 PRIVATE / GROUP CHALLENGE PAGE
+----------------------------------
+
+Contains:
+- Goal
+- Instructions
+- Progress
+- Participants
+- Completion action
+
+Creator options:
+- Keep private
+- Share with group
+- Prepare for public publication
+
+
+6.6 PUBLISH CHALLENGE WIZARD
+----------------------------
+
+Step 1: Define outcome
+Step 2: Define requirements
+Step 3: Add resources
+Step 4: Estimate effort
+Step 5: Estimate cost
+Step 6: Select verification type
+Step 7: Define evidence requirements
+Step 8: Define verification rubric
+Step 9: Review
+Step 10: Submit for NerdMaxxing review
+
+
+6.7 EVIDENCE SUBMISSION
+-----------------------
+
+Automatic:
+- Run test
+- Complete assessment
+- Connect external account
+
+Community:
+- Upload evidence
+- Add explanation
+- Submit
+
+Self-reported:
+- Confirm completion
+
+
+6.8 ACTIVITY / ACHIEVEMENT FEED
+-------------------------------
+
+Events can include:
+- Challenge started
+- Challenge completed
+- Challenge verified
+- Skill earned
+- Challenge published
+
+Achievement is the primary content.
+
+Example:
+"@user verified: Reach 1200 Chess Rating"
+
+
+6.9 USER PROFILE
+----------------
+
+Contains:
+- Username
+- Display name
+- Avatar
+- Bio
+- Verified skills
+- Completed challenges
+- Created challenges
+- Contributions
+- Optional current challenges
+
+Do not publicly display abandoned challenges by default.
+
+
+6.10 VERIFICATION QUEUE
+-----------------------
+
+For eligible verifiers.
+
+Contains:
+- Assigned submission
+- Challenge context
+- Evidence
+- Rubric
+- Pass / Fail / Unsure / Escalate
+
+Support anonymized review where possible.
+
+
+6.11 ADMIN / MODERATION PANEL
+-----------------------------
+
+Functions:
+- Review public challenge submissions
+- Approve / reject / request improvement
+- Moderate content
+- Review reports
+- Resolve verification disputes
+- View suspicious activity
+- View challenge analytics
+
+
+7. CORE CHALLENGE DATA MODEL
+============================
+
+Challenge
+{
+    id
+    title
+    slug
+    short_description
+    full_description
+
+    creator_id
+    category_id
+
+    difficulty_level
+
+    status
+    visibility
+
+    estimated_effort_min_minutes
+    estimated_effort_max_minutes
+
+    estimated_cost_min
+    estimated_cost_max
+    currency
+
+    verification_type
+
+    current_version
+
+    created_at
+    updated_at
+    published_at
+}
+
+Challenge statuses:
+DRAFT
+PRIVATE
+GROUP
+READY_FOR_REVIEW
+UNDER_REVIEW
+NEEDS_IMPROVEMENT
+APPROVED
+PUBLISHED
+ARCHIVED
+REJECTED
+
+Visibility:
+PRIVATE
+GROUP
+PUBLIC
+
+Verification types:
+AUTOMATIC
+ACCOUNT_VERIFIED
+COMMUNITY
+SELF_REPORTED
+
+
+ChallengeRequirement
+{
+    id
+    challenge_id
+    title
+    description
+    order_index
+}
+
+
+ChallengeResource
+{
+    id
+    challenge_id
+    submitted_by_user_id
+
+    title
+    url
+    resource_type
+    description
+
+    upvote_count
+
+    is_creator_recommended
+    is_platform_recommended
+
+    status
+    created_at
+}
+
+
+8. PARTICIPATION MODEL
+======================
+
+ChallengeParticipant
+{
+    id
+    challenge_id
+    user_id
+
+    status
+
+    started_at
+    last_activity_at
+    completed_at
+}
+
+Participant statuses:
+ACCEPTED
+IN_PROGRESS
+PAUSED
+REMOVED
+SUBMITTED
+VERIFIED
+REJECTED
+COMPLETED
+
+Important:
+Completion and verification should remain conceptually separate.
+
+
+9. GROUP CHALLENGES
+===================
+
+ChallengeGroup
+{
+    id
+    challenge_id
+    owner_id
+    name
+    created_at
+}
+
+ChallengeGroupMember
+{
+    group_id
+    user_id
+    role
+}
+
+A private challenge can initially be personal and later shared with a selected group.
+
+
+10. CHALLENGE LIFECYCLE
+=======================
+
+Creator lifecycle:
+
+CREATE PRIVATE
+    ↓
+ATTEMPT
+    ↓
+COMPLETE
+    ↓
+PREPARE FOR PUBLICATION
+    ↓
+READY FOR REVIEW
+    ↓
+UNDER REVIEW
+    ↓
+APPROVED → PUBLISHED
+
+or:
+
+UNDER REVIEW
+    ↓
+NEEDS IMPROVEMENT
+    ↓
+EDIT
+    ↓
+RESUBMIT
+
+
+Participant lifecycle:
+
+DISCOVERED
+    ↓
+ACCEPTED
+    ↓
+IN PROGRESS
+    ├── PAUSED
+    ├── REMOVED
+    └── SUBMITTED
+            ↓
+       UNDER REVIEW
+         ├── VERIFIED → COMPLETED
+         └── REJECTED → IN PROGRESS
+
+
+11. COMPLETION VS VERIFICATION
+==============================
+
+COMPLETION:
+The user reaches the challenge endpoint.
+
+VERIFICATION:
+The platform confirms completion according to challenge rules.
+
+Recommended model:
+
+ChallengeParticipant
+{
+    completion_status
+    verification_status
+}
+
+Verification status:
+NOT_REQUIRED
+NOT_SUBMITTED
+PENDING
+VERIFIED
+REJECTED
+DISPUTED
+
+
+12. EVIDENCE MODEL
+==================
+
+EvidenceSubmission
+{
+    id
+    challenge_id
+    participant_id
+    user_id
+
+    status
+    explanation
+
+    submitted_at
+    reviewed_at
+}
+
+EvidenceItem
+{
+    id
+    submission_id
+
+    evidence_type
+
+    file_url
+    external_url
+    text_content
+
+    metadata
+    created_at
+}
+
+Evidence types:
+TEXT
+IMAGE
+VIDEO
+AUDIO
+CODE
+SCREENSHOT
+EXTERNAL_ACCOUNT
+SYSTEM_RESULT
+
+Store actual files in object storage.
+Store metadata and references in PostgreSQL.
+
+
+13. AUTOMATIC VERIFICATION
+==========================
+
+Automatic verification should be modular.
+
+VerificationService
+    ├── TypingVerifier
+    ├── QuizVerifier
+    ├── CodeVerifier
+    ├── ExternalAccountVerifier
+    └── CustomVerifier
+
+Conceptual interface:
+
+verify(submission, challenge_rules)
+    → VerificationResult
+
+VerificationResult:
+PASS
+FAIL
+PENDING
+ERROR
+
+Store:
+- Rule version
+- Input
+- Score
+- Threshold
+- Result
+- Timestamp
+
+
+14. COMMUNITY VERIFICATION
+==========================
+
+Flow:
+
+Evidence submitted
+    ↓
+Find eligible verifiers
+    ↓
+Assign independent reviewers
+    ↓
+Review evidence using rubric
+    ↓
+Collect votes
+    ↓
+Consensus engine
+    ├── VERIFIED
+    ├── REJECTED
+    ├── MORE REVIEW REQUIRED
+    └── ESCALATED
+
+
+VerifierEligibility
+{
+    user_id
+    challenge_id
+
+    eligibility_status
+
+    granted_at
+    revoked_at
+    reason
+}
+
+A completed user is not automatically a universal verifier.
+
+Verifier authority should be challenge/skill scoped.
+
+
+15. VERIFICATION REVIEW MODEL
+=============================
+
+VerificationReview
+{
+    id
+    submission_id
+    verifier_user_id
+
+    decision
+    rubric_scores
+    feedback
+
+    created_at
+}
+
+Decision:
+PASS
+FAIL
+UNSURE
+ESCALATE
+
+
+ChallengeVerificationConfig
+{
+    challenge_id
+
+    required_reviews
+    minimum_pass_ratio
+    trusted_verifier_weight
+    escalation_threshold
+}
+
+Do not globally hardcode a rule such as:
+"Three votes equals verification."
+
+Different challenges can have different requirements.
+
+
+16. BLIND REVIEW
+================
+
+When possible, verifiers should see:
+- Submission ID
+- Challenge requirements
+- Evidence
+- Rubric
+
+They should not see:
+- Username
+- Followers
+- Popularity
+- Social profile
+
+This reduces:
+- Popularity bias
+- Friendship bias
+- Revenge voting
+- Competition incentives
+
+
+17. VERIFIER REPUTATION
+=======================
+
+VerifierReputation
+{
+    id
+    user_id
+    challenge_id
+
+    reviews_completed
+    consensus_agreement_rate
+    reversal_rate
+    reliability_score
+
+    status
+    updated_at
+}
+
+Status:
+ELIGIBLE
+ACTIVE
+TRUSTED
+RESTRICTED
+SUSPENDED
+
+Signals:
+- Agreement with consensus
+- Agreement with moderator decisions
+- Review consistency
+- Suspicious patterns
+- Collusion signals
+
+
+18. CHALLENGE PUBLICATION REVIEW
+================================
+
+ChallengePublicationSubmission
+{
+    id
+    challenge_id
+    creator_id
+
+    status
+
+    submitted_at
+    reviewed_at
+    reviewed_by
+
+    review_notes
+}
+
+Status:
+PENDING
+UNDER_REVIEW
+NEEDS_IMPROVEMENT
+APPROVED
+REJECTED
+
+
+Structured review:
+
+ChallengeReview
+{
+    submission_id
+
+    outcome_quality_score
+    clarity_score
+    resource_quality_score
+    verification_quality_score
+
+    safety_status
+    duplicate_status
+
+    reviewer_notes
+    final_decision
+}
+
+
+19. CREATOR COMPLETION REQUIREMENT
+==================================
+
+Before public publishing:
+
+Creator must have completed the challenge.
+
+Conceptually:
+
+IF creator has not completed challenge
+THEN publishing is not allowed.
+
+The system should distinguish:
+- Creator self-reported completion
+- Creator verified completion
+
+The exact requirement can depend on the challenge type.
+
+Public metadata can show:
+- Created by
+- Creator completed challenge
+- NerdMaxxing approved
+
+
+20. COMMUNITY CONTENT MODELS
+============================
+
+DiscussionComment
+{
+    id
+    challenge_id
+    user_id
+    parent_comment_id
+    content
+    status
+    created_at
+}
+
+ChallengeInsight
+{
+    id
+    challenge_id
+    user_id
+
+    title
+    content
+
+    helpful_count
+    status
+    created_at
+}
+
+ResourceVote
+{
+    resource_id
+    user_id
+    vote
+}
+
+Content statuses:
+ACTIVE
+HIDDEN
+FLAGGED
+REMOVED
+
+
+21. SOCIAL GRAPH
+================
+
+Follow
+{
+    follower_user_id
+    following_user_id
+    created_at
+}
+
+Important:
+Social popularity must remain separate from verification credibility.
+
+Following is social discovery.
+Verification is trust/capability evidence.
+
+
+22. SKILL GRAPH
+===============
+
+Start simple.
+
+Skill
+{
+    id
+    name
+    description
+    category_id
+}
+
+ChallengeSkill
+{
+    challenge_id
+    skill_id
+
+    relationship_type
+    weight
+}
+
+UserSkill
+{
+    user_id
+    skill_id
+
+    source_challenge_id
+    verification_status
+
+    earned_at
+}
+
+Relationship types:
+PRIMARY
+SECONDARY
+RELATED
+
+Verified skills should be generated through successful challenge completion/verification.
+
+
+23. ACTIVITY EVENT ARCHITECTURE
+==============================
+
+Use event records.
+
+ActivityEvent
+{
+    id
+    actor_user_id
+
+    event_type
+
+    entity_type
+    entity_id
+
+    visibility
+    metadata
+
+    created_at
+}
+
+Event types:
+CHALLENGE_STARTED
+CHALLENGE_COMPLETED
+CHALLENGE_VERIFIED
+SKILL_EARNED
+CHALLENGE_PUBLISHED
+RESOURCE_CONTRIBUTED
+INSIGHT_CONTRIBUTED
+
+Initial feed:
+Chronological + basic relevance.
+
+Later:
+Personalized ranking.
+
+
+24. RECOMMENDATION ARCHITECTURE
+===============================
+
+Start simple.
+
+Inputs:
+- Categories explored
+- Challenges viewed
+- Challenges accepted
+- Challenges completed
+- Skills earned
+- Users followed
+
+Initial recommendation logic:
+
+Category similarity
++
+Challenge similarity
++
+Popularity among similar users
+
+Do not begin with complex ML infrastructure.
+Collect useful behavioral data first.
+
+
+25. CHALLENGE ANALYTICS
+======================
+
+Track:
+
+Views
+↓
+Acceptances
+↓
+Starts
+↓
+Progress
+↓
+Submissions
+↓
+Verification
+
+Metrics:
+- Acceptance rate
+- Completion rate
+- Abandonment rate
+- Verification pass rate
+- Verification time
+- Median effort
+- Typical cost
+- Resource engagement
+
+High abandonment should trigger challenge quality investigation.
+
+
+26. DATA-DRIVEN EFFORT AND COST
+===============================
+
+Creator estimates are initial values.
+
+Collect actual participant data.
+
+ChallengeParticipantMetrics
+{
+    participant_id
+
+    actual_effort_minutes
+    actual_cost
+}
+
+Eventually show:
+- Creator estimate
+- Community estimate
+
+Community estimate can use median and ranges.
+
+
+27. BACKEND ARCHITECTURE
+=======================
+
+Recommendation for the initial product:
+
+MODULAR MONOLITH
+
+Do not begin with microservices.
+
+Modules:
+- Auth
+- Users
+- Challenges
+- Participation
+- Publishing
+- Verification
+- Community
+- Skills
+- Activity
+- Recommendations
+- Moderation
+- Notifications
+
+Architecture:
+
+Client
+  ↓
+API
+  ↓
+Modular Backend
+  ├── PostgreSQL
+  ├── Object Storage
+  ├── Cache / Queue
+  └── External OAuth / integrations
+
+Reasons:
+- Faster development
+- Easier transactions
+- Lower operational complexity
+- Easier schema evolution
+- Product is still evolving
+
+
+28. DATABASE AND INFRASTRUCTURE
+===============================
+
+Primary database:
+PostgreSQL
+
+Use for:
+- Users
+- Challenges
+- Participation
+- Verification
+- Social graph
+- Community data
+
+Supporting components:
+
+Redis:
+- Caching
+- Rate limits
+- Queues
+- Temporary state
+
+Object storage:
+- Images
+- Video
+- Audio
+- Documents
+- Evidence
+
+Search:
+Start with PostgreSQL full-text search.
+Move to dedicated search infrastructure only when needed.
+
+
+29. API ARCHITECTURE
+===================
+
+Recommended initial style:
+REST API
+
+Route groups:
+
+/auth
+/users
+/challenges
+/participation
+/evidence
+/verification
+/resources
+/insights
+/comments
+/skills
+/activity
+/follows
+/moderation
+/admin
+
+Examples:
+
+GET /challenges
+GET /challenges/{slug}
+
+POST /challenges
+PATCH /challenges/{id}
+
+POST /challenges/{id}/accept
+
+POST /challenges/{id}/submit-evidence
+
+GET /verification/queue
+
+POST /verification/submissions/{id}/review
+
+POST /challenges/{id}/publish
+
+
+30. MOBILE CLIENT ARCHITECTURE
+=============================
+
+Current direction:
+Flutter.
+
+Recommended layering:
+
+Presentation
+    ↓
+State Management
+    ↓
+Domain / Use Cases
+    ↓
+Repositories
+    ↓
+API / Local Storage
+
+Feature-based structure:
+
+features/
+    auth/
+    explore/
+    challenges/
+    create_challenge/
+    verification/
+    activity/
+    profile/
+    community/
+
+shared/
+    api/
+    models/
+    widgets/
+    theme/
+    utilities/
+
+Avoid placing core business logic directly inside UI widgets.
+
+
+31. CLIENT STATE
+================
+
+Separate:
+
+SERVER STATE
+- Challenges
+- Profile
+- Feed
+- Verification queue
+
+UI STATE
+- Current tab
+- Form input
+- Wizard state
+
+LOCAL PERSISTENT STATE
+- Authentication/session
+- Draft challenge
+- Cached data
+
+
+32. FILE AND EVIDENCE STORAGE
+=============================
+
+Do not store large evidence files directly in PostgreSQL.
+
+Database stores:
+- File metadata
+- Ownership
+- Access rules
+- Submission references
+
+Object storage stores:
+- Actual files
+
+Requirements:
+- Validate file type
+- Validate size
+- Private access control
+- Signed URLs where appropriate
+- Prevent unauthorized access
+
+
+33. NOTIFICATIONS
+=================
+
+Notification events:
+- Challenge approved
+- Challenge needs improvement
+- Verification submitted
+- Evidence verified
+- Evidence rejected
+- Verification assignment
+- User followed
+- Contribution marked helpful
+
+Avoid aggressive guilt notifications for inactivity.
+
+
+34. SECURITY AND ABUSE CONTROLS
+==============================
+
+Authentication:
+- OAuth validation
+- Secure sessions/tokens
+
+User-generated content:
+- Rate limiting
+- Reporting
+- Moderation
+- Spam prevention
+
+Verification:
+- Anti-collusion monitoring
+- Suspicious voting analysis
+- Multiple-account abuse detection signals
+- Reviewer assignment controls
+
+Evidence:
+- Privacy
+- File validation
+- Access control
+
+Publishing:
+- Duplicate detection
+- Link/resource validation
+- Moderation review
+
+
+35. MVP ROADMAP
+===============
+
+Goal:
+Prove the core loop.
+
+DISCOVER
+→ ACCEPT
+→ COMPLETE
+→ VERIFY
+→ ACHIEVEMENT
+→ SKILL
+
+MVP features:
+
+AUTH
+- Google Sign-In
+- Username creation
+
+EXPLORE
+- Challenge feed
+- Categories
+- Search
+
+CHALLENGES
+- Public challenge page
+- Accept challenge
+- Active/paused/completed states
+
+COMPLETION
+- At least one automatic verification type
+- Basic self-reported completion
+- Basic evidence submission
+
+PROFILE
+- Completed challenges
+- Verified skills
+
+ACTIVITY
+- Basic achievement feed
+
+CREATION
+- Private challenge creation
+- Creator completion tracking
+
+
+36. PHASE 2
+===========
+
+Add:
+- Group challenges
+- Publishing wizard
+- Resources
+- Community insights
+- Discussion
+- Challenge review workflow
+- Admin panel
+- Creator credentials
+- More verification types
+
+
+37. PHASE 3
+===========
+
+Add:
+- Community verification
+- Verifier eligibility
+- Blind review
+- Verifier reputation
+- Dispute system
+- Challenge versioning
+- Community effort estimates
+- Community cost estimates
+- Better recommendations
+
+
+38. PHASE 4
+===========
+
+Potential advanced systems:
+- Rich skill graph visualization
+- Advanced recommendations
+- External account integrations
+- Challenge dependency graphs
+- Trusted verifier programs
+- AI-assisted challenge review
+- AI-assisted evidence analysis where appropriate
+- Advanced anti-collusion systems
+
+
+39. IMPORTANT ARCHITECTURAL DECISIONS
+=====================================
+
+1. Start with a modular monolith.
+
+2. Use Google Sign-In initially and a unique username for public identity.
+
+3. Allow anonymous challenge exploration.
+
+4. Keep the Challenge as the central domain object.
+
+5. Separate completion from verification.
+
+6. Separate challenge completion from verifier authority.
+
+7. Scope trust to specific challenges/skills.
+
+8. Prefer automatic verification whenever possible.
+
+9. Use community verification where human judgment genuinely adds value.
+
+10. Keep private challenge creation lightweight.
+
+11. Require creators to complete their own challenge before public publishing.
+
+12. Require NerdMaxxing review before public publishing.
+
+13. Treat public challenges as living artifacts that can improve over time.
+
+14. Keep popularity separate from verification credibility.
+
+15. Make privacy and evidence access first-class architecture concerns.
+
+16. Start recommendations simple and collect behavioral data.
+
+17. Do not build microservices prematurely.
+
+
+40. CORE DOMAIN RELATIONSHIPS
+============================
+
+User
+ ├── AuthIdentity
+ ├── ChallengeParticipant
+ │     └── EvidenceSubmission
+ ├── Created Challenges
+ ├── UserSkill
+ ├── VerifierEligibility
+ ├── VerifierReputation
+ ├── ActivityEvents
+ └── Community Contributions
+
+
+Challenge
+ ├── Requirements
+ ├── Resources
+ ├── Participants
+ ├── Verification Configuration
+ ├── Skills
+ ├── Insights
+ ├── Comments
+ ├── Publication Review
+ └── Versions
+
+
+41. FINAL TECHNICAL PRINCIPLE
+============================
+
+NerdMaxxing should be architected around demonstrated capabilities.
+
+Discovery helps users find something worth doing.
+
+Challenges give users a concrete goal.
+
+Resources help them learn.
+
+Community helps them improve.
+
+Verification establishes trust.
+
+Achievements create social proof.
+
+The skill graph preserves what the user has demonstrated.
+
+The architecture should protect this central loop and prevent the product from drifting into just another social feed, course platform, habit tracker, or generic user-generated content platform.

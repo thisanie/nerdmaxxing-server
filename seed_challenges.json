@@ -1,0 +1,275 @@
+{
+  "challenges": [
+    {
+      "title": "Solve a Rubik's Cube Under 2 Minutes",
+      "image_url": "https://source.unsplash.com/featured/800x600/?rubikscube",
+      "short_description": "Solve a standard 3x3 Rubik's Cube in under 2 minutes.",
+      "full_description": "Learn the CFOP or layer-by-layer method, practice algorithms daily, and time yourself until you consistently solve the cube in under 2 minutes.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Beginner's Method to Solve a Rubik's Cube", "url": "https://www.youtube.com/watch?v=7Ron6MN45LY", "resource_type": "VIDEO", "rationale": "Teaches the foundational layer-by-layer method for solving the cube."},
+        {"title": "CFOP Method Explained", "url": "https://www.speedsolving.com/wiki/index.php/CFOP_method", "resource_type": "ARTICLE", "rationale": "Covers the advanced 4-step method used by speedcubers to break the 2-minute barrier."},
+        {"title": "Algorithm Cheat Sheet (PDF)", "url": "https://example.com/downloads/cfop-algorithms.pdf", "resource_type": "DOCUMENT", "rationale": "Printable reference of all algorithms needed for F2L, OLL, and PLL."},
+        {"title": "r/Cubers Community", "url": "https://www.reddit.com/r/Cubers/", "resource_type": "COMMUNITY", "rationale": "Get tips, feedback on your solves, and stay motivated with other cubers."}
+      ]
+    },
+    {
+      "title": "Achieve 60 WPM Typing Speed",
+      "image_url": "https://source.unsplash.com/featured/800x600/?keyboard,typing",
+      "short_description": "Reach a typing speed of 60 words per minute.",
+      "full_description": "Practice touch typing daily using structured lessons and speed tests until you can consistently type at 60 WPM with high accuracy.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Touch Typing Fundamentals", "url": "https://www.typing.com/student/lessons", "resource_type": "ARTICLE", "rationale": "Covers proper finger placement and technique for faster typing."},
+        {"title": "Monkeytype - Practice & Track Speed", "url": "https://monkeytype.com/", "resource_type": "TOOL", "rationale": "A minimal, customizable typing test to track WPM progress over time."},
+        {"title": "10 Tips to Improve Typing Speed", "url": "https://example.com/typing-tips", "resource_type": "ARTICLE", "rationale": "Quick practical tips for building muscle memory faster."}
+      ]
+    },
+    {
+      "title": "Learn Conversational Spanish",
+      "image_url": "https://source.unsplash.com/featured/800x600/?spanish,language",
+      "short_description": "Hold a 5-minute conversation in Spanish.",
+      "full_description": "Study vocabulary, grammar, and pronunciation daily, then practice with a native speaker or language partner until you can hold a basic 5-minute conversation.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Spanish for Beginners Course", "url": "https://www.duolingo.com/course/es/en/Learn-Spanish", "resource_type": "COURSE", "rationale": "Structured curriculum for building conversational fluency."},
+        {"title": "500 Most Common Spanish Words", "url": "https://example.com/spanish-vocab-500", "resource_type": "ARTICLE", "rationale": "A high-frequency word list to prioritize practical vocabulary."},
+        {"title": "Tandem Language Exchange App", "url": "https://www.tandem.net/", "resource_type": "TOOL", "rationale": "Connects you with native Spanish speakers for real conversation practice."},
+        {"title": "Spanish Pronunciation Guide", "url": "https://www.youtube.com/watch?v=xvW3dEEjjfU", "resource_type": "VIDEO", "rationale": "Helps you master accent and pronunciation before speaking with natives."}
+      ]
+    },
+    {
+      "title": "Run a 5K",
+      "image_url": "https://source.unsplash.com/featured/800x600/?running,marathon",
+      "short_description": "Complete a 5K run without stopping.",
+      "full_description": "Follow a couch-to-5K training plan, build up your endurance over weeks, and complete a full 5 kilometer run without walking.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Couch to 5K Training Plan", "url": "https://www.nhs.uk/live-well/exercise/couch-to-5k-week-by-week/", "resource_type": "ARTICLE", "rationale": "Provides a structured 8-week plan to build running endurance."},
+        {"title": "Strava - Track Your Runs", "url": "https://www.strava.com/", "resource_type": "TOOL", "rationale": "Used to log and verify your runs with GPS-tracked distance and pace."},
+        {"title": "Running Form Basics", "url": "https://www.youtube.com/watch?v=brFHyOtTwH4", "resource_type": "VIDEO", "rationale": "Reduces injury risk by teaching proper running posture and cadence."}
+      ]
+    },
+    {
+      "title": "Do 50 Push-Ups in a Row",
+      "image_url": "https://source.unsplash.com/featured/800x600/?pushup,fitness",
+      "short_description": "Perform 50 consecutive push-ups with proper form.",
+      "full_description": "Build upper body and core strength through progressive training until you can complete 50 push-ups in a row without breaking form.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Push-Up Progression Guide", "url": "https://example.com/pushup-progression", "resource_type": "ARTICLE", "rationale": "Breaks down a step-by-step strength building plan for push-ups."},
+        {"title": "Perfect Push-Up Form", "url": "https://www.youtube.com/watch?v=IODxDxX7oi4", "resource_type": "VIDEO", "rationale": "Demonstrates correct form to avoid injury and maximize effectiveness."}
+      ]
+    },
+    {
+      "title": "Master the Splits",
+      "image_url": "https://source.unsplash.com/featured/800x600/?stretching,flexibility",
+      "short_description": "Achieve a full front split.",
+      "full_description": "Follow a daily stretching and flexibility routine over several weeks to safely progress towards a full front split.",
+      "difficulty_level": "ADVANCED",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "30-Day Flexibility Program", "url": "https://example.com/flexibility-program", "resource_type": "COURSE", "rationale": "Provides a safe, progressive stretching routine to build flexibility."},
+        {"title": "Anatomy of the Splits", "url": "https://example.com/splits-anatomy", "resource_type": "ARTICLE", "rationale": "Explains which muscles to target and how to avoid common injuries."},
+        {"title": "Daily Mobility Community", "url": "https://www.reddit.com/r/flexibility/", "resource_type": "COMMUNITY", "rationale": "Share progress and get form feedback from others working toward splits."}
+      ]
+    },
+    {
+      "title": "Meditate for 30 Days Straight",
+      "image_url": "https://source.unsplash.com/featured/800x600/?meditation,calm",
+      "short_description": "Meditate daily for 30 consecutive days.",
+      "full_description": "Build a consistent meditation habit by practicing mindfulness or guided meditation for at least 10 minutes every day for 30 days.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Beginner's Guide to Meditation", "url": "https://example.com/meditation-guide", "resource_type": "ARTICLE", "rationale": "Explains simple techniques to build a sustainable meditation habit."},
+        {"title": "Headspace App", "url": "https://www.headspace.com/", "resource_type": "TOOL", "rationale": "Guided meditation sessions and streak tracking to stay consistent."},
+        {"title": "The Science of Mindfulness", "url": "https://example.com/mindfulness-science", "resource_type": "ARTICLE", "rationale": "Explains the mental health benefits backed by research."}
+      ]
+    },
+    {
+      "title": "Read 12 Books in a Year",
+      "image_url": "https://source.unsplash.com/featured/800x600/?books,reading",
+      "short_description": "Read one book per month for 12 months.",
+      "full_description": "Build a consistent reading habit by finishing at least one book every month, covering a variety of genres and topics.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "How to Build a Reading Habit", "url": "https://example.com/reading-habit", "resource_type": "ARTICLE", "rationale": "Offers strategies for consistently making time to read."},
+        {"title": "Goodreads - Track Your Books", "url": "https://www.goodreads.com/", "resource_type": "TOOL", "rationale": "Log books read and set/track your annual reading goal."},
+        {"title": "Best Books to Start With", "url": "https://example.com/best-starter-books", "resource_type": "ARTICLE", "rationale": "A curated list to help you pick engaging books across genres."}
+      ]
+    },
+    {
+      "title": "Learn to Juggle 3 Balls",
+      "image_url": "https://source.unsplash.com/featured/800x600/?juggling",
+      "short_description": "Juggle 3 balls continuously for 1 minute.",
+      "full_description": "Practice the basic cascade juggling pattern daily until you can keep 3 balls in the air continuously for a full minute.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Juggling for Beginners", "url": "https://www.youtube.com/watch?v=6dEvsp3AmnE", "resource_type": "VIDEO", "rationale": "Demonstrates the cascade pattern step by step for new jugglers."},
+        {"title": "Common Juggling Mistakes", "url": "https://example.com/juggling-mistakes", "resource_type": "ARTICLE", "rationale": "Helps beginners troubleshoot drops and timing issues."}
+      ]
+    },
+    {
+      "title": "Hold a Plank for 3 Minutes",
+      "image_url": "https://source.unsplash.com/featured/800x600/?plank,core",
+      "short_description": "Hold a forearm plank for 3 consecutive minutes.",
+      "full_description": "Build core strength and endurance through progressive plank training until you can hold proper plank form for 3 full minutes.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Plank Progression Plan", "url": "https://example.com/plank-progression", "resource_type": "ARTICLE", "rationale": "Provides a structured plan to gradually increase plank hold time."},
+        {"title": "Perfect Plank Form Guide", "url": "https://www.youtube.com/watch?v=pSHjTRCQxIw", "resource_type": "VIDEO", "rationale": "Shows correct alignment to prevent lower back strain."}
+      ]
+    },
+    {
+      "title": "Learn to Play a Song on Guitar",
+      "image_url": "https://source.unsplash.com/featured/800x600/?guitar,music",
+      "short_description": "Play a full song on guitar from memory.",
+      "full_description": "Learn basic chords and strumming patterns, then practice until you can play a complete song from memory without sheet music.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Guitar Basics for Absolute Beginners", "url": "https://www.justinguitar.com/", "resource_type": "COURSE", "rationale": "Covers essential chords and strumming needed to play your first song."},
+        {"title": "Easy Songs for Beginners", "url": "https://example.com/easy-guitar-songs", "resource_type": "ARTICLE", "rationale": "A curated list of simple songs using only 3-4 chords."},
+        {"title": "Chord Chart Reference", "url": "https://example.com/downloads/guitar-chord-chart.pdf", "resource_type": "DOCUMENT", "rationale": "Printable reference for common open chords."},
+        {"title": "r/Guitar Community", "url": "https://www.reddit.com/r/Guitar/", "resource_type": "COMMUNITY", "rationale": "Share progress videos and get feedback from other learners."}
+      ]
+    },
+    {
+      "title": "Complete a 30-Day No-Sugar Challenge",
+      "image_url": "https://source.unsplash.com/featured/800x600/?healthyfood,diet",
+      "short_description": "Avoid added sugar for 30 consecutive days.",
+      "full_description": "Eliminate added sugars from your diet for 30 days, tracking your meals and building healthier eating habits along the way.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Guide to Cutting Added Sugar", "url": "https://example.com/no-sugar-guide", "resource_type": "ARTICLE", "rationale": "Explains how to identify and eliminate hidden sugars in your diet."},
+        {"title": "MyFitnessPal - Track Your Meals", "url": "https://www.myfitnesspal.com/", "resource_type": "TOOL", "rationale": "Helps track daily sugar intake and catch hidden sources."},
+        {"title": "Sugar-Free Recipe Ideas", "url": "https://example.com/sugar-free-recipes", "resource_type": "ARTICLE", "rationale": "Practical meal ideas to make the challenge easier to sustain."}
+      ]
+    },
+    {
+      "title": "Reach a 500 lb Combined Lift",
+      "image_url": "https://source.unsplash.com/featured/800x600/?powerlifting,gym",
+      "short_description": "Reach a combined 500 lbs across squat, bench, and deadlift.",
+      "full_description": "Train progressively in the big three powerlifting movements until your combined one-rep max across squat, bench press, and deadlift totals 500 lbs.",
+      "difficulty_level": "ADVANCED",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Beginner Powerlifting Program", "url": "https://example.com/powerlifting-program", "resource_type": "COURSE", "rationale": "Provides a structured strength training program for the big three lifts."},
+        {"title": "Squat, Bench, Deadlift Form Guide", "url": "https://www.youtube.com/watch?v=ultWZbUMPL8", "resource_type": "VIDEO", "rationale": "Covers proper form for the three lifts to maximize strength safely."},
+        {"title": "r/Powerlifting Community", "url": "https://www.reddit.com/r/powerlifting/", "resource_type": "COMMUNITY", "rationale": "Get programming advice and share lift progress with experienced lifters."}
+      ]
+    },
+    {
+      "title": "Learn Basic Sign Language",
+      "image_url": "https://source.unsplash.com/featured/800x600/?signlanguage",
+      "short_description": "Learn 100 common signs in ASL.",
+      "full_description": "Study and practice 100 commonly used American Sign Language signs until you can recognize and perform them fluently.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "ASL 100 Common Signs", "url": "https://www.youtube.com/watch?v=v1desDduz5M", "resource_type": "VIDEO", "rationale": "Demonstrates the 100 most commonly used signs for beginners."},
+        {"title": "ASL Alphabet Chart", "url": "https://example.com/downloads/asl-alphabet.pdf", "resource_type": "DOCUMENT", "rationale": "Reference chart for fingerspelling, a foundational ASL skill."}
+      ]
+    },
+    {
+      "title": "Complete a 100-Day Coding Streak",
+      "image_url": "https://source.unsplash.com/featured/800x600/?coding,programming",
+      "short_description": "Code every day for 100 consecutive days.",
+      "full_description": "Build a strong programming habit by writing and committing code every single day for 100 days straight, no matter how small.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "100 Days of Code Challenge Guide", "url": "https://www.100daysofcode.com/", "resource_type": "ARTICLE", "rationale": "Outlines strategies for maintaining a daily coding streak."},
+        {"title": "GitHub - Track Your Commits", "url": "https://github.com/", "resource_type": "TOOL", "rationale": "Your contribution graph serves as visual proof of your daily streak."},
+        {"title": "freeCodeCamp Curriculum", "url": "https://www.freecodecamp.org/", "resource_type": "COURSE", "rationale": "Provides structured daily lessons and projects to fuel your streak."},
+        {"title": "#100DaysOfCode Community", "url": "https://www.reddit.com/r/100DaysOfCode/", "resource_type": "COMMUNITY", "rationale": "Stay accountable and motivated with others doing the challenge."}
+      ]
+    },
+    {
+      "title": "Swim 1500m Without Stopping",
+      "image_url": "https://source.unsplash.com/featured/800x600/?swimming,pool",
+      "short_description": "Swim 1500 meters continuously.",
+      "full_description": "Build swimming endurance through progressive training until you can complete 1500 meters (a mile swim) without stopping.",
+      "difficulty_level": "INTERMEDIATE",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Swim Endurance Training Plan", "url": "https://example.com/swim-endurance", "resource_type": "ARTICLE", "rationale": "Provides a progressive plan to build up continuous swim distance."},
+        {"title": "Freestyle Technique Breakdown", "url": "https://www.youtube.com/watch?v=5HLW2AI1Ink", "resource_type": "VIDEO", "rationale": "Efficient technique reduces fatigue over longer swim distances."}
+      ]
+    },
+    {
+      "title": "Learn to Solve a Sudoku in Under 5 Minutes",
+      "image_url": "https://source.unsplash.com/featured/800x600/?sudoku,puzzle",
+      "short_description": "Solve a medium-difficulty Sudoku puzzle in under 5 minutes.",
+      "full_description": "Learn Sudoku solving techniques and strategies, then practice regularly until you can complete a medium-difficulty puzzle in under 5 minutes.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Sudoku Solving Strategies", "url": "https://example.com/sudoku-strategies", "resource_type": "ARTICLE", "rationale": "Teaches key techniques to solve Sudoku puzzles quickly."},
+        {"title": "Sudoku.com - Daily Practice", "url": "https://sudoku.com/", "resource_type": "TOOL", "rationale": "Unlimited puzzles with built-in timer to track your improvement."}
+      ]
+    },
+    {
+      "title": "Do a Handstand for 30 Seconds",
+      "image_url": "https://source.unsplash.com/featured/800x600/?handstand,gymnastics",
+      "short_description": "Hold a freestanding handstand for 30 seconds.",
+      "full_description": "Build shoulder and core strength and balance through progressive handstand drills until you can hold a freestanding handstand for 30 seconds.",
+      "difficulty_level": "ADVANCED",
+      "verification_type": "VIDEO_VERIFIED",
+      "resources": [
+        {"title": "Handstand Progression for Beginners", "url": "https://www.youtube.com/watch?v=6EVh4kwzUQU", "resource_type": "VIDEO", "rationale": "Breaks down the progressive drills needed to build handstand balance."},
+        {"title": "Wall Drills to Build Confidence", "url": "https://example.com/handstand-wall-drills", "resource_type": "ARTICLE", "rationale": "Helps beginners get comfortable being upside down before freestanding."},
+        {"title": "r/Handbalancing Community", "url": "https://www.reddit.com/r/handbalancing/", "resource_type": "COMMUNITY", "rationale": "Get form critiques on your handstand videos from experienced athletes."}
+      ]
+    },
+    {
+      "title": "Save $1000 in 90 Days",
+      "image_url": "https://source.unsplash.com/featured/800x600/?savings,money",
+      "short_description": "Save $1000 within 90 days.",
+      "full_description": "Create and follow a budget, cut unnecessary expenses, and track your progress until you've saved $1000 within 90 days.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "90-Day Savings Challenge Plan", "url": "https://example.com/savings-challenge", "resource_type": "ARTICLE", "rationale": "Provides a practical budgeting framework to hit a savings goal."},
+        {"title": "YNAB - Budgeting Tool", "url": "https://www.ynab.com/", "resource_type": "TOOL", "rationale": "Helps allocate every dollar and track savings progress in real time."},
+        {"title": "50 Ways to Cut Monthly Expenses", "url": "https://example.com/cut-expenses", "resource_type": "ARTICLE", "rationale": "Practical, actionable ideas to free up money to save faster."}
+      ]
+    },
+    {
+      "title": "Cook 20 New Recipes",
+      "image_url": "https://source.unsplash.com/featured/800x600/?cooking,kitchen",
+      "short_description": "Cook 20 different new recipes you've never made before.",
+      "full_description": "Expand your culinary skills by cooking 20 recipes you've never tried, exploring different cuisines and techniques along the way.",
+      "difficulty_level": "BEGINNER",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Beginner Cooking Techniques", "url": "https://example.com/cooking-techniques", "resource_type": "ARTICLE", "rationale": "Covers foundational techniques useful across many new recipes."},
+        {"title": "NYT Cooking - Recipe Database", "url": "https://cooking.nytimes.com/", "resource_type": "TOOL", "rationale": "A huge searchable recipe library to source your 20 new dishes from."}
+      ]
+    },
+    {
+      "title": "Learn 500 Chess Opening Moves",
+      "image_url": "https://source.unsplash.com/featured/800x600/?chess,strategy",
+      "short_description": "Memorize and understand 500 chess opening theory moves.",
+      "full_description": "Study major chess openings and their key lines, practicing them in games until you can confidently recognize and play through 500 moves of opening theory.",
+      "difficulty_level": "ADVANCED",
+      "verification_type": "ACCOUNT_VERIFIED",
+      "resources": [
+        {"title": "Chess Opening Theory Fundamentals", "url": "https://www.chess.com/lessons/openings", "resource_type": "COURSE", "rationale": "Covers the most important opening lines and their underlying strategy."},
+        {"title": "Chess Endgame Principles", "url": "https://example.com/endgames", "resource_type": "ARTICLE", "rationale": "Complements opening study with the endgame techniques needed to convert an advantage."},
+        {"title": "Lichess Opening Explorer", "url": "https://lichess.org/opening", "resource_type": "TOOL", "rationale": "Interactive tool to explore and drill opening lines against real game data."},
+        {"title": "r/chess Community", "url": "https://www.reddit.com/r/chess/", "resource_type": "COMMUNITY", "rationale": "Discuss opening theory and get game reviews from other players."}
+      ]
+    }
+  ]
+}

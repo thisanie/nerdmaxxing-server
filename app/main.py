@@ -7,7 +7,11 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
-from app.core.database import engine
+from app.api.challenges import router as challenges_router
+from app.api.participation import router as participation_router
+from app.api.evidence import router as evidence_router
+from app.api.skills import router as skills_router
+from app.core.database import engine, ensure_local_schema
 from app.models.base import Base
 from app.core.config import settings
 from app.core.dependencies import limiter
@@ -18,6 +22,7 @@ import app.models
 
 Base.metadata.create_all(
         bind= engine)
+ensure_local_schema()
 
 
 
@@ -57,6 +62,10 @@ def health_check():
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(challenges_router)
+app.include_router(participation_router)
+app.include_router(evidence_router)
+app.include_router(skills_router)
 
 
 
