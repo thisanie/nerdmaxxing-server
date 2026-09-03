@@ -6,6 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.auth import router as auth_router
+from app.api.users import router as users_router
 from app.core.database import engine
 from app.models.base import Base
 from app.core.config import settings
@@ -55,6 +56,7 @@ def health_check():
 
 
 app.include_router(auth_router)
+app.include_router(users_router)
 
 
 

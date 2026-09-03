@@ -1,8 +1,28 @@
+import re
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.identity import Identity
 from app.models.user import User
+
+
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,24}$")
+
+
+def normalize_username(username: str) -> str:
+    return username.casefold()
+
+
+def is_valid_username(username: str) -> bool:
+    return bool(USERNAME_PATTERN.fullmatch(username))
+
+
+def is_username_available(db: Session, *, username: str) -> bool:
+    statement = select(User.id).where(
+        User.username_normalized == normalize_username(username)
+    )
+    return db.scalar(statement) is None
 
 
 def get_or_create_google_user(

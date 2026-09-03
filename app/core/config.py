@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     force_https: bool = False
     google_auth_rate_limit: str = "10/minute"
     refresh_auth_rate_limit: str = "30/minute"
+    username_availability_rate_limit: str = "60/minute"
 
     model_config = SettingsConfigDict(
             env_file = ".env",
