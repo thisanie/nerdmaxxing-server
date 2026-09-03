@@ -1,4 +1,5 @@
 .env
 .venv
 nerdmaxxing.db
+__pycache__/
 

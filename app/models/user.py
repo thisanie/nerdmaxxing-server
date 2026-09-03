@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.base import Base
     from app.models.identity import Identity
     from app.models.session import Session
 
@@ -65,13 +65,13 @@ class User(Base):
 
     )
 
-    identities : Mapped[list[Identity]] = relationship(
+    identities : Mapped[list["Identity"]] = relationship(
         
         back_populates="user",
         cascade="all, delete-orphan"
     )
 
-    sessions : Mapped[list[Session]] = relationship(
+    sessions : Mapped[list["Session"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan"
     )
