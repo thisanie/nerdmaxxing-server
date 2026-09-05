@@ -3,5 +3,6 @@ uvicorn
 google-auth
 pydantic-settings
 sqlalchemy
+psycopg2-binary
 PyJWT
 slowapi
