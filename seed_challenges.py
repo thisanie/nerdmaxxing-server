@@ -5,13 +5,44 @@ from pathlib import Path
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.time import utcnow
 from app.models.challenge import Challenge, ChallengeResource
+from app.models.category import Category
 from app.models.user import User
 
 SEED_USERNAME = "nerdmaxxing_seed"
 SEED_USER_ID = "00000000-0000-0000-0000-000000000001"
+SEED_CATEGORIES = [
+    ("brain-memory", "Brain & Memory", "🧠"),
+    ("technology", "Technology", "💻"),
+    ("games-strategy", "Games & Strategy", "♟"),
+    ("knowledge", "Knowledge", "📚"),
+    ("creative", "Creative", "🎨"),
+    ("music", "Music", "🎵"),
+    ("languages", "Languages", "🗣"),
+    ("physical", "Physical", "🏃"),
+    ("science", "Science", "🔬"),
+    ("practical", "Practical", "🛠"),
+]
+
+CATEGORY_RULES = {
+    "technology": ("typing", "coding"),
+    "languages": ("spanish", "sign language"),
+    "physical": ("run ", "push-ups", "splits", "plank", "lift", "swim", "handstand"),
+    "brain-memory": ("rubik", "sudoku", "meditate"),
+    "knowledge": ("books",),
+    "music": ("guitar",),
+    "practical": ("sugar", "save $", "cook"),
+    "creative": ("juggle",),
+}
+FEATURED_TITLE = "Solve a Rubik's Cube Under 2 Minutes"
+LEGENDARY_TITLES = {
+    "Reach a 500 lb Combined Lift",
+    "Complete a 100-Day Coding Streak",
+    "Master the Splits",
+}
 
 
 def load_seed_data() -> dict:
@@ -21,6 +52,20 @@ def load_seed_data() -> dict:
 def make_slug(title: str) -> str:
     base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "challenge"
     return f"{base}-{uuid.uuid4().hex[:8]}"
+
+
+def category_slugs_for(title: str) -> list[str]:
+    normalized_title = title.lower()
+    matches = [
+        slug
+        for slug, keywords in CATEGORY_RULES.items()
+        if any(keyword in normalized_title for keyword in keywords)
+    ]
+    return matches[:3] or ["knowledge"]
+
+
+def image_url_for(item: dict) -> str:
+    return settings.default_challenge_image_url
 
 
 def seed() -> None:
@@ -39,6 +84,16 @@ def seed() -> None:
             db.add(owner)
             db.flush()
 
+        for display_order, (slug, name, icon) in enumerate(SEED_CATEGORIES):
+            category = db.scalar(select(Category).where(Category.slug == slug))
+            if category is None:
+                db.add(Category(slug=slug, name=name, icon=icon, display_order=display_order))
+        db.flush()
+        categories_by_slug = {
+            category.slug: category
+            for category in db.scalars(select(Category)).all()
+        }
+
         created = 0
         updated = 0
         for item in load_seed_data()["challenges"]:
@@ -52,7 +107,7 @@ def seed() -> None:
                 challenge = Challenge(
                     title=item["title"],
                     slug=make_slug(item["title"]),
-                    image_url=item["image_url"],
+                    image_url=image_url_for(item),
                     short_description=item["short_description"],
                     full_description=item["full_description"],
                     creator_id=owner.id,
@@ -60,22 +115,33 @@ def seed() -> None:
                     status="PUBLISHED",
                     visibility="PUBLIC",
                     verification_type=item["verification_type"],
+                    estimated_duration_minutes=10080,
+                    featured=item["title"] == FEATURED_TITLE,
+                    legendary=item["title"] in LEGENDARY_TITLES,
                     published_at=utcnow(),
                 )
                 db.add(challenge)
                 db.flush()
                 created += 1
             else:
-                challenge.image_url = item["image_url"]
+                challenge.image_url = image_url_for(item)
                 challenge.short_description = item["short_description"]
                 challenge.full_description = item["full_description"]
                 challenge.difficulty_level = item["difficulty_level"]
                 challenge.verification_type = item["verification_type"]
+                challenge.estimated_duration_minutes = challenge.estimated_duration_minutes or 10080
+                challenge.featured = item["title"] == FEATURED_TITLE
+                challenge.legendary = item["title"] in LEGENDARY_TITLES
                 challenge.status = "PUBLISHED"
                 challenge.visibility = "PUBLIC"
-                challenge.published_at = challenge.published_at or utcnow()
+                challenge.published_at = utcnow()
                 challenge.resources.clear()
                 updated += 1
+
+            challenge.categories = [
+                categories_by_slug[slug]
+                for slug in category_slugs_for(item["title"])
+            ]
 
             if not challenge.resources:
                 challenge.resources = [

@@ -23,15 +23,19 @@ SessionLocal = sessionmaker(
 
 
 def ensure_local_schema() -> None:
-        """Apply small local SQLite additions until migrations are introduced."""
-        if not settings.database_url.startswith("sqlite"):
-                return
-
+        """Apply additive schema changes until a versioned migration system exists."""
         with engine.begin() as connection:
-                columns = {column["name"] for column in inspect(connection).get_columns("challenges")}
-                if columns and "image_url" not in columns:
-                        connection.execute(
-                                text("ALTER TABLE challenges ADD COLUMN image_url VARCHAR(2048) NOT NULL DEFAULT ''")
-                        )
+                inspector = inspect(connection)
+                columns = {column["name"] for column in inspector.get_columns("challenges")}
+                additions = {
+                        "image_url": "VARCHAR(2048) NOT NULL DEFAULT ''",
+                        "estimated_duration_minutes": "INTEGER",
+                        "image_key": "TEXT",
+                        "featured": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "legendary": "BOOLEAN NOT NULL DEFAULT FALSE",
+                }
+                for name, definition in additions.items():
+                        if columns and name not in columns:
+                                connection.execute(text(f"ALTER TABLE challenges ADD COLUMN {name} {definition}"))
 
 
