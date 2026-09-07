@@ -130,6 +130,18 @@ Returns `422 Unprocessable Entity` for an invalid username.
 
 Public profile view. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
 
+### `GET /api/v1/users/{user_id}/follow-status`
+
+Requires authentication. Returns whether the authenticated user follows the specified user.
+
+Response `200 OK`:
+
+```json
+{
+  "is_following": true
+}
+```
+
 ### `POST /api/v1/users/me/username`
 
 Requires authentication. Sets the current user's first username.

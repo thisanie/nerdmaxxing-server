@@ -14,6 +14,7 @@ from app.models.skill import UserSkill
 from app.schemas.challenge import ChallengeResponse
 from app.schemas.user import (
     AuraTransactionResponse,
+    FollowStatusResponse,
     UsernameAvailabilityResponse,
     UsernameRequest,
     UsernameResponse,
@@ -312,6 +313,21 @@ def follow_user(
     db.commit()
 
 
+@router.get("/{user_id}/follow-status", response_model=FollowStatusResponse)
+def get_follow_status(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FollowStatusResponse:
+    if db.get(User, user_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    is_following = db.get(
+        UserFollow,
+        {"follower_id": current_user.id, "following_id": user_id},
+    ) is not None
+    return FollowStatusResponse(is_following=is_following)
+
+
 @router.delete("/{user_id}/follow", status_code=status.HTTP_204_NO_CONTENT)
 def unfollow_user(
     user_id: str,
@@ -328,13 +344,13 @@ def unfollow_user(
 def list_user_connections(
     db: Session, user_id: str, following: bool, limit: int, offset: int
 ) -> list[User]:
-    join_column = UserFollow.following_id if following else UserFollow.follower_id
-    user_column = UserFollow.follower_id if following else UserFollow.following_id
+    user_column = UserFollow.following_id if following else UserFollow.follower_id
+    filter_column = UserFollow.follower_id if following else UserFollow.following_id
     return list(
         db.scalars(
             select(User)
             .join(UserFollow, User.id == user_column)
-            .where(join_column == user_id)
+            .where(filter_column == user_id)
             .order_by(UserFollow.created_at.desc())
             .offset(offset)
             .limit(limit)

@@ -48,10 +48,16 @@ class UserProfileUpdate(BaseModel):
 
 
 class UserSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     username: str | None
-    name: str | None
+    name: str | None = Field(validation_alias="display_name")
     avatar_url: str | None
+
+
+class FollowStatusResponse(BaseModel):
+    is_following: bool
 
 
 class AuraTransactionResponse(BaseModel):
