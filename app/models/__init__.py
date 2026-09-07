@@ -7,6 +7,8 @@ from app.models.category import Category
 from app.models.participation import ChallengeParticipant
 from app.models.evidence import EvidenceSubmission, EvidenceItem
 from app.models.skill import UserSkill
+from app.models.follow import UserFollow
+from app.models.aura import AuraTransaction
 
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
         "EvidenceSubmission",
         "EvidenceItem",
         "UserSkill",
+        "UserFollow",
+        "AuraTransaction",
         ]

@@ -58,6 +58,28 @@ def list_public_challenges(
     return _responses(list(db.scalars(statement).all()), db)
 
 
+@router.get("/private", response_model=list[ChallengeResponse])
+def list_private_challenges(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> list[ChallengeResponse]:
+    statement = (
+        select(Challenge)
+        .where(
+            Challenge.creator_id == current_user.id,
+            Challenge.status == "PRIVATE",
+            Challenge.visibility == "PRIVATE",
+        )
+        .options(selectinload(Challenge.categories), selectinload(Challenge.resources))
+        .order_by(Challenge.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return _responses(list(db.scalars(statement).all()), db)
+
+
 @router.get("/{slug}", response_model=ChallengeResponse)
 def get_public_challenge(slug: str, db: Session = Depends(get_db)) -> ChallengeResponse:
     challenge = db.scalar(

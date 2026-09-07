@@ -126,6 +126,10 @@ Response `200 OK`:
 
 Returns `422 Unprocessable Entity` for an invalid username.
 
+### `GET /api/v1/users/{username}`
+
+Public profile view. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
+
 ### `POST /api/v1/users/me/username`
 
 Requires authentication. Sets the current user's first username.
@@ -161,6 +165,12 @@ Returns `409 Conflict` when the requested username is unavailable.
 Lists public, published challenges, newest first. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
 
 Response `200 OK`: an array of [Challenge](#challenge-object) objects.
+
+### `GET /api/v1/challenges/private?limit={limit}&offset={offset}`
+
+Requires authentication. Lists the authenticated user's private challenges, newest first. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
+
+Response `200 OK`: an array of [Challenge](#challenge-object) objects with `status` and `visibility` set to `PRIVATE`.
 
 ### `GET /api/v1/challenges/{slug}`
 
