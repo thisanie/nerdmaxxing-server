@@ -79,7 +79,7 @@ def create_private_challenge(
     current_user: User = Depends(get_current_user),
 ) -> ChallengeResponse:
     challenge = Challenge(
-        **payload.model_dump(exclude={"image_url", "category_ids"}),
+        **payload.model_dump(exclude={"image_url", "category_ids", "resources"}),
         image_url=str(payload.image_url or settings.default_challenge_image_url),
         slug=make_slug(payload.title),
         creator_id=current_user.id,
