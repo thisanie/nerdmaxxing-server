@@ -12,6 +12,7 @@
 
 - **Timestamps:** ISO 8601 datetime strings in UTC.
 - **IDs:** Strings.
+- **File uploads:** Uploaded files are stored in the configured S3-compatible blob storage.
 - **Validation failures:** FastAPI returns `422 Unprocessable Entity` with a `detail` array.
 - **Rate limiting:** Google authentication, token refresh, and username availability are rate limited per client IP.
 
@@ -26,6 +27,21 @@ Application errors use this shape:
   "detail": "Human-readable explanation."
 }
 ```
+
+### Blob storage configuration
+
+Uploads require these environment variables:
+
+```text
+AWS_ENDPOINT_URL_S3=https://your-branch.storage.c-2.us-east-2.aws.neon.tech
+NEON_STORAGE_BUCKET=your-bucket
+AWS_ACCESS_KEY_ID=your-neon-token-id
+AWS_SECRET_ACCESS_KEY=your-neon-s3-secret
+AWS_REGION=us-east-2
+S3_PUBLIC_URL=https://your-public-bucket-url
+```
+
+Create the bucket in Neon with `public_read` access if API responses should contain directly readable object URLs; set `S3_PUBLIC_URL` to the bucket's public base URL. Uploads are limited to 10 MB and support JPEG, PNG, WebP, PDF, and plain text.
 
 ## Health
 
@@ -170,6 +186,60 @@ Requires authentication. Updates the current user's username. The request, respo
 
 Returns `409 Conflict` when the requested username is unavailable.
 
+### `PATCH /api/v1/users/me/profile`
+
+Requires authentication. Accepts `multipart/form-data` with optional `name`, `bio`, and `avatar` fields. The `avatar` field must be an image file and replaces the current profile avatar in blob storage.
+
+## Groups
+
+### `POST /api/v1/groups`
+
+Requires authentication. Creates a group and makes the creator its first active member.
+
+Request:
+
+```json
+{
+  "name": "Distributed Systems Study",
+  "description": "A focused study group.",
+  "visibility": "PRIVATE"
+}
+```
+
+`visibility` is `PUBLIC` or `PRIVATE` and defaults to `PUBLIC`.
+
+### `GET /api/v1/groups`
+
+Requires authentication. Lists public groups. Supports `limit` (1-100, default 20) and `offset` (default 0). Each group includes the caller's `membership_status` when applicable.
+
+### `GET /api/v1/groups/me`
+
+Requires authentication. Lists every group where the authenticated user has active membership. This is also the group collection included in authenticated and public user profile responses as `groups`.
+
+### `GET /api/v1/groups/{group_id}`
+
+Requires authentication. Returns a group and its active member count.
+
+### `POST /api/v1/groups/{group_id}/join`
+
+Requires authentication. Joins a public group immediately and returns an `ACTIVE` membership. For a private group, creates a `PENDING` request for the creator's approval. Repeated requests return `409 Conflict`.
+
+### `DELETE /api/v1/groups/{group_id}/leave`
+
+Requires authentication. Removes the caller's active membership or pending request. The creator cannot leave their own group.
+
+### `GET /api/v1/groups/{group_id}/join-requests`
+
+Requires authentication by the group creator. Lists pending requests with the requester's user information.
+
+### `POST /api/v1/groups/{group_id}/join-requests/{user_id}/approve`
+
+Requires authentication by the group creator. Converts the pending request to an active membership.
+
+### `DELETE /api/v1/groups/{group_id}/join-requests/{user_id}`
+
+Requires authentication by the group creator. Rejects and removes the pending request.
+
 ## Challenges
 
 ### `GET /api/v1/challenges?limit={limit}&offset={offset}`
@@ -194,18 +264,18 @@ Returns `404 Not Found` when no public, published challenge matches the slug.
 
 ### `POST /api/v1/challenges`
 
-Requires authentication. Creates a private challenge owned by the caller.
+Requires authentication. Creates a private challenge owned by the caller. Accepts `multipart/form-data` with a `payload` field containing the challenge JSON, an optional `image` file, and one `resource_files` file for each resource in `payload.resources`, in the same order.
 
 Request:
 
 ```json
 {
   "title": "Build a personal knowledge system",
-  "image_url": "https://example.com/knowledge-system.png",
+  "image_url": null,
   "resources": [
     {
       "title": "Getting Started",
-      "url": "https://example.com/guide",
+      "url": null,
       "resource_type": "LINK",
       "rationale": "Provides the foundation for the challenge."
     }
@@ -224,8 +294,9 @@ Response `201 Created`: a [Challenge](#challenge-object) object with `status` an
 Rules:
 
 - `title`: 3-160 characters.
-- `image_url`: HTTP(S) URL.
+- `image`: optional JPEG, PNG, or WebP file; the default image is used when omitted.
 - `resources`: 1-20 resources.
+- Each resource requires a corresponding uploaded `resource_files` file.
 - `short_description`: 1-300 characters.
 - `full_description`: at least 1 character.
 - Each resource `title` is 1-160 characters and `rationale` is 1-1000 characters.
@@ -271,23 +342,42 @@ Permitted transitions:
 
 Returns `404 Not Found` for a participation not owned by the caller and `409 Conflict` for an invalid transition.
 
+### `POST /api/v1/participation/{participant_id}/progress`
+
+Requires authentication. Logs time and an optional note for an active participation. `hours_spent` must be greater than 0 and no more than 24.
+
+```json
+{
+  "hours_spent": 1.5,
+  "note": "Built the first prototype."
+}
+```
+
+Response `201 Created`: a progress log object. Logging progress updates the participation activity timestamp and the user's streak. A streak resets to `0` after more than 24 hours without a progress log.
+
+### `GET /api/v1/participation/{participant_id}/progress`
+
+Requires authentication. Lists progress logs for a participation owned by the caller, newest first.
+
+### `GET /api/v1/users/me/stats`
+
+Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, and `aura_points`.
+
 ## Evidence
 
 ### `POST /api/v1/evidence/participation/{participant_id}`
 
-Requires authentication. Submits evidence for the caller's participation. The participation must be `ACCEPTED`, `IN_PROGRESS`, or `PAUSED`; submission moves it to `SUBMITTED` with pending verification.
+Requires authentication. Submits evidence for the caller's participation. Accepts `multipart/form-data` with optional `explanation`, optional `text_content`, and an optional `file`. The participation must be `ACCEPTED`, `IN_PROGRESS`, or `PAUSED`; submission moves it to `SUBMITTED` with pending verification.
 
 Request:
 
 ```json
-{
-  "explanation": "I completed the work and published the notes.",
-  "text_content": "https://example.com/my-notes",
-  "external_url": "https://example.com/my-notes"
-}
+explanation=I completed the work and published the notes.
+text_content=The work is complete.
+file=<uploaded PDF, image, or text file>
 ```
 
-At least one of `text_content` or `external_url` is required. `explanation` is limited to 5,000 characters and `text_content` to 20,000 characters.
+At least one of `text_content` or `file` is required. `explanation` is limited to 5,000 characters and `text_content` to 20,000 characters.
 
 Response `201 Created`: an [Evidence submission](#evidence-submission-object) object.
 

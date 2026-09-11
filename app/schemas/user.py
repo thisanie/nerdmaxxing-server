@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.challenge import ChallengeResponse
+from app.schemas.group import GroupResponse
 
 
 class UsernameRequest(BaseModel):
@@ -38,6 +39,7 @@ class UserProfileResponse(BaseModel):
     created_challenges_count: int
     skills: list[ProfileSkillResponse] = Field(default_factory=list)
     completed_challenges: list[ChallengeResponse] = Field(default_factory=list)
+    groups: list[GroupResponse] = Field(default_factory=list)
     is_following: bool = False
 
 
@@ -58,6 +60,13 @@ class UserSummaryResponse(BaseModel):
 
 class FollowStatusResponse(BaseModel):
     is_following: bool
+
+
+class UserStatsResponse(BaseModel):
+    active_challenge_count: int
+    completed_challenge_count: int
+    day_streak: int
+    aura_points: int
 
 
 class AuraTransactionResponse(BaseModel):

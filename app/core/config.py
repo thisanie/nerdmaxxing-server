@@ -1,9 +1,32 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     google_web_client_id:str
 
     database_url:str
+
+    s3_endpoint_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "S3_ENDPOINT_URL"),
+    )
+    s3_bucket: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("NEON_STORAGE_BUCKET", "S3_BUCKET"),
+    )
+    s3_access_key_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"),
+    )
+    s3_secret_access_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"),
+    )
+    s3_region: str = Field(
+        default="us-east-1",
+        validation_alias=AliasChoices("AWS_REGION", "S3_REGION"),
+    )
+    s3_public_url: str | None = None
 
     jwt_secret_key:str
     jwt_algorithm: str = "HS256"

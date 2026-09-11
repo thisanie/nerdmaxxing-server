@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.exc import IntegrityError
+from datetime import timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -9,8 +11,11 @@ from app.models.user import User
 from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
 from app.models.follow import UserFollow
+from app.models.group import Group, GroupMembership
 from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
+from app.models.participation import ChallengeParticipant
+from app.core.time import utcnow
 from app.schemas.challenge import ChallengeResponse
 from app.schemas.user import (
     AuraTransactionResponse,
@@ -21,13 +26,16 @@ from app.schemas.user import (
     UserProfileResponse,
     UserProfileUpdate,
     UserSummaryResponse,
+    UserStatsResponse,
 )
+from app.schemas.group import GroupResponse
 from app.services.discovery_service import _responses
 from app.services.user_service import (
     is_username_available,
     is_valid_username,
     normalize_username,
 )
+from app.services.blob_storage import upload_blob
 
 
 router = APIRouter(
@@ -180,6 +188,35 @@ def profile_response(
             for skill in skills
         ],
         completed_challenges=_responses(list(completed_challenges), db),
+        groups=[
+            GroupResponse(
+                id=group.id,
+                name=group.name,
+                description=group.description,
+                visibility=group.visibility,
+                creator_id=group.creator_id,
+                member_count=db.scalar(
+                    select(func.count())
+                    .select_from(GroupMembership)
+                    .where(
+                        GroupMembership.group_id == group.id,
+                        GroupMembership.status == "ACTIVE",
+                    )
+                ) or 0,
+                membership_status="ACTIVE",
+                created_at=group.created_at,
+            )
+            for group in db.scalars(
+                select(Group)
+                .join(GroupMembership, GroupMembership.group_id == Group.id)
+                .where(
+                    GroupMembership.user_id == user.id,
+                    GroupMembership.status == "ACTIVE",
+                    *([Group.visibility == "PUBLIC"] if public_only else []),
+                )
+                .order_by(Group.created_at.desc())
+            ).all()
+        ],
         is_following=is_following,
     )
 
@@ -192,15 +229,55 @@ def get_my_profile(
     return profile_response(db, current_user, current_user.id)
 
 
+@router.get("/me/stats", response_model=UserStatsResponse)
+def get_my_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserStatsResponse:
+    now = utcnow()
+    if (
+        current_user.last_progress_at is not None
+        and now - current_user.last_progress_at > timedelta(hours=24)
+    ):
+        current_user.day_streak = 0
+        db.commit()
+
+    active_count = db.scalar(
+        select(func.count())
+        .select_from(ChallengeParticipant)
+        .where(
+            ChallengeParticipant.user_id == current_user.id,
+            ChallengeParticipant.status.in_(("ACCEPTED", "IN_PROGRESS")),
+        )
+    ) or 0
+    completed_count = db.scalar(
+        select(func.count())
+        .select_from(ChallengeParticipant)
+        .where(
+            ChallengeParticipant.user_id == current_user.id,
+            ChallengeParticipant.completion_status == "COMPLETED",
+        )
+    ) or 0
+    return UserStatsResponse(
+        active_challenge_count=active_count,
+        completed_challenge_count=completed_count,
+        day_streak=current_user.day_streak,
+        aura_points=current_user.aura_points,
+    )
+
+
 @router.patch("/me/profile", response_model=UserProfileResponse)
-def update_my_profile(
-    payload: UserProfileUpdate,
+async def update_my_profile(
+    name: str | None = Form(default=None, max_length=100),
+    bio: str | None = Form(default=None, max_length=500),
+    avatar: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserProfileResponse:
-    current_user.display_name = payload.name
-    current_user.bio = payload.bio
-    current_user.avatar_url = payload.avatar_url
+    current_user.display_name = name
+    current_user.bio = bio
+    if avatar:
+        current_user.avatar_url = await upload_blob(avatar, f"users/{current_user.id}/avatars")
     db.commit()
     db.refresh(current_user)
     return profile_response(db, current_user, current_user.id)

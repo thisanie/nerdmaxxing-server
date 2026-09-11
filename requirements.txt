@@ -7,3 +7,5 @@ psycopg2-binary
 PyJWT
 slowapi
 requests
+boto3
+python-multipart

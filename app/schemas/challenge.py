@@ -31,9 +31,10 @@ class ChallengeCreate(BaseModel):
 
 class ChallengeResourceCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
-    url: AnyHttpUrl
+    url: AnyHttpUrl | None = None
     resource_type: str = Field(default="LINK", min_length=1, max_length=30)
     rationale: str = Field(min_length=1, max_length=1000)
+    order_index: int = Field(default=0, ge=0)
 
 
 class ChallengeResourceResponse(BaseModel):

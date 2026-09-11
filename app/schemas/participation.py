@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ParticipationResponse(BaseModel):
@@ -19,3 +19,19 @@ class ParticipationResponse(BaseModel):
 
 class ParticipationStatusUpdate(BaseModel):
     status: str
+
+
+class ProgressLogCreate(BaseModel):
+    hours_spent: float = Field(gt=0, le=24)
+    note: str | None = Field(default=None, max_length=5000)
+
+
+class ProgressLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    participant_id: str
+    user_id: str
+    minutes_spent: int
+    note: str | None
+    created_at: datetime

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,7 +9,14 @@ from app.core.dependencies import get_current_user, get_db
 from app.models.challenge import Challenge
 from app.models.participation import ChallengeParticipant
 from app.models.user import User
-from app.schemas.participation import ParticipationResponse, ParticipationStatusUpdate
+from app.schemas.participation import (
+    ParticipationResponse,
+    ParticipationStatusUpdate,
+    ProgressLogCreate,
+    ProgressLogResponse,
+)
+from app.models.progress import ChallengeProgressLog
+from app.services.progress_service import record_progress
 
 
 router = APIRouter(prefix="/api/v1/participation", tags=["Participation"])
@@ -92,6 +99,66 @@ def accept_challenge(
         )
     db.refresh(participant)
     return participant
+
+
+@router.post("/{participant_id}/progress", response_model=ProgressLogResponse, status_code=status.HTTP_201_CREATED)
+def log_progress(
+    participant_id: str,
+    payload: ProgressLogCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChallengeProgressLog:
+    participant = db.scalar(
+        select(ChallengeParticipant).where(
+            ChallengeParticipant.id == participant_id,
+            ChallengeParticipant.user_id == current_user.id,
+        )
+    )
+    if participant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
+    if participant.status not in ACTIVE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Progress can only be logged for an active challenge.",
+        )
+
+    progress = record_progress(
+        db,
+        current_user,
+        participant,
+        minutes_spent=round(payload.hours_spent * 60),
+        note=payload.note,
+    )
+    db.commit()
+    db.refresh(progress)
+    return progress
+
+
+@router.get("/{participant_id}/progress", response_model=list[ProgressLogResponse])
+def list_progress(
+    participant_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> list[ChallengeProgressLog]:
+    participant = db.scalar(
+        select(ChallengeParticipant).where(
+            ChallengeParticipant.id == participant_id,
+            ChallengeParticipant.user_id == current_user.id,
+        )
+    )
+    if participant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
+    return list(
+        db.scalars(
+            select(ChallengeProgressLog)
+            .where(ChallengeProgressLog.participant_id == participant_id)
+            .order_by(ChallengeProgressLog.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+    )
 
 
 @router.patch("/{participant_id}", response_model=ParticipationResponse)

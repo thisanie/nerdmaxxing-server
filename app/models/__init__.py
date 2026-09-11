@@ -9,6 +9,8 @@ from app.models.evidence import EvidenceSubmission, EvidenceItem
 from app.models.skill import UserSkill
 from app.models.follow import UserFollow
 from app.models.aura import AuraTransaction
+from app.models.group import Group, GroupMembership
+from app.models.progress import ChallengeProgressLog
 
 
 __all__ = [
@@ -24,4 +26,7 @@ __all__ = [
         "UserSkill",
         "UserFollow",
         "AuraTransaction",
+        "Group",
+        "GroupMembership",
+        "ChallengeProgressLog",
         ]

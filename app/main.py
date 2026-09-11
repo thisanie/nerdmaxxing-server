@@ -12,6 +12,7 @@ from app.api.participation import router as participation_router
 from app.api.evidence import router as evidence_router
 from app.api.skills import router as skills_router
 from app.api.discover import router as discover_router
+from app.api.groups import router as groups_router
 from app.core.database import engine, ensure_local_schema
 from app.models.base import Base
 from app.core.config import settings
@@ -69,6 +70,7 @@ app.include_router(participation_router)
 app.include_router(evidence_router)
 app.include_router(skills_router)
 app.include_router(discover_router)
+app.include_router(groups_router)
 
 
 

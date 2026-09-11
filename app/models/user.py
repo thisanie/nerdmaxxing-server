@@ -15,58 +15,22 @@ if TYPE_CHECKING:
 
 
 class User(Base):
-
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(
-            String(36),
-            primary_key = True,
-            default = lambda : str(uuid.uuid4()),
-
-    )
-
-    username: Mapped[str | None] = mapped_column(
-            String(24),
-            nullable= True,
-    )
-
-
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    username: Mapped[str | None] = mapped_column(String(24), nullable=True)
     username_normalized: Mapped[str | None] = mapped_column(
-            String(24),
-            nullable = True,
-            unique = True,
-            index = True,
+        String(24), nullable=True, unique=True, index=True
     )
-
-
-    display_name : Mapped[str | None] = mapped_column(
-            String(100),
-            nullable = True,
-    )
-
-
-    avatar_url : Mapped[str | None] = mapped_column(
-            String,
-            nullable = True,
-    )
-
+    display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
-
     aura_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-
-    created_at : Mapped[datetime] = mapped_column(
-            DateTime,
-            default = datetime.utcnow,
-            nullable = False,
-    )
-
-    updated_at : Mapped[datetime] = mapped_column(
-            DateTime,
-            default = datetime.utcnow,
-            onupdate = datetime.utcnow,
-            nullable = False,
-
+    day_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_progress_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     identities : Mapped[list["Identity"]] = relationship(

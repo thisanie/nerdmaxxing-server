@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
 from app.models.user import User
 from app.schemas.evidence import EvidenceCreate, EvidenceResponse
+from app.services.blob_storage import upload_blob
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -35,9 +36,11 @@ def get_owned_participation(
     response_model=EvidenceResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def submit_evidence(
+async def submit_evidence(
     participant_id: str,
-    payload: EvidenceCreate,
+    explanation: str | None = Form(default=None, max_length=5000),
+    text_content: str | None = Form(default=None, max_length=20000),
+    file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EvidenceSubmission:
@@ -45,12 +48,15 @@ def submit_evidence(
     if participant.status not in {"ACCEPTED", "IN_PROGRESS", "PAUSED"}:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Participation cannot accept evidence.")
 
-    evidence_type = "TEXT" if payload.text_content else "EXTERNAL_URL"
+    if not text_content and file is None:
+        raise HTTPException(status_code=422, detail="Provide text content or an uploaded file as evidence.")
+    file_url = await upload_blob(file, f"users/{current_user.id}/evidence") if file else None
+    evidence_type = "TEXT" if text_content else "FILE"
     submission = EvidenceSubmission(
         challenge_id=participant.challenge_id,
         participant_id=participant.id,
         user_id=current_user.id,
-        explanation=payload.explanation,
+        explanation=explanation,
     )
     db.add(submission)
     db.flush()
@@ -58,8 +64,8 @@ def submit_evidence(
         EvidenceItem(
             submission_id=submission.id,
             evidence_type=evidence_type,
-            text_content=payload.text_content,
-            external_url=str(payload.external_url) if payload.external_url else None,
+            text_content=text_content,
+            external_url=file_url,
         )
     )
     participant.status = "SUBMITTED"

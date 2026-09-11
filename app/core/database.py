@@ -4,14 +4,19 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
 
-engine = create_engine(
-        settings.database_url,
-        connect_args=(
-                {"check_same_thread": False}
-                if settings.database_url.startswith("sqlite")
-                else {}
-                ),
+is_sqlite = settings.database_url.startswith("sqlite")
+engine_options = {
+        "connect_args": {"check_same_thread": False} if is_sqlite else {},
+}
+
+if not is_sqlite:
+        engine_options.update(
+                pool_pre_ping=True,
+                pool_recycle=300,
         )
+
+
+engine = create_engine(settings.database_url, **engine_options)
 
 
 SessionLocal = sessionmaker(
@@ -27,9 +32,12 @@ def ensure_local_schema() -> None:
         with engine.begin() as connection:
                 inspector = inspect(connection)
                 user_columns = {column["name"] for column in inspector.get_columns("users")}
+                timestamp_type = "DATETIME" if connection.dialect.name == "sqlite" else "TIMESTAMP"
                 user_additions = {
                         "bio": "VARCHAR(500)",
                         "aura_points": "INTEGER NOT NULL DEFAULT 0",
+                        "day_streak": "INTEGER NOT NULL DEFAULT 0",
+                        "last_progress_at": timestamp_type,
                 }
                 for name, definition in user_additions.items():
                         if user_columns and name not in user_columns:

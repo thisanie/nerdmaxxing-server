@@ -1,7 +1,9 @@
 import re
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import json
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -12,6 +14,7 @@ from app.models.challenge import Challenge, ChallengeResource
 from app.models.user import User
 from app.schemas.challenge import ChallengeCreate, ChallengeResponse
 from app.services.discovery_service import _responses
+from app.services.blob_storage import upload_blob
 
 
 router = APIRouter(prefix="/api/v1/challenges", tags=["Challenges"])
@@ -95,15 +98,32 @@ def get_public_challenge(slug: str, db: Session = Depends(get_db)) -> ChallengeR
 
 
 @router.post("", response_model=ChallengeResponse, status_code=status.HTTP_201_CREATED)
-def create_private_challenge(
-    payload: ChallengeCreate,
+async def create_private_challenge(
+    payload: str = Form(...),
+    image: UploadFile | None = File(default=None),
+    resource_files: list[UploadFile] = File(
+        default=[],
+        description="Upload one file for each resource, in the same order as payload.resources.",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ChallengeResponse:
+    try:
+        challenge_payload = ChallengeCreate.model_validate(json.loads(payload))
+    except (json.JSONDecodeError, ValueError) as error:
+        raise HTTPException(status_code=422, detail="payload must be valid challenge JSON.") from error
+    image_url = (
+        await upload_blob(image, f"users/{current_user.id}/challenges")
+        if image
+        else settings.default_challenge_image_url
+    )
+    uploaded_resources = resource_files
+    if len(uploaded_resources) > len(challenge_payload.resources):
+        raise HTTPException(status_code=422, detail="Too many resource files were uploaded.")
     challenge = Challenge(
-        **payload.model_dump(exclude={"image_url", "category_ids", "resources"}),
-        image_url=str(payload.image_url or settings.default_challenge_image_url),
-        slug=make_slug(payload.title),
+        **challenge_payload.model_dump(exclude={"image_url", "category_ids", "resources"}),
+        image_url=image_url,
+        slug=make_slug(challenge_payload.title),
         creator_id=current_user.id,
         status="PRIVATE",
         visibility="PRIVATE",
@@ -112,16 +132,25 @@ def create_private_challenge(
     challenge.resources = [
         ChallengeResource(
             title=resource.title,
-            url=str(resource.url),
+            url=str(resource.url) if resource.url else "",
             resource_type=resource.resource_type,
             rationale=resource.rationale,
-            order_index=index,
+            order_index=resource.order_index,
         )
-        for index, resource in enumerate(payload.resources)
+        for resource in challenge_payload.resources
     ]
-    if payload.category_ids:
-        categories = list(db.scalars(select(Category).where(Category.id.in_(payload.category_ids))).all())
-        if len(categories) != len(set(payload.category_ids)):
+    for index, file in enumerate(uploaded_resources):
+        challenge.resources[index].url = await upload_blob(
+            file, f"users/{current_user.id}/resources"
+        )
+    if any(not resource.url for resource in challenge.resources):
+        raise HTTPException(
+            status_code=422,
+            detail="Each resource needs a URL or a matching resource file.",
+        )
+    if challenge_payload.category_ids:
+        categories = list(db.scalars(select(Category).where(Category.id.in_(challenge_payload.category_ids))).all())
+        if len(categories) != len(set(challenge_payload.category_ids)):
             raise HTTPException(status_code=422, detail="One or more categories do not exist.")
         challenge.categories = categories
     db.add(challenge)
