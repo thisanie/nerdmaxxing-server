@@ -60,6 +60,7 @@ class ChallengeResponse(BaseModel):
     full_description: str
     creator_id: str
     difficulty_level: str
+    aura_points: int = 0
     status: str
     visibility: str
     estimated_effort_min_minutes: int | None

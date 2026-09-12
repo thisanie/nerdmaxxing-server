@@ -43,6 +43,29 @@ LEGENDARY_TITLES = {
     "Complete a 100-Day Coding Streak",
     "Master the Splits",
 }
+SEED_EFFORT_RANGES = {
+    "Solve a Rubik's Cube Under 2 Minutes": (300, 600),
+    "Achieve 60 WPM Typing Speed": (180, 300),
+    "Learn Conversational Spanish": (1200, 2400),
+    "Run a 5K": (480, 720),
+    "Do 50 Push-Ups in a Row": (240, 480),
+    "Master the Splits": (1200, 2400),
+    "Meditate for 30 Days Straight": (300, 600),
+    "Read 12 Books in a Year": (1200, 2400),
+    "Learn to Juggle 3 Balls": (120, 300),
+    "Hold a Plank for 3 Minutes": (180, 360),
+    "Learn to Play a Song on Guitar": (600, 1200),
+    "Complete a 30-Day No-Sugar Challenge": (180, 300),
+    "Reach a 500 lb Combined Lift": (1200, 2400),
+    "Learn Basic Sign Language": (600, 1200),
+    "Complete a 100-Day Coding Streak": (1000, 2000),
+    "Swim 1500m Without Stopping": (600, 1200),
+    "Learn to Solve a Sudoku in Under 5 Minutes": (120, 300),
+    "Do a Handstand for 30 Seconds": (600, 1200),
+    "Save $1000 in 90 Days": (300, 600),
+    "Cook 20 New Recipes": (1200, 2400),
+    "Learn 500 Chess Opening Moves": (1200, 2400),
+}
 
 
 def load_seed_data() -> dict:
@@ -97,6 +120,7 @@ def seed() -> None:
         created = 0
         updated = 0
         for item in load_seed_data()["challenges"]:
+            effort_min, effort_max = SEED_EFFORT_RANGES[item["title"]]
             challenge = db.scalar(
                 select(Challenge).where(
                     Challenge.title == item["title"],
@@ -112,6 +136,8 @@ def seed() -> None:
                     full_description=item["full_description"],
                     creator_id=owner.id,
                     difficulty_level=item["difficulty_level"],
+                    estimated_effort_min_minutes=effort_min,
+                    estimated_effort_max_minutes=effort_max,
                     status="PUBLISHED",
                     visibility="PUBLIC",
                     verification_type=item["verification_type"],
@@ -128,6 +154,8 @@ def seed() -> None:
                 challenge.short_description = item["short_description"]
                 challenge.full_description = item["full_description"]
                 challenge.difficulty_level = item["difficulty_level"]
+                challenge.estimated_effort_min_minutes = effort_min
+                challenge.estimated_effort_max_minutes = effort_max
                 challenge.verification_type = item["verification_type"]
                 challenge.estimated_duration_minutes = challenge.estimated_duration_minutes or 10080
                 challenge.featured = item["title"] == FEATURED_TITLE

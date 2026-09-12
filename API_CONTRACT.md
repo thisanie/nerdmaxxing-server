@@ -301,6 +301,7 @@ Rules:
 - `full_description`: at least 1 character.
 - Each resource `title` is 1-160 characters and `rationale` is 1-1000 characters.
 - `estimated_effort_min_minutes` and `estimated_effort_max_minutes`, when provided, must be at least 1; minimum cannot exceed maximum.
+- `aura_points` is calculated by the backend from difficulty and estimated effort; challenge creators do not provide it.
 
 ## Participation
 
@@ -423,6 +424,7 @@ Response `200 OK`: an array of [User skill](#user-skill-object) objects.
   "full_description": "Define the workflow, choose tools, and create an initial set of notes.",
   "creator_id": "user-id",
   "difficulty_level": "BEGINNER",
+  "aura_points": 20,
   "status": "PUBLISHED",
   "visibility": "PUBLIC",
   "estimated_effort_min_minutes": 60,

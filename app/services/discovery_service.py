@@ -9,6 +9,7 @@ from app.models.challenge import Challenge, challenge_categories
 from app.models.participation import ChallengeParticipant
 from app.models.user import User
 from app.schemas.challenge import CategoryResponse, ChallengeResponse
+from app.services.aura_service import calculate_aura
 
 
 def _public_query():
@@ -26,6 +27,7 @@ def _challenge_response(
 ) -> ChallengeResponse:
     response = ChallengeResponse.model_validate(challenge)
     response.image_key = challenge.image_key or settings.default_challenge_image_key
+    response.aura_points = calculate_aura(challenge)
     response.enrollment_count = enrollment_count
     response.completion_count = completion_count
     return response
