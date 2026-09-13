@@ -49,6 +49,9 @@ class Notification(Base):
     notification_type: Mapped[str] = mapped_column(String(40), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     body: Mapped[str] = mapped_column(String(500), nullable=False)
+    actor_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     invitation_id: Mapped[str | None] = mapped_column(
         ForeignKey("challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
     )

@@ -158,6 +158,8 @@ Response `200 OK`:
 }
 ```
 
+Following a user with `POST /api/v1/users/{user_id}/follow` creates a `FOLLOW` notification for the followed user. The notification includes the follower's `actor_id` and is also sent to active push tokens when Firebase is configured.
+
 ### `POST /api/v1/users/me/username`
 
 Requires authentication. Sets the current user's first username.

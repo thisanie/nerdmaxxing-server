@@ -12,7 +12,7 @@ from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
 from app.models.follow import UserFollow
 from app.models.group import Group, GroupMembership
-from app.models.invitation import PushToken
+from app.models.invitation import Notification, PushToken
 from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
 from app.models.participation import ChallengeParticipant
@@ -38,6 +38,7 @@ from app.services.user_service import (
     normalize_username,
 )
 from app.services.blob_storage import upload_blob
+from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(
@@ -435,7 +436,16 @@ def follow_user(
     if db.get(UserFollow, {"follower_id": current_user.id, "following_id": user_id}) is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already following this user.")
     db.add(UserFollow(follower_id=current_user.id, following_id=user_id))
+    notification = Notification(
+        user_id=user_id,
+        actor_id=current_user.id,
+        notification_type="FOLLOW",
+        title="New follower",
+        body=f"{current_user.username or current_user.display_name or 'Someone'} started following you.",
+    )
+    db.add(notification)
     db.commit()
+    send_notification_push(db, notification)
 
 
 @router.get("/{user_id}/follow-status", response_model=FollowStatusResponse)

@@ -46,6 +46,7 @@ class NotificationResponse(BaseModel):
     notification_type: str
     title: str
     body: str
+    actor_id: str | None
     invitation_id: str | None
     invitation_status: str | None
     is_read: bool

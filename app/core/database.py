@@ -65,4 +65,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         if columns and name not in columns:
                                 connection.execute(text(f"ALTER TABLE challenges ADD COLUMN {name} {definition}"))
 
+                inspector = inspect(connection)
+                notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
+                if notification_columns and "actor_id" not in notification_columns:
+                        connection.execute(text("ALTER TABLE notifications ADD COLUMN actor_id VARCHAR(36)"))
+
 
