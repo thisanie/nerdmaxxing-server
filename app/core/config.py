@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     default_challenge_image_key: str = "defaults/challenge-cover.webp"
     app_base_url: str = "http://localhost:3000"
 
+    firebase_project_id: str | None = None
+    firebase_client_email: str | None = None
+    firebase_private_key: str | None = None
+
     model_config = SettingsConfigDict(
             env_file = ".env",
             case_sensitive = False

@@ -12,6 +12,7 @@ from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
 from app.models.follow import UserFollow
 from app.models.group import Group, GroupMembership
+from app.models.invitation import PushToken
 from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
 from app.models.participation import ChallengeParticipant
@@ -28,6 +29,7 @@ from app.schemas.user import (
     UserSummaryResponse,
     UserStatsResponse,
 )
+from app.schemas.invitation import PushTokenCreate, PushTokenResponse
 from app.schemas.group import GroupResponse
 from app.services.discovery_service import _responses
 from app.services.user_service import (
@@ -227,6 +229,52 @@ def get_my_profile(
     current_user: User = Depends(get_current_user),
 ) -> UserProfileResponse:
     return profile_response(db, current_user, current_user.id)
+
+
+@router.post("/me/push-tokens", response_model=PushTokenResponse)
+def register_push_token(
+    payload: PushTokenCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PushTokenResponse:
+    push_token = db.scalar(select(PushToken).where(PushToken.token == payload.token))
+    if push_token is None:
+        push_token = PushToken(
+            user_id=current_user.id,
+            token=payload.token,
+            platform=payload.platform,
+        )
+        db.add(push_token)
+    else:
+        push_token.user_id = current_user.id
+        push_token.platform = payload.platform
+        push_token.is_active = True
+        push_token.last_seen_at = utcnow()
+    db.commit()
+    db.refresh(push_token)
+    return PushTokenResponse(
+        id=push_token.id,
+        platform=push_token.platform,
+        is_active=push_token.is_active,
+        last_seen_at=push_token.last_seen_at,
+    )
+
+
+@router.delete("/me/push-tokens/{token}", status_code=status.HTTP_204_NO_CONTENT)
+def unregister_push_token(
+    token: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    push_token = db.scalar(
+        select(PushToken).where(
+            PushToken.token == token,
+            PushToken.user_id == current_user.id,
+        )
+    )
+    if push_token is not None:
+        db.delete(push_token)
+        db.commit()
 
 
 @router.get("/me/stats", response_model=UserStatsResponse)

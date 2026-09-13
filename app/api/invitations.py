@@ -22,6 +22,7 @@ from app.schemas.invitation import (
     NotificationResponse,
 )
 from app.schemas.participation import ParticipationResponse
+from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(prefix="/api/v1", tags=["Invitations"])
@@ -194,17 +195,17 @@ def invite_follower(
         invitation.created_at = datetime.utcnow()
         invitation.accepted_at = None
 
-    db.add(
-        Notification(
+    notification = Notification(
             user_id=invitee.id,
             notification_type="CHALLENGE_INVITATION",
             title="New challenge invitation",
             body=f"{current_user.username or current_user.display_name or 'Someone'} challenged you to {challenge.title}.",
             invitation_id=invitation.id,
         )
-    )
+    db.add(notification)
     db.commit()
     db.refresh(invitation)
+    send_notification_push(db, notification)
     return invitation_response(invitation, challenge, current_user)
 
 

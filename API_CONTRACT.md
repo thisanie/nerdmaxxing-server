@@ -198,6 +198,25 @@ Requires authentication. Lists the authenticated user's followers for selecting 
 
 Requires authentication. Lists pending challenge invitations addressed to the authenticated user, newest first.
 
+### `POST /api/v1/users/me/push-tokens`
+
+Requires authentication. Registers or reactivates an FCM device token for the authenticated user. The client should call this after sign-in and whenever Firebase refreshes the token.
+
+Request:
+
+```json
+{
+  "token": "fcm-registration-token",
+  "platform": "android"
+}
+```
+
+`platform` must be `ios`, `android`, or `web`. The token is associated with the authenticated user; clients must not send a user ID.
+
+### `DELETE /api/v1/users/me/push-tokens/{token}`
+
+Requires authentication. Removes the authenticated user's registered FCM token. Call this when signing out if the device should stop receiving that user's pushes.
+
 ## Groups
 
 ### `POST /api/v1/groups`
@@ -427,6 +446,14 @@ Permitted transitions:
 | `PAUSED` | `IN_PROGRESS`, `REMOVED` |
 
 Returns `404 Not Found` for a participation not owned by the caller and `409 Conflict` for an invalid transition.
+
+### `DELETE /api/v1/participation/{participant_id}`
+
+Requires authentication. Unenrolls the caller from the challenge and deletes the participation and its progress logs.
+
+Response `204 No Content`.
+
+Returns `404 Not Found` for a participation not owned by the caller.
 
 ### `POST /api/v1/participation/{participant_id}/progress`
 

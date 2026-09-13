@@ -184,3 +184,22 @@ def update_participation_status(
     db.commit()
     db.refresh(participant)
     return participant
+
+
+@router.delete("/{participant_id}", status_code=status.HTTP_204_NO_CONTENT)
+def unenroll_from_challenge(
+    participant_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    participant = db.scalar(
+        select(ChallengeParticipant).where(
+            ChallengeParticipant.id == participant_id,
+            ChallengeParticipant.user_id == current_user.id,
+        )
+    )
+    if participant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
+
+    db.delete(participant)
+    db.commit()

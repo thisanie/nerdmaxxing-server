@@ -50,3 +50,15 @@ class NotificationResponse(BaseModel):
     invitation_status: str | None
     is_read: bool
     created_at: datetime
+
+
+class PushTokenCreate(BaseModel):
+    token: str = Field(min_length=1, max_length=4096)
+    platform: str = Field(pattern="^(ios|android|web)$")
+
+
+class PushTokenResponse(BaseModel):
+    id: str
+    platform: str
+    is_active: bool
+    last_seen_at: datetime

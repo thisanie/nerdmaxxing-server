@@ -9,3 +9,4 @@ slowapi
 requests
 boto3
 python-multipart
+firebase-admin
