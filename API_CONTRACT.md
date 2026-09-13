@@ -190,6 +190,14 @@ Returns `409 Conflict` when the requested username is unavailable.
 
 Requires authentication. Accepts `multipart/form-data` with optional `name`, `bio`, and `avatar` fields. The `avatar` field must be an image file and replaces the current profile avatar in blob storage.
 
+### `GET /api/v1/users/me/followers?search={search}&limit={limit}&offset={offset}`
+
+Requires authentication. Lists the authenticated user's followers for selecting challenge invitees. `search` matches usernames and display names case-insensitively. `limit` defaults to `20` and must be 1-100.
+
+### `GET /api/v1/users/me/invitations`
+
+Requires authentication. Lists pending challenge invitations addressed to the authenticated user, newest first.
+
 ## Groups
 
 ### `POST /api/v1/groups`
@@ -302,6 +310,83 @@ Rules:
 - Each resource `title` is 1-160 characters and `rationale` is 1-1000 characters.
 - `estimated_effort_min_minutes` and `estimated_effort_max_minutes`, when provided, must be at least 1; minimum cannot exceed maximum.
 - `aura_points` is calculated by the backend from difficulty and estimated effort; challenge creators do not provide it.
+
+## Challenge Invitations
+
+### `POST /api/v1/challenges/{slug}/invitations`
+
+Requires authentication and an existing participation in the challenge. Invites one of the caller's followers.
+
+Request:
+
+```json
+{
+  "invitee_id": "user-id"
+}
+```
+
+Response `201 Created`: a pending invitation. The invitee receives an in-app notification whose body identifies the challenger and challenge.
+
+Returns `403 Forbidden` when the target does not follow the caller, or when the caller has not joined the challenge. Returns `409 Conflict` when the invitation was already accepted or the target already participates.
+
+### `POST /api/v1/invitations/{invitation_id}/accept`
+
+Requires authentication by the invited user. Accepts the invitation and creates an accepted participation. The normal five-active-challenge limit applies.
+
+Response `200 OK`: a [Participation](#participation-object) object.
+
+### `POST /api/v1/invitations/{invitation_id}/decline`
+
+Requires authentication by the invited user. Marks the pending invitation as `DECLINED` and returns the invitation.
+
+### `POST /api/v1/challenges/{slug}/invite-link`
+
+Requires authentication and an existing participation in the challenge. Creates a random, expiring link valid for 30 days. The token is stored hashed and the returned URL can be shared through any messaging app.
+
+Response `200 OK`:
+
+```json
+{
+  "url": "https://app.example.com/challenge-invites/token",
+  "inviter_id": "user-id",
+  "inviter_username": "ada_lovelace",
+  "challenge_id": "challenge-id",
+  "expires_at": "2026-10-05T12:00:00Z"
+}
+```
+
+The URL base is configured with `APP_BASE_URL` and defaults to `http://localhost:3000`.
+
+### `GET /api/v1/invitations/links/{token}`
+
+Public endpoint. Returns the challenge title, inviter, and link status so a client can render a preview before sign-in.
+
+### `POST /api/v1/invitations/links/{token}/accept`
+
+Requires authentication. Accepts a valid share link and creates an accepted participation. Share links are available to any user except the inviter and are subject to the five-active-challenge limit.
+
+### `GET /api/v1/users/me/notifications?unread_only={boolean}&limit={limit}&offset={offset}`
+
+Requires authentication. Lists the authenticated user's in-app notifications, newest first. Set `unread_only=true` to filter to unread notifications. Challenge invitation notifications include the current `invitation_status`, so the status remains accurate after accepting or declining.
+
+Notification response example:
+
+```json
+{
+  "id": "notification-id",
+  "notification_type": "CHALLENGE_INVITATION",
+  "title": "New challenge invitation",
+  "body": "ada_lovelace challenged you to Build a habit.",
+  "invitation_id": "invitation-id",
+  "invitation_status": "ACCEPTED",
+  "is_read": true,
+  "created_at": "2026-09-13T12:00:00Z"
+}
+```
+
+### `PATCH /api/v1/notifications/{notification_id}/read`
+
+Requires authentication. Marks an owned notification as read.
 
 ## Participation
 

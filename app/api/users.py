@@ -435,6 +435,32 @@ def list_user_connections(
     )
 
 
+@router.get("/me/followers", response_model=list[UserSummaryResponse])
+def list_my_followers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    search: str | None = Query(default=None, max_length=100),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> list[User]:
+    statement = (
+        select(User)
+        .join(UserFollow, User.id == UserFollow.follower_id)
+        .where(UserFollow.following_id == current_user.id)
+    )
+    if search:
+        term = f"%{search.strip().lower()}%"
+        statement = statement.where(
+            func.lower(User.username).like(term)
+            | func.lower(User.display_name).like(term)
+        )
+    return list(
+        db.scalars(
+            statement.order_by(UserFollow.created_at.desc()).offset(offset).limit(limit)
+        ).all()
+    )
+
+
 @router.get("/{user_id}/followers", response_model=list[UserSummaryResponse])
 def list_followers(
     user_id: str,

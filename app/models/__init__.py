@@ -11,6 +11,7 @@ from app.models.follow import UserFollow
 from app.models.aura import AuraTransaction
 from app.models.group import Group, GroupMembership
 from app.models.progress import ChallengeProgressLog
+from app.models.invitation import ChallengeInvitation, Notification
 
 
 __all__ = [
@@ -29,4 +30,6 @@ __all__ = [
         "Group",
         "GroupMembership",
         "ChallengeProgressLog",
+        "ChallengeInvitation",
+        "Notification",
         ]

@@ -18,6 +18,15 @@ if not is_sqlite:
 
 engine = create_engine(settings.database_url, **engine_options)
 
+# Neon transaction poolers can terminate connections during DDL. Keep pooled
+# connections for requests, but use the direct endpoint for startup schema work.
+schema_database_url = settings.database_url.replace("-pooler.", ".")
+schema_engine = (
+        create_engine(schema_database_url, **engine_options)
+        if schema_database_url != settings.database_url
+        else engine
+)
+
 
 SessionLocal = sessionmaker(
         autocommit = False,
@@ -27,9 +36,9 @@ SessionLocal = sessionmaker(
         )
 
 
-def ensure_local_schema() -> None:
+def ensure_local_schema(database_engine= schema_engine) -> None:
         """Apply additive schema changes until a versioned migration system exists."""
-        with engine.begin() as connection:
+        with database_engine.begin() as connection:
                 inspector = inspect(connection)
                 user_columns = {column["name"] for column in inspector.get_columns("users")}
                 timestamp_type = "DATETIME" if connection.dialect.name == "sqlite" else "TIMESTAMP"

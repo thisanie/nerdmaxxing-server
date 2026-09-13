@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     username_availability_rate_limit: str = "60/minute"
     default_challenge_image_url: str = "https://hips.hearstapps.com/hmg-prod/images/bright-forget-me-nots-royalty-free-image-1677788394.jpg"
     default_challenge_image_key: str = "defaults/challenge-cover.webp"
+    app_base_url: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(
             env_file = ".env",
