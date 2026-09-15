@@ -172,6 +172,14 @@ def invite_follower(
         )
     ) is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This user has already joined the challenge.")
+    if db.scalar(
+        select(ChallengeInvitation).where(
+            ChallengeInvitation.challenge_id == challenge.id,
+            ChallengeInvitation.invitee_id == invitee.id,
+            ChallengeInvitation.status == "PENDING",
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This user already has a pending invitation.")
 
     invitation = db.scalar(
         select(ChallengeInvitation).where(
@@ -191,6 +199,9 @@ def invite_follower(
         db.add(invitation)
         db.flush()
     else:
+        db.query(Notification).filter(
+            Notification.invitation_id == invitation.id,
+        ).delete(synchronize_session=False)
         invitation.status = "PENDING"
         invitation.created_at = datetime.utcnow()
         invitation.accepted_at = None

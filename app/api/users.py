@@ -473,6 +473,11 @@ def unfollow_user(
     if follow is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Follow not found.")
     db.delete(follow)
+    db.query(Notification).filter(
+        Notification.user_id == user_id,
+        Notification.actor_id == current_user.id,
+        Notification.notification_type == "FOLLOW",
+    ).delete(synchronize_session=False)
     db.commit()
 
 
