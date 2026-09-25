@@ -24,6 +24,9 @@ class ParticipationStatusUpdate(BaseModel):
 class ProgressLogCreate(BaseModel):
     hours_spent: float = Field(gt=0, le=24)
     note: str | None = Field(default=None, max_length=5000)
+    value: float | None = None
+    unit: str | None = Field(default=None, max_length=30)
+    accuracy_percent: int | None = Field(default=None, ge=0, le=100)
 
 
 class ProgressLogResponse(BaseModel):
@@ -34,4 +37,7 @@ class ProgressLogResponse(BaseModel):
     user_id: str
     minutes_spent: int
     note: str | None
+    value: float | None
+    unit: str | None
+    accuracy_percent: int | None
     created_at: datetime

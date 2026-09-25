@@ -291,6 +291,54 @@ Response `200 OK`: a [Challenge](#challenge-object) object.
 
 Returns `404 Not Found` when no public, published challenge matches the slug.
 
+### `GET /api/v1/challenges/{slug}/detail`
+
+Returns the complete challenge journey read model. Authentication is optional:
+anonymous callers receive public metadata, aggregate statistics, and participant
+previews; the authenticated caller's participation supplies `progress` and
+`attempts`. Callers without participation receive zero-valued progress and no
+attempts.
+
+Response `200 OK`:
+
+```json
+{
+  "challenge": "Challenge object",
+  "stats": {
+    "participant_count": 47,
+    "completed_participant_count": 12
+  },
+  "progress": {
+    "current_value": 42,
+    "target_value": 60,
+    "unit": "WPM",
+    "baseline_value": 30,
+    "best_value": 46,
+    "average_value": 41,
+    "accuracy_percent": 94,
+    "attempt_count": 17,
+    "logged_minutes": 120
+  },
+  "milestones": [],
+  "attempts": [],
+  "participants": [],
+  "verification": {
+    "type": "SELF_REPORTED",
+    "target_value": 60,
+    "target_unit": "WPM",
+    "min_accuracy_percent": 95,
+    "required_runs": 1,
+    "instructions": "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."
+  }
+}
+```
+
+`milestones` are ordered by `order_index`; each status is `LOCKED`, `CURRENT`,
+or `COMPLETED`. `attempts` are newest first and limited to the latest 20
+progress records. `participants` are limited to five previews, while `stats`
+always contains complete counts. The verification object describes the
+requirements used by the evidence API.
+
 ### `POST /api/v1/challenges`
 
 Requires authentication. Creates a private challenge owned by the caller. Accepts `multipart/form-data` with a `payload` field containing the challenge JSON, an optional `image` file, and one `resource_files` file for each resource in `payload.resources`, in the same order.

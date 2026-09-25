@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Table, Text, Column
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Table, Text, Column, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -39,11 +39,22 @@ class Challenge(Base):
     verification_type: Mapped[str] = mapped_column(
         String(30), nullable=False, default="SELF_REPORTED"
     )
+    target_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    target_unit: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    min_accuracy_percent: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    required_runs: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    verification_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    milestones: Mapped[list["ChallengeMilestone"]] = relationship(
+        back_populates="challenge",
+        cascade="all, delete-orphan",
+        order_by="ChallengeMilestone.order_index",
+    )
 
     resources: Mapped[list["ChallengeResource"]] = relationship(
         back_populates="challenge",
@@ -74,3 +85,18 @@ class ChallengeResource(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     challenge: Mapped[Challenge] = relationship(back_populates="resources")
+
+
+class ChallengeMilestone(Base):
+    __tablename__ = "challenge_milestones"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    challenge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    target_value: Mapped[float] = mapped_column(Float, nullable=False)
+
+    challenge: Mapped[Challenge] = relationship(back_populates="milestones")

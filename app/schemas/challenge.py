@@ -83,6 +83,69 @@ class ChallengeResponse(BaseModel):
         return value or settings.default_challenge_image_url
 
 
+class ChallengeProgressResponse(BaseModel):
+    current_value: float
+    target_value: float | None
+    unit: str | None
+    baseline_value: float | None
+    best_value: float | None
+    average_value: float | None
+    accuracy_percent: float | None
+    attempt_count: int
+    logged_minutes: int
+
+
+class ChallengeMilestoneResponse(BaseModel):
+    id: str
+    order_index: int
+    title: str
+    description: str
+    status: str
+    current_value: float
+    target_value: float
+
+
+class ChallengeAttemptResponse(BaseModel):
+    id: str
+    value: float | None
+    unit: str | None
+    accuracy_percent: int | None
+    created_at: datetime
+
+
+class ChallengeParticipantPreviewResponse(BaseModel):
+    user_id: str
+    username: str | None
+    display_name: str | None
+    avatar_url: str | None
+    status: str
+    completed_at: datetime | None
+
+
+class ChallengeStatsResponse(BaseModel):
+    participant_count: int
+    completed_participant_count: int
+
+
+class ChallengeVerificationResponse(BaseModel):
+    type: str
+    target_value: float | None
+    target_unit: str | None
+    min_accuracy_percent: int | None
+    required_runs: int
+    instructions: str | None
+
+
+class ChallengeDetailResponse(BaseModel):
+    challenge: ChallengeResponse
+    stats: ChallengeStatsResponse
+    progress: ChallengeProgressResponse
+    milestones: list[ChallengeMilestoneResponse]
+    attempts: list[ChallengeAttemptResponse]
+    participants: list[ChallengeParticipantPreviewResponse]
+    verification: ChallengeVerificationResponse
+
+
 class CategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

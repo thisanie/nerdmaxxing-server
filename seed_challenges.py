@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.time import utcnow
-from app.models.challenge import Challenge, ChallengeResource
+from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
 from app.models.category import Category
 from app.models.user import User
 
@@ -66,6 +66,29 @@ SEED_EFFORT_RANGES = {
     "Cook 20 New Recipes": (1200, 2400),
     "Learn 500 Chess Opening Moves": (1200, 2400),
 }
+SEED_METRICS = {
+    "Solve a Rubik's Cube Under 2 Minutes": (120, "SECONDS"),
+    "Achieve 60 WPM Typing Speed": (60, "WPM"),
+    "Learn Conversational Spanish": (5, "MINUTES"),
+    "Run a 5K": (5, "KILOMETERS"),
+    "Do 50 Push-Ups in a Row": (50, "REPETITIONS"),
+    "Master the Splits": (180, "DEGREES"),
+    "Meditate for 30 Days Straight": (30, "DAYS"),
+    "Read 12 Books in a Year": (12, "BOOKS"),
+    "Learn to Juggle 3 Balls": (60, "SECONDS"),
+    "Hold a Plank for 3 Minutes": (180, "SECONDS"),
+    "Learn to Play a Song on Guitar": (1, "SONGS"),
+    "Complete a 30-Day No-Sugar Challenge": (30, "DAYS"),
+    "Reach a 500 lb Combined Lift": (500, "POUNDS"),
+    "Learn Basic Sign Language": (100, "SIGNS"),
+    "Complete a 100-Day Coding Streak": (100, "DAYS"),
+    "Swim 1500m Without Stopping": (1500, "METERS"),
+    "Learn to Solve a Sudoku in Under 5 Minutes": (5, "MINUTES"),
+    "Do a Handstand for 30 Seconds": (30, "SECONDS"),
+    "Save $1000 in 90 Days": (1000, "DOLLARS"),
+    "Cook 20 New Recipes": (20, "RECIPES"),
+    "Learn 500 Chess Opening Moves": (500, "MOVES"),
+}
 
 
 def load_seed_data() -> dict:
@@ -121,6 +144,7 @@ def seed() -> None:
         updated = 0
         for item in load_seed_data()["challenges"]:
             effort_min, effort_max = SEED_EFFORT_RANGES[item["title"]]
+            target_value, target_unit = SEED_METRICS[item["title"]]
             challenge = db.scalar(
                 select(Challenge).where(
                     Challenge.title == item["title"],
@@ -141,6 +165,11 @@ def seed() -> None:
                     status="PUBLISHED",
                     visibility="PUBLIC",
                     verification_type=item["verification_type"],
+                    target_value=target_value,
+                    target_unit=target_unit,
+                    min_accuracy_percent=95 if target_unit == "WPM" else None,
+                    required_runs=1,
+                    verification_instructions="Submit evidence that demonstrates the target metric and satisfies the challenge requirements.",
                     estimated_duration_minutes=10080,
                     featured=item["title"] == FEATURED_TITLE,
                     legendary=item["title"] in LEGENDARY_TITLES,
@@ -157,6 +186,11 @@ def seed() -> None:
                 challenge.estimated_effort_min_minutes = effort_min
                 challenge.estimated_effort_max_minutes = effort_max
                 challenge.verification_type = item["verification_type"]
+                challenge.target_value = target_value
+                challenge.target_unit = target_unit
+                challenge.min_accuracy_percent = 95 if target_unit == "WPM" else None
+                challenge.required_runs = 1
+                challenge.verification_instructions = "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."
                 challenge.estimated_duration_minutes = challenge.estimated_duration_minutes or 10080
                 challenge.featured = item["title"] == FEATURED_TITLE
                 challenge.legendary = item["title"] in LEGENDARY_TITLES
@@ -181,6 +215,15 @@ def seed() -> None:
                         order_index=index,
                     )
                     for index, resource in enumerate(item["resources"])
+                ]
+            if not challenge.milestones:
+                challenge.milestones = [
+                    ChallengeMilestone(
+                        order_index=1,
+                        title=f"Reach {target_value:g} {target_unit}",
+                        description="Meet the challenge target metric.",
+                        target_value=target_value,
+                    )
                 ]
 
         db.commit()

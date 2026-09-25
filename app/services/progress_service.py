@@ -22,12 +22,18 @@ def record_progress(
     participant,
     minutes_spent: int,
     note: str | None,
+    value: float | None = None,
+    unit: str | None = None,
+    accuracy_percent: int | None = None,
 ) -> ChallengeProgressLog:
     progress = ChallengeProgressLog(
         participant_id=participant.id,
         user_id=user.id,
         minutes_spent=minutes_spent,
         note=note,
+        value=value,
+        unit=unit,
+        accuracy_percent=accuracy_percent,
     )
     now = utcnow()
     participant.last_activity_at = now

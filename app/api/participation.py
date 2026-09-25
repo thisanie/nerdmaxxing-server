@@ -128,6 +128,9 @@ def log_progress(
         participant,
         minutes_spent=round(payload.hours_spent * 60),
         note=payload.note,
+        value=payload.value,
+        unit=payload.unit,
+        accuracy_percent=payload.accuracy_percent,
     )
     db.commit()
     db.refresh(progress)

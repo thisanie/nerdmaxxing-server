@@ -60,10 +60,26 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "image_key": "TEXT",
                         "featured": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "legendary": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "target_value": "FLOAT",
+                        "target_unit": "VARCHAR(30)",
+                        "min_accuracy_percent": "INTEGER",
+                        "required_runs": "INTEGER NOT NULL DEFAULT 1",
+                        "verification_instructions": "TEXT",
                 }
                 for name, definition in additions.items():
                         if columns and name not in columns:
                                 connection.execute(text(f"ALTER TABLE challenges ADD COLUMN {name} {definition}"))
+
+                inspector = inspect(connection)
+                progress_columns = {column["name"] for column in inspector.get_columns("challenge_progress_logs")}
+                progress_additions = {
+                        "value": "FLOAT",
+                        "unit": "VARCHAR(30)",
+                        "accuracy_percent": "INTEGER",
+                }
+                for name, definition in progress_additions.items():
+                        if progress_columns and name not in progress_columns:
+                                connection.execute(text(f"ALTER TABLE challenge_progress_logs ADD COLUMN {name} {definition}"))
 
                 inspector = inspect(connection)
                 notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
