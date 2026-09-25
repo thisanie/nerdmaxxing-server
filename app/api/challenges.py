@@ -208,27 +208,33 @@ def get_public_challenge_detail(
     logs = list(db.scalars(select(ChallengeProgressLog).where(
         ChallengeProgressLog.participant_id == participant.id if participant else False
     ).order_by(ChallengeProgressLog.created_at.desc()).limit(20)).all()) if participant else []
-    values = [log.value for log in logs if log.value is not None]
-    current_value = values[0] if values else 0
-    progress = ChallengeProgressResponse(
-        current_value=current_value,
-        target_value=challenge.target_value,
-        unit=challenge.target_unit,
-        baseline_value=values[-1] if values else 0,
-        best_value=max(values) if values else 0,
-        average_value=sum(values) / len(values) if values else 0,
-        accuracy_percent=logs[0].accuracy_percent if logs and logs[0].accuracy_percent is not None else 0,
-        attempt_count=len(logs),
-        logged_minutes=sum(log.minutes_spent for log in logs),
-    )
+    configured_metrics = challenge.metrics or []
+    if not configured_metrics and challenge.target_value is not None:
+        configured_metrics = [{
+            "key": "value", "label": "Progress", "kind": "SCORE",
+            "unit": challenge.target_unit, "target": challenge.target_value,
+            "direction": "AT_LEAST", "is_primary": True, "format": "DECIMAL_2",
+        }]
+    metric_values = {
+        metric["key"]: [log.metrics.get(metric["key"]) for log in logs if log.metrics and metric["key"] in log.metrics]
+        for metric in configured_metrics
+    }
+    response_metrics = []
+    for definition in configured_metrics:
+        values = metric_values[definition["key"]]
+        entry = dict(definition)
+        if values:
+            entry.update(current=values[0], baseline=values[-1], best=max(values), average=sum(values) / len(values))
+        response_metrics.append(entry)
+    requirements = challenge.requirements or []
     milestones = [
         ChallengeMilestoneResponse(
             id=milestone.id,
             order_index=milestone.order_index,
             title=milestone.title,
             description=milestone.description,
-            status="COMPLETED" if current_value >= milestone.target_value else ("CURRENT" if milestone.order_index == 1 else "LOCKED"),
-            current_value=current_value,
+            status="COMPLETED" if (logs and (logs[0].value or 0) >= milestone.target_value) else ("CURRENT" if milestone.order_index == 1 else "LOCKED"),
+            current_value=logs[0].value if logs and logs[0].value is not None else 0,
             target_value=milestone.target_value,
         )
         for milestone in challenge.milestones
@@ -243,9 +249,10 @@ def get_public_challenge_detail(
     return ChallengeDetailResponse(
         challenge=challenge_response,
         stats=ChallengeStatsResponse(participant_count=participant_count, completed_participant_count=completed_count),
-        progress=progress,
+        metrics=response_metrics,
+        requirements=requirements,
         milestones=milestones,
-        attempts=[ChallengeAttemptResponse(id=log.id, value=log.value, unit=log.unit, accuracy_percent=log.accuracy_percent, created_at=log.created_at) for log in logs],
+        attempts=[ChallengeAttemptResponse(id=log.id, metrics=log.metrics or ({"value": log.value} if log.value is not None else {}), created_at=log.created_at) for log in logs],
         participants=[ChallengeParticipantPreviewResponse(user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, status=entry.status, completed_at=entry.completed_at) for entry, user in participants],
-        verification=ChallengeVerificationResponse(type=challenge.verification_type, target_value=challenge.target_value, target_unit=challenge.target_unit, min_accuracy_percent=challenge.min_accuracy_percent, required_runs=challenge.required_runs, instructions=challenge.verification_instructions),
+        verification=ChallengeVerificationResponse(type=challenge.verification_type, requirements=requirements, required_runs=challenge.required_runs, instructions=challenge.verification_instructions),
     )

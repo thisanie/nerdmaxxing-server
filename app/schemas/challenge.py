@@ -5,6 +5,26 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, 
 from app.core.config import settings
 
 
+class ChallengeMetricDefinition(BaseModel):
+    key: str = Field(pattern=r"^[a-z][a-z0-9_]*$", max_length=50)
+    label: str = Field(min_length=1, max_length=100)
+    kind: str = Field(min_length=1, max_length=30)
+    unit: str | None = Field(default=None, max_length=30)
+    target: float | bool | None = None
+    baseline: float | bool | None = None
+    direction: str = Field(default="AT_LEAST", pattern="^(AT_LEAST|AT_MOST|EXACTLY|BOOLEAN)$")
+    is_primary: bool = False
+    format: str = Field(default="DECIMAL_2", min_length=1, max_length=30)
+
+
+class ChallengeRequirement(BaseModel):
+    metric_key: str = Field(min_length=1, max_length=50)
+    operator: str = Field(pattern="^(AT_LEAST|AT_MOST|EXACTLY|BOOLEAN)$")
+    value: float | bool
+    unit: str | None = Field(default=None, max_length=30)
+    label: str = Field(min_length=1, max_length=200)
+
+
 class ChallengeCreate(BaseModel):
     title: str = Field(min_length=3, max_length=160)
     image_url: AnyHttpUrl | None = None
@@ -17,6 +37,8 @@ class ChallengeCreate(BaseModel):
     estimated_duration_minutes: int | None = Field(default=None, gt=0)
     category_ids: list[str] = Field(default_factory=list, max_length=3)
     verification_type: str = Field(default="SELF_REPORTED", min_length=1, max_length=30)
+    metrics: list[ChallengeMetricDefinition] = Field(default_factory=list, max_length=20)
+    requirements: list[ChallengeRequirement] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def validate_effort_range(self) -> "ChallengeCreate":
@@ -26,6 +48,25 @@ class ChallengeCreate(BaseModel):
             and self.estimated_effort_min_minutes > self.estimated_effort_max_minutes
         ):
             raise ValueError("Minimum effort cannot exceed maximum effort.")
+        keys = {metric.key for metric in self.metrics}
+        if len(keys) != len(self.metrics):
+            raise ValueError("Metric keys must be unique.")
+        if sum(metric.is_primary for metric in self.metrics) > 1:
+            raise ValueError("Only one metric can be primary.")
+        if any(requirement.metric_key not in keys for requirement in self.requirements):
+            raise ValueError("Requirements must reference a defined metric.")
+        metric_by_key = {metric.key: metric for metric in self.metrics}
+        for requirement in self.requirements:
+            metric = metric_by_key[requirement.metric_key]
+            if requirement.unit != metric.unit:
+                raise ValueError(f"Requirement unit must match metric '{metric.key}'.")
+            if metric.kind == "PERCENTAGE" and not 0 <= requirement.value <= 100:
+                raise ValueError(f"Percentage requirement '{metric.key}' must be between 0 and 100.")
+        for metric in self.metrics:
+            if metric.kind == "PERCENTAGE" and metric.target is not None and not 0 <= metric.target <= 100:
+                raise ValueError(f"Percentage metric '{metric.key}' must be between 0 and 100.")
+            if isinstance(metric.target, (int, float)) and metric.target < 0:
+                raise ValueError(f"Metric target '{metric.key}' cannot be negative.")
         return self
 
 
@@ -76,6 +117,13 @@ class ChallengeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     published_at: datetime | None
+    metrics: list[ChallengeMetricDefinition] = Field(default_factory=list)
+    requirements: list[ChallengeRequirement] = Field(default_factory=list)
+
+    @field_validator("metrics", "requirements", mode="before")
+    @classmethod
+    def normalize_metric_configuration(cls, value):
+        return value or []
 
     @field_validator("image_url", mode="before")
     @classmethod
@@ -84,15 +132,7 @@ class ChallengeResponse(BaseModel):
 
 
 class ChallengeProgressResponse(BaseModel):
-    current_value: float
-    target_value: float | None
-    unit: str | None
-    baseline_value: float | None
-    best_value: float | None
-    average_value: float | None
-    accuracy_percent: float | None
-    attempt_count: int
-    logged_minutes: int
+    metrics: list[dict]
 
 
 class ChallengeMilestoneResponse(BaseModel):
@@ -107,10 +147,13 @@ class ChallengeMilestoneResponse(BaseModel):
 
 class ChallengeAttemptResponse(BaseModel):
     id: str
-    value: float | None
-    unit: str | None
-    accuracy_percent: int | None
+    metrics: dict[str, float | bool]
     created_at: datetime
+
+    @field_validator("metrics", mode="before")
+    @classmethod
+    def normalize_attempt_metrics(cls, value):
+        return value or {}
 
 
 class ChallengeParticipantPreviewResponse(BaseModel):
@@ -129,9 +172,7 @@ class ChallengeStatsResponse(BaseModel):
 
 class ChallengeVerificationResponse(BaseModel):
     type: str
-    target_value: float | None
-    target_unit: str | None
-    min_accuracy_percent: int | None
+    requirements: list[ChallengeRequirement]
     required_runs: int
     instructions: str | None
 
@@ -139,7 +180,8 @@ class ChallengeVerificationResponse(BaseModel):
 class ChallengeDetailResponse(BaseModel):
     challenge: ChallengeResponse
     stats: ChallengeStatsResponse
-    progress: ChallengeProgressResponse
+    metrics: list[dict]
+    requirements: list[ChallengeRequirement]
     milestones: list[ChallengeMilestoneResponse]
     attempts: list[ChallengeAttemptResponse]
     participants: list[ChallengeParticipantPreviewResponse]

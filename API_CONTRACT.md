@@ -295,9 +295,9 @@ Returns `404 Not Found` when no public, published challenge matches the slug.
 
 Returns the complete challenge journey read model. Authentication is optional:
 anonymous callers receive public metadata, aggregate statistics, and participant
-previews; the authenticated caller's participation supplies `progress` and
-`attempts`. Callers without participation receive zero-valued progress and no
-attempts.
+previews; the authenticated caller's participation supplies personal metric
+values and `attempts`. Callers without participation receive challenge metric
+definitions without personal values and no attempts.
 
 Response `200 OK`:
 
@@ -308,25 +308,28 @@ Response `200 OK`:
     "participant_count": 47,
     "completed_participant_count": 12
   },
-  "progress": {
-    "current_value": 42,
-    "target_value": 60,
-    "unit": "WPM",
-    "baseline_value": 30,
-    "best_value": 46,
-    "average_value": 41,
-    "accuracy_percent": 94,
-    "attempt_count": 17,
-    "logged_minutes": 120
-  },
+  "metrics": [
+    {
+      "key": "speed",
+      "label": "Speed",
+      "kind": "RATE",
+      "unit": "WPM",
+      "current": 42,
+      "target": 60,
+      "best": 46,
+      "average": 41,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [],
   "milestones": [],
   "attempts": [],
   "participants": [],
   "verification": {
     "type": "SELF_REPORTED",
-    "target_value": 60,
-    "target_unit": "WPM",
-    "min_accuracy_percent": 95,
+    "requirements": [],
     "required_runs": 1,
     "instructions": "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."
   }
@@ -507,11 +510,14 @@ Returns `404 Not Found` for a participation not owned by the caller.
 
 ### `POST /api/v1/participation/{participant_id}/progress`
 
-Requires authentication. Logs time and an optional note for an active participation. `hours_spent` must be greater than 0 and no more than 24.
+Requires authentication. Logs challenge-defined metrics and an optional note for an active participation. `hours_spent` is optional and must be greater than 0 and no more than 24 when supplied. Unknown metric keys and invalid values are rejected.
 
 ```json
 {
-  "hours_spent": 1.5,
+  "metrics": {
+    "distance": 6.4,
+    "duration": 38
+  },
   "note": "Built the first prototype."
 }
 ```

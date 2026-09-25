@@ -25,6 +25,7 @@ def record_progress(
     value: float | None = None,
     unit: str | None = None,
     accuracy_percent: int | None = None,
+    metrics: dict[str, float | bool] | None = None,
 ) -> ChallengeProgressLog:
     progress = ChallengeProgressLog(
         participant_id=participant.id,
@@ -34,6 +35,7 @@ def record_progress(
         value=value,
         unit=unit,
         accuracy_percent=accuracy_percent,
+        metrics=metrics or {},
     )
     now = utcnow()
     participant.last_activity_at = now

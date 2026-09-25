@@ -65,6 +65,8 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "min_accuracy_percent": "INTEGER",
                         "required_runs": "INTEGER NOT NULL DEFAULT 1",
                         "verification_instructions": "TEXT",
+                        "metrics": "JSON",
+                        "requirements": "JSON",
                 }
                 for name, definition in additions.items():
                         if columns and name not in columns:
@@ -76,6 +78,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "value": "FLOAT",
                         "unit": "VARCHAR(30)",
                         "accuracy_percent": "INTEGER",
+                        "metrics": "JSON",
                 }
                 for name, definition in progress_additions.items():
                         if progress_columns and name not in progress_columns:

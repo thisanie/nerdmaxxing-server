@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ParticipationResponse(BaseModel):
@@ -22,11 +22,9 @@ class ParticipationStatusUpdate(BaseModel):
 
 
 class ProgressLogCreate(BaseModel):
-    hours_spent: float = Field(gt=0, le=24)
+    hours_spent: float | None = Field(default=None, gt=0, le=24)
+    metrics: dict[str, float | bool] = Field(default_factory=dict, max_length=20)
     note: str | None = Field(default=None, max_length=5000)
-    value: float | None = None
-    unit: str | None = Field(default=None, max_length=30)
-    accuracy_percent: int | None = Field(default=None, ge=0, le=100)
 
 
 class ProgressLogResponse(BaseModel):
@@ -37,7 +35,10 @@ class ProgressLogResponse(BaseModel):
     user_id: str
     minutes_spent: int
     note: str | None
-    value: float | None
-    unit: str | None
-    accuracy_percent: int | None
+    metrics: dict[str, float | bool]
     created_at: datetime
+
+    @field_validator("metrics", mode="before")
+    @classmethod
+    def normalize_metrics(cls, value):
+        return value or {}
