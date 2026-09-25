@@ -1,1 +1,381 @@
-this is test
+Updated todo list
+
+Here is a ready-to-send backend prompt:
+
+```text
+We need to redesign the challenge progress contract so challenges are not limited to typing-style metrics.
+
+## Current Problem
+
+The current challenge API is metric-specific and assumes every challenge has:
+
+- One scalar progress value:
+  `current_value`, `target_value`, and `unit`
+- Optional `accuracy_percent`
+- Attempts with:
+  `value`, `unit`, and `accuracy_percent`
+- Verification with:
+  `target_value`, `target_unit`, `min_accuracy_percent`, and `required_runs`
+
+This works for a typing challenge such as “Reach 60 WPM”, but not for challenges such as:
+
+- Run 10 km
+- Read 12 books
+- Meditate for 30 minutes
+- Complete 5 coding projects
+- Maintain a 7-day streak
+- Finish a task under 45 minutes
+
+Accuracy should not be returned as `null` for these challenges. It should not exist in the response at all unless accuracy is an actual requirement.
+
+The current progress mutation endpoint also only accepts `hours_spent` and `note`, which cannot record challenge-specific progress such as distance, repetitions, pages, duration, or scores.
+
+## Expected Solution
+
+Make challenge metrics and verification requirements data-driven.
+
+The backend should define:
+
+1. One primary metric for the challenge.
+2. Optional secondary metrics.
+3. The unit and display format for each metric.
+4. The direction of success:
+   - `AT_LEAST`
+   - `AT_MOST`
+   - `EXACTLY`
+   - `BOOLEAN`
+5. The verification requirements that must be satisfied.
+6. The allowed progress fields and validation rules.
+
+The client should render whatever metrics and requirements are returned. It must not assume that accuracy, attempts, duration, or any other field applies to every challenge.
+
+## Proposed Metric Definition
+
+Each challenge should expose a `metrics` array:
+
+```json
+{
+  "key": "distance",
+  "label": "Distance",
+  "kind": "DISTANCE",
+  "unit": "km",
+  "current": 6.4,
+  "target": 10,
+  "baseline": 0,
+  "best": 8.2,
+  "average": 5.1,
+  "direction": "AT_LEAST",
+  "is_primary": true,
+  "format": "DECIMAL_1"
+}
+```
+
+Supported `kind` values should include at least:
+
+- `COUNT`
+- `DISTANCE`
+- `DURATION`
+- `RATE`
+- `PERCENTAGE`
+- `SCORE`
+- `STREAK`
+- `BOOLEAN`
+
+The exact enum names can be adjusted to match the backend conventions.
+
+## Example: Running Challenge
+
+```json
+{
+  "metrics": [
+    {
+      "key": "distance",
+      "label": "Distance",
+      "kind": "DISTANCE",
+      "unit": "km",
+      "current": 6.4,
+      "target": 10,
+      "baseline": 0,
+      "best": 8.2,
+      "average": 5.1,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "DECIMAL_1"
+    },
+    {
+      "key": "duration",
+      "label": "Time",
+      "kind": "DURATION",
+      "unit": "min",
+      "current": 38,
+      "best": 35,
+      "direction": "AT_MOST",
+      "is_primary": false,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "distance",
+      "operator": "AT_LEAST",
+      "value": 10,
+      "unit": "km",
+      "label": "Complete 10 km"
+    }
+  ]
+}
+```
+
+There is no accuracy field because accuracy is not relevant.
+
+## Example: Typing Challenge
+
+```json
+{
+  "metrics": [
+    {
+      "key": "speed",
+      "label": "Speed",
+      "kind": "RATE",
+      "unit": "WPM",
+      "current": 42,
+      "target": 60,
+      "baseline": 30,
+      "best": 46,
+      "average": 41,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
+    },
+    {
+      "key": "accuracy",
+      "label": "Accuracy",
+      "kind": "PERCENTAGE",
+      "unit": "%",
+      "current": 94,
+      "target": 95,
+      "direction": "AT_LEAST",
+      "is_primary": false,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "speed",
+      "operator": "AT_LEAST",
+      "value": 60,
+      "unit": "WPM",
+      "label": "Reach 60 WPM"
+    },
+    {
+      "metric_key": "accuracy",
+      "operator": "AT_LEAST",
+      "value": 95,
+      "unit": "%",
+      "label": "Maintain 95% accuracy"
+    }
+  ]
+}
+```
+
+## Challenge Detail Endpoint
+
+Keep the aggregate endpoint:
+
+```http
+GET /api/v1/challenges/{slug}/detail
+```
+
+The response should include:
+
+```json
+{
+  "challenge": {},
+  "stats": {
+    "participant_count": 47,
+    "completed_participant_count": 12
+  },
+  "metrics": [],
+  "milestones": [],
+  "attempts": [],
+  "participants": [],
+  "requirements": [],
+  "verification": {
+    "type": "SELF_REPORTED",
+    "required_runs": 1,
+    "instructions": "..."
+  }
+}
+```
+
+The authenticated user's progress should be represented inside `metrics`.
+
+For anonymous users, return public challenge data and aggregate statistics. Personal metric values, attempts, and private progress must be omitted or returned as an explicit unauthenticated state.
+
+## Attempts
+
+Replace the fixed attempt shape:
+
+```json
+{
+  "value": 42,
+  "unit": "WPM",
+  "accuracy_percent": 94
+}
+```
+
+with a metric map:
+
+```json
+{
+  "id": "attempt-id",
+  "created_at": "2026-09-26T12:00:00Z",
+  "metrics": {
+    "speed": 42,
+    "accuracy": 94
+  }
+}
+```
+
+For a running challenge:
+
+```json
+{
+  "id": "attempt-id",
+  "created_at": "2026-09-26T12:00:00Z",
+  "metrics": {
+    "distance": 6.4,
+    "duration": 38
+  }
+}
+```
+
+Attempts must be returned newest first.
+
+## Progress Mutation
+
+Extend or replace:
+
+```http
+POST /api/v1/participation/{participant_id}/progress
+```
+
+with a request body that accepts challenge-defined metrics:
+
+```json
+{
+  "metrics": {
+    "distance": 6.4,
+    "duration": 38
+  },
+  "note": "Evening run"
+}
+```
+
+The backend must:
+
+- Reject unknown metric keys.
+- Validate values and units.
+- Validate numeric ranges.
+- Enforce the challenge's metric definitions.
+- Update the participant's current, best, and average values.
+- Recalculate milestone status.
+- Recalculate completion eligibility.
+
+The existing `hours_spent` field may remain as a generic activity field, but it must not be the only progress mechanism.
+
+## Verification
+
+Replace fixed verification fields such as:
+
+```json
+{
+  "target_value": 60,
+  "target_unit": "WPM",
+  "min_accuracy_percent": 95
+}
+```
+
+with generic requirements:
+
+```json
+{
+  "requirements": [
+    {
+      "metric_key": "distance",
+      "operator": "AT_LEAST",
+      "value": 10,
+      "unit": "km",
+      "label": "Complete 10 km"
+    }
+  ],
+  "required_runs": 1,
+  "instructions": "Submit evidence showing the completed run."
+}
+```
+
+Accuracy should only appear as a requirement when the challenge explicitly defines an accuracy metric.
+
+The evidence verification endpoint must evaluate the configured requirements for that challenge rather than applying universal accuracy logic.
+
+## Challenge Creation
+
+Challenge creation must accept the metric and verification configuration, for example:
+
+```json
+{
+  "title": "Run 10 km",
+  "short_description": "Complete a 10 km run.",
+  "full_description": "Run the distance at your own pace and submit evidence.",
+  "metrics": [
+    {
+      "key": "distance",
+      "label": "Distance",
+      "kind": "DISTANCE",
+      "unit": "km",
+      "target": 10,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "DECIMAL_1"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "distance",
+      "operator": "AT_LEAST",
+      "value": 10,
+      "unit": "km",
+      "label": "Complete 10 km"
+    }
+  ],
+  "verification_type": "SELF_REPORTED"
+}
+```
+
+The backend should validate this configuration when the challenge is created or published.
+
+## Privacy and Response Rules
+
+- Aggregate participant counts may be public.
+- Participant previews should be limited, for example to five users.
+- Personal progress and attempts belong only to the authenticated participant.
+- Do not return irrelevant metric fields as fake zero values or `null` values.
+- Preserve the order of metrics and requirements supplied by the backend.
+- Return canonical units and formatting metadata so the client does not need challenge-specific logic.
+
+## Client Expectations
+
+The Flutter client will:
+
+- Render the primary metric prominently.
+- Render secondary metrics only when present.
+- Generate stat rows dynamically from `metrics`.
+- Generate verification requirements dynamically from `requirements`.
+- Hide accuracy, attempts, duration, or other metrics when they are not returned.
+- Use generic challenge copy instead of typing-specific hard-coded text.
+- Format values using the metric's `kind`, `unit`, and `format`.
+
+The backend should provide the metric schema and requirements as the source of truth.
+```
+
+The key design decision is that **accuracy becomes one optional metric**, rather than a universal property of every challenge.
