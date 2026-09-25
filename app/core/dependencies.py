@@ -30,12 +30,6 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    return _user_from_credentials(credentials, db)
-
-
-def _user_from_credentials(
-    credentials: HTTPAuthorizationCredentials, db: Session
-) -> User:
     invalid_token = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired access token",
@@ -69,17 +63,5 @@ def _user_from_credentials(
         raise invalid_token
 
     return user
-
-
-optional_bearer_scheme = HTTPBearer(auto_error=False)
-
-
-def get_optional_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
-    db: Session = Depends(get_db),
-) -> User | None:
-    if credentials is None:
-        return None
-    return _user_from_credentials(credentials, db)
 
     
