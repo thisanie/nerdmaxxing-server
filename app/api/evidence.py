@@ -46,8 +46,11 @@ async def submit_evidence(
     current_user: User = Depends(get_current_user),
 ) -> EvidenceSubmission:
     participant = get_owned_participation(participant_id, db, current_user)
-    if participant.status not in {"ACCEPTED", "IN_PROGRESS", "PAUSED"}:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Participation cannot accept evidence.")
+    if participant.completion_status != "READY_FOR_PROOF":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Complete all required milestones before submitting evidence.",
+        )
 
     if not text_content and file is None:
         raise HTTPException(status_code=422, detail="Provide text content or an uploaded file as evidence.")

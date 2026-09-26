@@ -12,6 +12,7 @@ from app.models.aura import AuraTransaction
 from app.models.group import Group, GroupMembership
 from app.models.progress import ChallengeProgressLog
 from app.models.invitation import ChallengeInvitation, Notification, PushToken
+from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 
 
 __all__ = [
@@ -34,4 +35,6 @@ __all__ = [
         "ChallengeInvitation",
         "Notification",
         "PushToken",
+        "ParticipantResourceCompletion",
+        "MetricAttempt",
         ]

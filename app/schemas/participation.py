@@ -42,3 +42,41 @@ class ProgressLogResponse(BaseModel):
     @classmethod
     def normalize_metrics(cls, value):
         return value or {}
+
+
+class ResourceCompletionCreate(BaseModel):
+    resource_minutes: int | None = Field(default=None, ge=0, le=1440)
+    milestone_minutes: int | None = Field(default=None, ge=0, le=1440)
+    note: str | None = Field(default=None, max_length=5000)
+    log_progress: bool = True
+
+
+class ResourceCompletionResponse(BaseModel):
+    resource_id: str
+    milestone_id: str
+    completed: bool
+    completed_at: datetime
+    resource_minutes: int | None
+    milestone_minutes: int | None
+    note: str | None
+    milestone_status: str
+    milestone_completed: bool
+    challenge_status: str
+    ready_for_proof: bool
+
+
+class MetricAttemptCreate(BaseModel):
+    metric_key: str = Field(min_length=1, max_length=50)
+    value: float | bool
+    unit: str | None = Field(default=None, max_length=30)
+    note: str | None = Field(default=None, max_length=5000)
+
+
+class MetricAttemptResponse(BaseModel):
+    id: str
+    metric_key: str
+    value: float | bool
+    unit: str | None
+    note: str | None
+    created_at: datetime
+    meets_target: bool

@@ -530,6 +530,38 @@ Response `201 Created`: a progress log object. Logging progress updates the part
 
 Requires authentication. Lists progress logs for a participation owned by the caller, newest first.
 
+### `POST /api/v1/participation/{participant_id}/milestones/{milestone_id}/resources/{resource_id}/complete`
+
+Requires authentication and an active participation owned by the caller. Marks an attached milestone resource as complete. The operation is idempotent.
+
+Request:
+
+```json
+{
+  "resource_minutes": 25,
+  "milestone_minutes": 90,
+  "note": "Completed the wrist and shoulder preparation routine.",
+  "log_progress": true
+}
+```
+
+Response `200 OK` includes `resource_id`, `milestone_id`, `completed`, `completed_at`, resource timing, `milestone_status`, `milestone_completed`, `challenge_status`, and `ready_for_proof`. When all required resources in all milestones are complete, `challenge_status` is `READY_FOR_PROOF` and `ready_for_proof` is `true`.
+
+### `POST /api/v1/participation/{participant_id}/metric-attempts`
+
+Requires authentication and an active participation owned by the caller. Records a configured challenge metric attempt and evaluates it against the metric target.
+
+```json
+{
+  "metric_key": "typing_speed",
+  "value": 60,
+  "unit": "WPM",
+  "note": "Completed a timed typing test."
+}
+```
+
+The response includes the attempt ID, metric, value, unit, timestamp, and `meets_target`.
+
 ### `GET /api/v1/users/me/stats`
 
 Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, and `aura_points`.
@@ -538,7 +570,7 @@ Requires authentication. Returns the current user's activity summary: `active_ch
 
 ### `POST /api/v1/evidence/participation/{participant_id}`
 
-Requires authentication. Submits evidence for the caller's participation. Accepts `multipart/form-data` with optional `explanation`, optional `text_content`, and an optional `file`. The participation must be `ACCEPTED`, `IN_PROGRESS`, or `PAUSED`; submission moves it to `SUBMITTED` with pending verification.
+Requires authentication. Submits evidence for the caller's participation. Accepts `multipart/form-data` with optional `explanation`, optional `text_content`, and an optional `file`. All required milestones must be complete first, so the participation must have `completion_status` set to `READY_FOR_PROOF`; submission moves it to `SUBMITTED` with pending verification.
 
 Request:
 

@@ -13,6 +13,7 @@ from app.models.category import Category
 from app.models.challenge import Challenge, ChallengeResource
 from app.models.participation import ChallengeParticipant
 from app.models.progress import ChallengeProgressLog
+from app.models.milestone import ParticipantResourceCompletion
 from app.models.user import User
 from app.schemas.challenge import (
     ChallengeAttemptResponse,
@@ -208,6 +209,12 @@ def get_public_challenge_detail(
     logs = list(db.scalars(select(ChallengeProgressLog).where(
         ChallengeProgressLog.participant_id == participant.id if participant else False
     ).order_by(ChallengeProgressLog.created_at.desc()).limit(20)).all()) if participant else []
+    completions = list(db.scalars(
+        select(ParticipantResourceCompletion).where(
+            ParticipantResourceCompletion.participant_id == participant.id
+        )
+    ).all()) if participant else []
+    completion_by_resource = {completion.resource_id: completion for completion in completions}
     configured_metrics = challenge.metrics or []
     if not configured_metrics and challenge.target_value is not None:
         configured_metrics = [{
@@ -233,10 +240,33 @@ def get_public_challenge_detail(
             order_index=milestone.order_index,
             title=milestone.title,
             description=milestone.description,
-            status="COMPLETED" if (logs and (logs[0].value or 0) >= milestone.target_value) else ("CURRENT" if milestone.order_index == 1 else "LOCKED"),
+            status=(
+                "COMPLETED"
+                if all(
+                    resource.get("resource_id") in completion_by_resource
+                    for resource in (milestone.resources or [])
+                    if resource.get("required", True)
+                )
+                else ("CURRENT" if milestone.order_index == 1 else "LOCKED")
+            ),
             current_value=logs[0].value if logs and logs[0].value is not None else 0,
             target_value=milestone.target_value,
-            resources=milestone.resources or [],
+            resources=[
+                {
+                    **resource,
+                    "completed": resource.get("resource_id") in completion_by_resource,
+                    **(
+                        {
+                            "completed_at": completion_by_resource[resource["resource_id"]].completed_at,
+                            "resource_minutes": completion_by_resource[resource["resource_id"]].resource_minutes,
+                            "note": completion_by_resource[resource["resource_id"]].note,
+                        }
+                        if resource.get("resource_id") in completion_by_resource
+                        else {}
+                    ),
+                }
+                for resource in (milestone.resources or [])
+            ],
         )
         for milestone in challenge.milestones
     ]

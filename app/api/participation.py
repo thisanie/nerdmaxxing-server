@@ -7,7 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
-from app.models.challenge import Challenge
+from app.models.challenge import Challenge, ChallengeResource
+from app.models.challenge import ChallengeMilestone
+from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.participation import ChallengeParticipant
 from app.models.user import User
 from app.schemas.participation import (
@@ -15,6 +17,10 @@ from app.schemas.participation import (
     ParticipationStatusUpdate,
     ProgressLogCreate,
     ProgressLogResponse,
+    ResourceCompletionCreate,
+    ResourceCompletionResponse,
+    MetricAttemptCreate,
+    MetricAttemptResponse,
 )
 from app.models.progress import ChallengeProgressLog
 from app.services.progress_service import record_progress
@@ -27,6 +33,47 @@ ALLOWED_TRANSITIONS = {
     "IN_PROGRESS": {"PAUSED", "REMOVED"},
     "PAUSED": {"IN_PROGRESS", "REMOVED"},
 }
+
+
+def get_active_participant(participant_id: str, db: Session, current_user: User) -> ChallengeParticipant:
+    participant = db.scalar(
+        select(ChallengeParticipant).where(
+            ChallengeParticipant.id == participant_id,
+            ChallengeParticipant.user_id == current_user.id,
+        )
+    )
+    if participant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
+    if participant.status not in ACTIVE_STATUSES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Participation is not active.")
+    return participant
+
+
+def milestone_progress(
+    participant: ChallengeParticipant,
+    milestones: list[ChallengeMilestone],
+    completions: list[ParticipantResourceCompletion],
+) -> tuple[dict[str, str], set[str]]:
+    completed_ids = {completion.resource_id for completion in completions}
+    statuses: dict[str, str] = {}
+    completed_milestones: set[str] = set()
+    previous_complete = True
+    for milestone in milestones:
+        required_ids = {
+            resource["resource_id"]
+            for resource in milestone.resources or []
+            if resource.get("required", True)
+        }
+        complete = required_ids.issubset(completed_ids)
+        if complete:
+            statuses[milestone.id] = "COMPLETED"
+            completed_milestones.add(milestone.id)
+        elif previous_complete:
+            statuses[milestone.id] = "CURRENT"
+        else:
+            statuses[milestone.id] = "LOCKED"
+        previous_complete = complete
+    return statuses, completed_milestones
 
 
 @router.get("/me", response_model=list[ParticipationResponse])
@@ -160,6 +207,154 @@ def log_progress(
     db.commit()
     db.refresh(progress)
     return progress
+
+
+@router.post(
+    "/{participant_id}/milestones/{milestone_id}/resources/{resource_id}/complete",
+    response_model=ResourceCompletionResponse,
+)
+def complete_milestone_resource(
+    participant_id: str,
+    milestone_id: str,
+    resource_id: str,
+    payload: ResourceCompletionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ResourceCompletionResponse:
+    participant = get_active_participant(participant_id, db, current_user)
+    challenge = db.get(Challenge, participant.challenge_id)
+    milestone = db.get(ChallengeMilestone, milestone_id)
+    if challenge is None or milestone is None or milestone.challenge_id != challenge.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found.")
+
+    attachment = next(
+        (resource for resource in milestone.resources or [] if resource.get("resource_id") == resource_id),
+        None,
+    )
+    if attachment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource is not attached to this milestone.")
+    challenge_resource_ids = {
+        resource.id for resource in db.scalars(
+            select(ChallengeResource).where(ChallengeResource.challenge_id == challenge.id)
+        ).all()
+    }
+    if resource_id not in challenge_resource_ids:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found for this challenge.")
+
+    completion = db.scalar(
+        select(ParticipantResourceCompletion).where(
+            ParticipantResourceCompletion.participant_id == participant.id,
+            ParticipantResourceCompletion.milestone_id == milestone.id,
+            ParticipantResourceCompletion.resource_id == resource_id,
+        )
+    )
+    if completion is None:
+        completion = ParticipantResourceCompletion(
+            participant_id=participant.id,
+            milestone_id=milestone.id,
+            resource_id=resource_id,
+            resource_minutes=payload.resource_minutes,
+            milestone_minutes=payload.milestone_minutes,
+            note=payload.note,
+        )
+        db.add(completion)
+    elif payload.resource_minutes is not None or payload.milestone_minutes is not None or payload.note is not None:
+        completion.resource_minutes = payload.resource_minutes
+        completion.milestone_minutes = payload.milestone_minutes
+        completion.note = payload.note
+
+    if payload.log_progress and (payload.resource_minutes or payload.milestone_minutes):
+        record_progress(
+            db,
+            current_user,
+            participant,
+            minutes_spent=payload.milestone_minutes or payload.resource_minutes or 0,
+            note=payload.note,
+        )
+    participant.last_activity_at = datetime.utcnow()
+    db.flush()
+    milestones = list(db.scalars(
+        select(ChallengeMilestone)
+        .where(ChallengeMilestone.challenge_id == challenge.id)
+        .order_by(ChallengeMilestone.order_index)
+    ).all())
+    completions = list(db.scalars(
+        select(ParticipantResourceCompletion).where(
+            ParticipantResourceCompletion.participant_id == participant.id
+        )
+    ).all())
+    statuses, completed_milestones = milestone_progress(participant, milestones, completions)
+    ready_for_proof = len(completed_milestones) == len(milestones)
+    participant.completion_status = "READY_FOR_PROOF" if ready_for_proof else "INCOMPLETE"
+    db.commit()
+    db.refresh(completion)
+    return ResourceCompletionResponse(
+        resource_id=resource_id,
+        milestone_id=milestone.id,
+        completed=True,
+        completed_at=completion.completed_at,
+        resource_minutes=completion.resource_minutes,
+        milestone_minutes=completion.milestone_minutes,
+        note=completion.note,
+        milestone_status=statuses[milestone.id],
+        milestone_completed=milestone.id in completed_milestones,
+        challenge_status=participant.completion_status,
+        ready_for_proof=ready_for_proof,
+    )
+
+
+@router.post(
+    "/{participant_id}/metric-attempts",
+    response_model=MetricAttemptResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_metric_attempt(
+    participant_id: str,
+    payload: MetricAttemptCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MetricAttempt:
+    participant = get_active_participant(participant_id, db, current_user)
+    challenge = db.get(Challenge, participant.challenge_id)
+    definitions = {
+        metric["key"]: metric for metric in (challenge.metrics or [])
+    } if challenge else {}
+    definition = definitions.get(payload.metric_key)
+    if definition is None:
+        raise HTTPException(status_code=422, detail="Unknown challenge metric.")
+    if definition.get("unit") != payload.unit:
+        raise HTTPException(status_code=422, detail="Metric unit does not match the challenge definition.")
+    if isinstance(payload.value, float) and not math.isfinite(payload.value):
+        raise HTTPException(status_code=422, detail="Metric value must be finite.")
+    if isinstance(payload.value, bool) and definition.get("kind") != "BOOLEAN":
+        raise HTTPException(status_code=422, detail="Metric value must be numeric.")
+    if isinstance(payload.value, (int, float)) and payload.value < 0:
+        raise HTTPException(status_code=422, detail="Metric value cannot be negative.")
+    target = definition.get("target")
+    direction = definition.get("direction", "AT_LEAST")
+    meets_target = False
+    if target is not None:
+        if direction == "AT_MOST":
+            meets_target = payload.value <= target
+        elif direction == "EXACTLY":
+            meets_target = payload.value == target
+        elif direction == "BOOLEAN":
+            meets_target = payload.value is target
+        else:
+            meets_target = payload.value >= target
+    attempt = MetricAttempt(
+        participant_id=participant.id,
+        metric_key=payload.metric_key,
+        value=payload.value,
+        unit=payload.unit,
+        note=payload.note,
+        meets_target=meets_target,
+    )
+    db.add(attempt)
+    participant.last_activity_at = datetime.utcnow()
+    db.commit()
+    db.refresh(attempt)
+    return attempt
 
 
 @router.get("/{participant_id}/progress", response_model=list[ProgressLogResponse])
