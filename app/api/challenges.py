@@ -292,7 +292,7 @@ def get_public_challenge_detail(
             "completed_resource_count": len(completed_attachments),
             "total_resource_count": len(attachments),
             "logged_minutes": sum(
-                completion.milestone_minutes or completion.resource_minutes or 0
+                completion.resource_minutes or 0
                 for completion in milestone_completions
             ),
             "resources": resources,
@@ -313,7 +313,7 @@ def get_public_challenge_detail(
         current_value=primary_values[0] if primary_values else 0,
         target_value=primary_metric.get("target") if primary_metric else challenge.target_value,
         unit=primary_metric.get("unit") if primary_metric else challenge.target_unit,
-        logged_minutes=sum(log.minutes_spent for log in all_logs),
+        logged_minutes=sum(item["logged_minutes"] for item in milestone_data),
         completed_resource_count=completed_resource_count,
         total_resource_count=total_resource_count,
         completed_milestone_count=completed_milestone_count,

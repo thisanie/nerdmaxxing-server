@@ -45,8 +45,9 @@ class ProgressLogResponse(BaseModel):
 
 
 class ResourceCompletionCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     resource_minutes: int | None = Field(default=None, ge=0, le=1440)
-    milestone_minutes: int | None = Field(default=None, ge=0, le=1440)
     note: str | None = Field(default=None, max_length=5000)
     log_progress: bool = True
 
@@ -57,7 +58,7 @@ class ResourceCompletionResponse(BaseModel):
     completed: bool
     completed_at: datetime
     resource_minutes: int | None
-    milestone_minutes: int | None
+    milestone_minutes: int
     note: str | None
     milestone_status: str
     milestone_completed: bool
@@ -71,7 +72,7 @@ class ResourceCompletionStatusResponse(BaseModel):
     completed: bool
     completed_at: datetime | None
     resource_minutes: int | None
-    milestone_minutes: int | None
+    milestone_minutes: int
     note: str | None
     milestone_status: str
     milestone_completed: bool

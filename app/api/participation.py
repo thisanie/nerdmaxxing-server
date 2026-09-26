@@ -265,6 +265,11 @@ def get_milestone_resource_completion(
         )
     ).all())
     statuses, completed_milestones = milestone_progress(participant, milestones, completions)
+    milestone_minutes = sum(
+        completion.resource_minutes or 0
+        for completion in completions
+        if completion.milestone_id == milestone.id
+    )
     ready_for_proof = bool(milestones) and len(completed_milestones) == len(milestones)
     return ResourceCompletionStatusResponse(
         resource_id=resource_id,
@@ -272,7 +277,7 @@ def get_milestone_resource_completion(
         completed=completion is not None,
         completed_at=completion.completed_at if completion else None,
         resource_minutes=completion.resource_minutes if completion else None,
-        milestone_minutes=completion.milestone_minutes if completion else None,
+        milestone_minutes=milestone_minutes,
         note=completion.note if completion else None,
         milestone_status=statuses[milestone.id],
         milestone_completed=milestone.id in completed_milestones,
@@ -327,21 +332,20 @@ def complete_milestone_resource(
             milestone_id=milestone.id,
             resource_id=resource_id,
             resource_minutes=payload.resource_minutes,
-            milestone_minutes=payload.milestone_minutes,
             note=payload.note,
         )
         db.add(completion)
-    elif payload.resource_minutes is not None or payload.milestone_minutes is not None or payload.note is not None:
-        completion.resource_minutes = payload.resource_minutes
-        completion.milestone_minutes = payload.milestone_minutes
+    elif payload.resource_minutes is not None or payload.note is not None:
+        if payload.resource_minutes is not None:
+            completion.resource_minutes = payload.resource_minutes
         completion.note = payload.note
 
-    if is_new_completion and payload.log_progress and (payload.resource_minutes or payload.milestone_minutes):
+    if is_new_completion and payload.log_progress and payload.resource_minutes:
         record_progress(
             db,
             current_user,
             participant,
-            minutes_spent=payload.milestone_minutes or payload.resource_minutes or 0,
+            minutes_spent=payload.resource_minutes,
             note=payload.note,
         )
     participant.last_activity_at = datetime.utcnow()
@@ -357,7 +361,12 @@ def complete_milestone_resource(
         )
     ).all())
     statuses, completed_milestones = milestone_progress(participant, milestones, completions)
-    ready_for_proof = len(completed_milestones) == len(milestones)
+    milestone_minutes = sum(
+        completion.resource_minutes or 0
+        for completion in completions
+        if completion.milestone_id == milestone.id
+    )
+    ready_for_proof = bool(milestones) and len(completed_milestones) == len(milestones)
     participant.completion_status = "READY_FOR_PROOF" if ready_for_proof else "INCOMPLETE"
     db.commit()
     db.refresh(completion)
@@ -367,7 +376,7 @@ def complete_milestone_resource(
         completed=True,
         completed_at=completion.completed_at,
         resource_minutes=completion.resource_minutes,
-        milestone_minutes=completion.milestone_minutes,
+        milestone_minutes=milestone_minutes,
         note=completion.note,
         milestone_status=statuses[milestone.id],
         milestone_completed=milestone.id in completed_milestones,
