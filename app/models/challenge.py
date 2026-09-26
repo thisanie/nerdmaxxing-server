@@ -100,5 +100,6 @@ class ChallengeMilestone(Base):
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     target_value: Mapped[float] = mapped_column(Float, nullable=False)
+    resources: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
     challenge: Mapped[Challenge] = relationship(back_populates="milestones")

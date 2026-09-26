@@ -236,6 +236,7 @@ def get_public_challenge_detail(
             status="COMPLETED" if (logs and (logs[0].value or 0) >= milestone.target_value) else ("CURRENT" if milestone.order_index == 1 else "LOCKED"),
             current_value=logs[0].value if logs and logs[0].value is not None else 0,
             target_value=milestone.target_value,
+            resources=milestone.resources or [],
         )
         for milestone in challenge.milestones
     ]

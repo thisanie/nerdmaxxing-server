@@ -65,4 +65,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         if columns and name not in columns:
                                 connection.execute(text(f"ALTER TABLE challenges ADD COLUMN {name} {definition}"))
 
+                inspector = inspect(connection)
+                milestone_columns = {column["name"] for column in inspector.get_columns("challenge_milestones")}
+                if milestone_columns and "resources" not in milestone_columns:
+                        connection.execute(text("ALTER TABLE challenge_milestones ADD COLUMN resources JSON"))
+
 

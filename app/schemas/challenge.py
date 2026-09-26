@@ -143,6 +143,12 @@ class ChallengeMilestoneResponse(BaseModel):
     status: str
     current_value: float
     target_value: float
+    resources: list[dict] = Field(default_factory=list)
+
+    @field_validator("resources", mode="before")
+    @classmethod
+    def normalize_resources(cls, value):
+        return value or []
 
 
 class ChallengeAttemptResponse(BaseModel):

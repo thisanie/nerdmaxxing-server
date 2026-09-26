@@ -220,20 +220,35 @@ def seed() -> None:
                     )
                     for index, resource in enumerate(item["resources"])
                 ]
+            db.flush()
+            resources_by_order = {
+                resource.order_index: resource
+                for resource in challenge.resources
+            }
             challenge.milestones.clear()
+            default_milestone = {
+                "title": f"Reach {target_value:g} {target_unit}",
+                "description": "Meet the challenge target metric using the challenge resources.",
+                "target_value": target_value,
+                "resource_order_indexes": list(resources_by_order),
+            }
             challenge.milestones = [
                 ChallengeMilestone(
                     order_index=index,
                     title=milestone["title"],
                     description=milestone["description"],
                     target_value=milestone["target_value"],
+                    resources=[
+                        {
+                            "resource_id": resources_by_order[resource_index].id,
+                            "required": resource.get("required", True),
+                        }
+                        for resource_index in milestone.get("resource_order_indexes", [])
+                        if resource_index in resources_by_order
+                    ],
                 )
                 for index, milestone in enumerate(
-                    item.get("milestones", [{
-                        "title": f"Reach {target_value:g} {target_unit}",
-                        "description": "Meet the challenge target metric.",
-                        "target_value": target_value,
-                    }]),
+                    item.get("milestones", [default_milestone]),
                     start=1,
                 )
             ]

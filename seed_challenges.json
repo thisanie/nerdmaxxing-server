@@ -242,11 +242,11 @@
         {"title": "Handbalancing Community", "url": "https://www.reddit.com/r/handbalancing/", "resource_type": "COMMUNITY", "rationale": "Provides accountability and a place to request form feedback."}
       ],
       "milestones": [
-        {"title": "Prepare Your Body", "description": "Prepare your wrists, shoulders and body for handstand training.", "target_value": 1},
-        {"title": "Master the Wall Handstand", "description": "Develop a controlled chest-to-wall handstand and consistent body alignment.", "target_value": 10},
-        {"title": "Learn the Kick-Up", "description": "Practice controlled entries and safe exits without losing body awareness.", "target_value": 15},
-        {"title": "Find Your Balance", "description": "Accumulate short freestanding holds using finger pressure and shoulder control.", "target_value": 20},
-        {"title": "Hold for 30 Seconds", "description": "Complete the final clean freestanding handstand under video verification.", "target_value": 30}
+        {"title": "Prepare Your Body", "description": "Prepare your wrists, shoulders and body for handstand training.", "target_value": 1, "resource_order_indexes": [0, 1]},
+        {"title": "Master the Wall Handstand", "description": "Develop a controlled chest-to-wall handstand and consistent body alignment.", "target_value": 10, "resource_order_indexes": [1, 2]},
+        {"title": "Learn the Kick-Up", "description": "Practice controlled entries and safe exits without losing body awareness.", "target_value": 15, "resource_order_indexes": [1, 4]},
+        {"title": "Find Your Balance", "description": "Accumulate short freestanding holds using finger pressure and shoulder control.", "target_value": 20, "resource_order_indexes": [2, 3, 4]},
+        {"title": "Hold for 30 Seconds", "description": "Complete the final clean freestanding handstand under video verification.", "target_value": 30, "resource_order_indexes": [3, 4, 5]}
       ]
     },
     {

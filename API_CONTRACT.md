@@ -337,7 +337,9 @@ Response `200 OK`:
 ```
 
 `milestones` are ordered by `order_index`; each status is `LOCKED`, `CURRENT`,
-or `COMPLETED`. `attempts` are newest first and limited to the latest 20
+or `COMPLETED`. Each milestone may include a `resources` array containing
+`resource_id` and `required`, linking the milestone to the challenge's resource
+collection. `attempts` are newest first and limited to the latest 20
 progress records. `participants` are limited to five previews, while `stats`
 always contains complete counts. The verification object describes the
 requirements used by the evidence API.
