@@ -65,6 +65,20 @@ class ResourceCompletionResponse(BaseModel):
     ready_for_proof: bool
 
 
+class ResourceCompletionStatusResponse(BaseModel):
+    resource_id: str
+    milestone_id: str
+    completed: bool
+    completed_at: datetime | None
+    resource_minutes: int | None
+    milestone_minutes: int | None
+    note: str | None
+    milestone_status: str
+    milestone_completed: bool
+    challenge_status: str
+    ready_for_proof: bool
+
+
 class MetricAttemptCreate(BaseModel):
     metric_key: str = Field(min_length=1, max_length=50)
     value: float | bool

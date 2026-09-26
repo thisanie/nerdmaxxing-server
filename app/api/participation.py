@@ -19,6 +19,7 @@ from app.schemas.participation import (
     ProgressLogResponse,
     ResourceCompletionCreate,
     ResourceCompletionResponse,
+    ResourceCompletionStatusResponse,
     MetricAttemptCreate,
     MetricAttemptResponse,
 )
@@ -213,6 +214,71 @@ def log_progress(
     db.commit()
     db.refresh(progress)
     return progress
+
+
+@router.get(
+    "/{participant_id}/milestones/{milestone_id}/resources/{resource_id}",
+    response_model=ResourceCompletionStatusResponse,
+)
+def get_milestone_resource_completion(
+    participant_id: str,
+    milestone_id: str,
+    resource_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ResourceCompletionStatusResponse:
+    participant = get_active_participant(participant_id, db, current_user)
+    challenge = db.get(Challenge, participant.challenge_id)
+    milestone = db.get(ChallengeMilestone, milestone_id)
+    if challenge is None or milestone is None or milestone.challenge_id != challenge.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found.")
+
+    attachment = next(
+        (resource for resource in milestone.resources or [] if resource.get("resource_id") == resource_id),
+        None,
+    )
+    if attachment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource is not attached to this milestone.")
+    if db.scalar(
+        select(ChallengeResource.id).where(
+            ChallengeResource.id == resource_id,
+            ChallengeResource.challenge_id == challenge.id,
+        )
+    ) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found for this challenge.")
+
+    completion = db.scalar(
+        select(ParticipantResourceCompletion).where(
+            ParticipantResourceCompletion.participant_id == participant.id,
+            ParticipantResourceCompletion.milestone_id == milestone.id,
+            ParticipantResourceCompletion.resource_id == resource_id,
+        )
+    )
+    milestones = list(db.scalars(
+        select(ChallengeMilestone)
+        .where(ChallengeMilestone.challenge_id == challenge.id)
+        .order_by(ChallengeMilestone.order_index)
+    ).all())
+    completions = list(db.scalars(
+        select(ParticipantResourceCompletion).where(
+            ParticipantResourceCompletion.participant_id == participant.id
+        )
+    ).all())
+    statuses, completed_milestones = milestone_progress(participant, milestones, completions)
+    ready_for_proof = bool(milestones) and len(completed_milestones) == len(milestones)
+    return ResourceCompletionStatusResponse(
+        resource_id=resource_id,
+        milestone_id=milestone.id,
+        completed=completion is not None,
+        completed_at=completion.completed_at if completion else None,
+        resource_minutes=completion.resource_minutes if completion else None,
+        milestone_minutes=completion.milestone_minutes if completion else None,
+        note=completion.note if completion else None,
+        milestone_status=statuses[milestone.id],
+        milestone_completed=milestone.id in completed_milestones,
+        challenge_status="READY_FOR_PROOF" if ready_for_proof else "IN_PROGRESS",
+        ready_for_proof=ready_for_proof,
+    )
 
 
 @router.post(
