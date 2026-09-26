@@ -83,12 +83,22 @@ def get_featured(db: Session) -> ChallengeResponse | None:
 
 def get_trending(db: Session, limit: int = 10) -> list[ChallengeResponse]:
     cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
+    recent_participation = (
+        select(
+            ChallengeParticipant.challenge_id,
+            func.count(ChallengeParticipant.id).label("participant_count"),
+        )
+        .where(ChallengeParticipant.started_at >= cutoff)
+        .group_by(ChallengeParticipant.challenge_id)
+        .subquery()
+    )
     challenges = db.scalars(
         _public_query()
-        .join(ChallengeParticipant, ChallengeParticipant.challenge_id == Challenge.id)
-        .where(ChallengeParticipant.started_at >= cutoff)
-        .group_by(*Challenge.__table__.columns)
-        .order_by(func.count(ChallengeParticipant.id).desc(), Challenge.published_at.desc())
+        .join(recent_participation, recent_participation.c.challenge_id == Challenge.id)
+        .order_by(
+            recent_participation.c.participant_count.desc(),
+            Challenge.published_at.desc(),
+        )
         .limit(limit)
     ).unique().all()
     if challenges:
