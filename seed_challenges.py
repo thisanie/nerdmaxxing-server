@@ -37,14 +37,14 @@ CATEGORY_RULES = {
     "practical": ("sugar", "save $", "cook"),
     "creative": ("juggle",),
 }
-FEATURED_TITLE = "Solve a Rubik's Cube Under 2 Minutes"
+FEATURED_TITLE = "Solve a Rubik's Cube in Under 2 Minutes"
 LEGENDARY_TITLES = {
     "Reach a 500 lb Combined Lift",
     "Complete a 100-Day Coding Streak",
     "Master the Splits",
 }
 SEED_EFFORT_RANGES = {
-    "Solve a Rubik's Cube Under 2 Minutes": (300, 600),
+    "Solve a Rubik's Cube in Under 2 Minutes": (600, 1800),
     "Achieve 60 WPM Typing Speed": (180, 300),
     "Learn Conversational Spanish": (1200, 2400),
     "Run a 5K": (480, 720),
@@ -67,7 +67,7 @@ SEED_EFFORT_RANGES = {
     "Learn 500 Chess Opening Moves": (1200, 2400),
 }
 SEED_METRICS = {
-    "Solve a Rubik's Cube Under 2 Minutes": (120, "SECONDS"),
+    "Solve a Rubik's Cube in Under 2 Minutes": (120, "SECONDS"),
     "Achieve 60 WPM Typing Speed": (60, "WPM"),
     "Learn Conversational Spanish": (5, "MINUTES"),
     "Run a 5K": (5, "KILOMETERS"),
@@ -111,7 +111,7 @@ def category_slugs_for(title: str) -> list[str]:
 
 
 def image_url_for(item: dict) -> str:
-    return settings.default_challenge_image_url
+    return item.get("image_url") or settings.default_challenge_image_url
 
 
 def seed() -> None:
@@ -168,7 +168,7 @@ def seed() -> None:
                     target_value=target_value,
                     target_unit=target_unit,
                     min_accuracy_percent=95 if target_unit == "WPM" else None,
-                    required_runs=1,
+                    required_runs=item.get("required_runs", 3 if item["title"] == FEATURED_TITLE else 1),
                     verification_instructions=item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."),
                     metrics=item.get("metrics"),
                     requirements=item.get("requirements"),
@@ -191,7 +191,7 @@ def seed() -> None:
                 challenge.target_value = target_value
                 challenge.target_unit = target_unit
                 challenge.min_accuracy_percent = 95 if target_unit == "WPM" else None
-                challenge.required_runs = 1
+                challenge.required_runs = item.get("required_runs", 3 if item["title"] == FEATURED_TITLE else 1)
                 challenge.verification_instructions = item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements.")
                 challenge.metrics = item.get("metrics")
                 challenge.requirements = item.get("requirements")

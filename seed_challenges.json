@@ -1,17 +1,38 @@
 {
   "challenges": [
     {
-      "title": "Solve a Rubik's Cube Under 2 Minutes",
-      "image_url": "https://source.unsplash.com/featured/800x600/?rubikscube",
-      "short_description": "Solve a standard 3x3 Rubik's Cube in under 2 minutes.",
-      "full_description": "Learn the CFOP or layer-by-layer method, practice algorithms daily, and time yourself until you consistently solve the cube in under 2 minutes.",
+      "title": "Solve a Rubik's Cube in Under 2 Minutes",
+      "image_url": "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60",
+      "short_description": "Learn to solve a 3x3 Rubik's Cube and build the speed, recognition and turning skills needed to consistently solve it in under 2 minutes.",
+      "full_description": "Learn the 3x3 Rubik's Cube from the ground up, starting with the beginner solving method and progressing toward speedsolving fundamentals. You will learn cube notation, solve the cube layer by layer, develop efficient turning habits, practice timed solves, and introduce beginner CFOP concepts to break through the two-minute barrier. The challenge is complete when you achieve a verified solve under 2 minutes.",
       "difficulty_level": "INTERMEDIATE",
       "verification_type": "VIDEO_VERIFIED",
+      "metrics": [
+        {"key": "solve_time", "label": "Solve time", "kind": "DURATION", "unit": "seconds", "target": 120, "direction": "AT_MOST", "is_primary": true, "format": "INTEGER"}
+      ],
+      "requirements": [
+        {"metric_key": "solve_time", "operator": "AT_MOST", "value": 120, "unit": "seconds", "label": "Complete a full 3x3 solve in under 120 seconds"}
+      ],
+      "verification_instructions": "Record three independent solves. Each solve must begin from a scrambled 3x3 cube and finish with the cube completely solved in under 2 minutes. The complete cube and timer must remain visible throughout each attempt. Use a continuous recording with no cuts or external assistance.",
       "resources": [
-        {"title": "Beginner's Method to Solve a Rubik's Cube", "url": "https://www.youtube.com/watch?v=7Ron6MN45LY", "resource_type": "VIDEO", "rationale": "Teaches the foundational layer-by-layer method for solving the cube."},
-        {"title": "CFOP Method Explained", "url": "https://www.speedsolving.com/wiki/index.php/CFOP_method", "resource_type": "ARTICLE", "rationale": "Covers the advanced 4-step method used by speedcubers to break the 2-minute barrier."},
-        {"title": "Algorithm Cheat Sheet (PDF)", "url": "https://example.com/downloads/cfop-algorithms.pdf", "resource_type": "DOCUMENT", "rationale": "Printable reference of all algorithms needed for F2L, OLL, and PLL."},
-        {"title": "r/Cubers Community", "url": "https://www.reddit.com/r/Cubers/", "resource_type": "COMMUNITY", "rationale": "Get tips, feedback on your solves, and stay motivated with other cubers."}
+        {"title": "Rubik's Cube Move Notation", "url": "https://www.jperm.net/3x3/moves", "resource_type": "ARTICLE", "rationale": "Learn the basic U, D, R, L, F and B notation, prime moves, double turns, cube rotations and other notation needed to follow algorithms.", "required": true},
+        {"title": "How To Solve a 3x3 Rubik's Cube", "url": "https://www.jperm.net/3x3", "resource_type": "INTERACTIVE_GUIDE", "rationale": "The primary beginner tutorial. It teaches the complete solve through the white cross, first layer, second layer, last-layer cross, corners and final orientation.", "required": true},
+        {"title": "Beginner Method Example Solve", "url": "https://www.jperm.net/3x3", "resource_type": "VIDEO", "rationale": "Use the example solve alongside the written beginner method when a step is difficult to understand.", "required": false},
+        {"title": "Rubik's Cube Finger Tricks", "url": "https://www.jperm.net/3x3/fingertricks", "resource_type": "VIDEO", "rationale": "Learn how to execute turns using fingers instead of repeatedly repositioning the whole hand. This improves turning efficiency and reduces unnecessary regrips.", "required": true},
+        {"title": "CFOP Speedsolving Method", "url": "https://www.jperm.net/3x3/cfop", "resource_type": "INTERACTIVE_GUIDE", "rationale": "Introduces Cross, F2L, OLL and PLL and explains how speedsolving differs from the beginner method.", "required": true},
+        {"title": "Intuitive F2L", "url": "https://www.jperm.net/3x3/cfop/f2l", "resource_type": "VIDEO", "rationale": "Learn to solve the first two layers simultaneously instead of completing them layer by layer. This is one of the biggest efficiency improvements over the beginner method.", "required": true},
+        {"title": "2-Look OLL and 2-Look PLL", "url": "https://www.jperm.net/3x3/cfop/ll", "resource_type": "INTERACTIVE_GUIDE", "rationale": "Introduces the beginner-friendly versions of OLL and PLL rather than requiring the learner to memorize all 78 full OLL and PLL algorithms.", "required": true},
+        {"title": "OLL Algorithm Trainer", "url": "https://www.speedcubedb.com/t/3x3/OLL", "resource_type": "INTERACTIVE_TRAINER", "rationale": "Practice recognizing and executing OLL cases interactively instead of repeatedly studying algorithms passively.", "required": false},
+        {"title": "PLL Algorithm Trainer", "url": "https://www.speedcubedb.com/t/3x3/PLL", "resource_type": "INTERACTIVE_TRAINER", "rationale": "Practice PLL recognition and execution through repeated algorithm training.", "required": false},
+        {"title": "CFOP Cross Fundamentals", "url": "https://www.jperm.net/3x3/cfop", "resource_type": "VIDEO", "rationale": "Learn to plan and execute the cross more efficiently, including solving the cross on the bottom and reducing unnecessary moves.", "required": false}
+      ],
+      "milestones": [
+        {"title": "Learn the Language of the Cube", "description": "Understand how the cube is structured and learn the notation used to describe moves.", "target_value": 1, "resource_order_indexes": [0]},
+        {"title": "Solve Your First Cube", "description": "Learn the complete beginner method and solve a scrambled cube without following a solver.", "target_value": 1, "resource_order_indexes": [1]},
+        {"title": "Build Consistency", "description": "Turn the beginner method into a repeatable skill instead of something you can only do by following instructions.", "target_value": 10, "resource_order_indexes": [2]},
+        {"title": "Turn Faster", "description": "Replace slow whole-hand movements with efficient finger turns and reduce unnecessary pauses and regrips.", "target_value": 10, "resource_order_indexes": [3]},
+        {"title": "Start Speedsolving", "description": "Move beyond the beginner method and learn the fundamentals of CFOP speedsolving.", "target_value": 1, "resource_order_indexes": [4]},
+        {"title": "Break the 2-Minute Barrier", "description": "Combine efficient solving, faster turning and repeated timed practice until you can consistently solve the cube within two minutes.", "target_value": 120, "resource_order_indexes": [5, 6]}
       ]
     },
     {
