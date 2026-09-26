@@ -169,7 +169,9 @@ def seed() -> None:
                     target_unit=target_unit,
                     min_accuracy_percent=95 if target_unit == "WPM" else None,
                     required_runs=1,
-                    verification_instructions="Submit evidence that demonstrates the target metric and satisfies the challenge requirements.",
+                    verification_instructions=item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."),
+                    metrics=item.get("metrics"),
+                    requirements=item.get("requirements"),
                     estimated_duration_minutes=10080,
                     featured=item["title"] == FEATURED_TITLE,
                     legendary=item["title"] in LEGENDARY_TITLES,
@@ -190,7 +192,9 @@ def seed() -> None:
                 challenge.target_unit = target_unit
                 challenge.min_accuracy_percent = 95 if target_unit == "WPM" else None
                 challenge.required_runs = 1
-                challenge.verification_instructions = "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."
+                challenge.verification_instructions = item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements.")
+                challenge.metrics = item.get("metrics")
+                challenge.requirements = item.get("requirements")
                 challenge.estimated_duration_minutes = challenge.estimated_duration_minutes or 10080
                 challenge.featured = item["title"] == FEATURED_TITLE
                 challenge.legendary = item["title"] in LEGENDARY_TITLES
@@ -216,15 +220,23 @@ def seed() -> None:
                     )
                     for index, resource in enumerate(item["resources"])
                 ]
-            if not challenge.milestones:
-                challenge.milestones = [
-                    ChallengeMilestone(
-                        order_index=1,
-                        title=f"Reach {target_value:g} {target_unit}",
-                        description="Meet the challenge target metric.",
-                        target_value=target_value,
-                    )
-                ]
+            challenge.milestones.clear()
+            challenge.milestones = [
+                ChallengeMilestone(
+                    order_index=index,
+                    title=milestone["title"],
+                    description=milestone["description"],
+                    target_value=milestone["target_value"],
+                )
+                for index, milestone in enumerate(
+                    item.get("milestones", [{
+                        "title": f"Reach {target_value:g} {target_unit}",
+                        "description": "Meet the challenge target metric.",
+                        "target_value": target_value,
+                    }]),
+                    start=1,
+                )
+            ]
 
         db.commit()
         print(f"Seeded {created} new challenges and refreshed {updated} existing challenges.")
