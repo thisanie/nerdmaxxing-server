@@ -241,7 +241,7 @@ def seed() -> None:
                     resources=[
                         {
                             "resource_id": resources_by_order[resource_index].id,
-                            "required": resource.get("required", True),
+                            "required": item["resources"][resource_index].get("required", True),
                         }
                         for resource_index in milestone.get("resource_order_indexes", [])
                         if resource_index in resources_by_order
