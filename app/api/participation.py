@@ -54,7 +54,10 @@ def milestone_progress(
     milestones: list[ChallengeMilestone],
     completions: list[ParticipantResourceCompletion],
 ) -> tuple[dict[str, str], set[str]]:
-    completed_ids = {completion.resource_id for completion in completions}
+    completed_resources = {
+        (completion.milestone_id, completion.resource_id)
+        for completion in completions
+    }
     statuses: dict[str, str] = {}
     completed_milestones: set[str] = set()
     previous_complete = True
@@ -64,7 +67,10 @@ def milestone_progress(
             for resource in milestone.resources or []
             if resource.get("required", True)
         }
-        complete = required_ids.issubset(completed_ids)
+        complete = all(
+            (milestone.id, resource_id) in completed_resources
+            for resource_id in required_ids
+        )
         if complete:
             statuses[milestone.id] = "COMPLETED"
             completed_milestones.add(milestone.id)

@@ -214,7 +214,10 @@ def get_public_challenge_detail(
             ParticipantResourceCompletion.participant_id == participant.id
         )
     ).all()) if participant else []
-    completion_by_resource = {completion.resource_id: completion for completion in completions}
+    completion_by_resource = {
+        (completion.milestone_id, completion.resource_id): completion
+        for completion in completions
+    }
     configured_metrics = challenge.metrics or []
     if not configured_metrics and challenge.target_value is not None:
         configured_metrics = [{
@@ -243,7 +246,7 @@ def get_public_challenge_detail(
             status=(
                 "COMPLETED"
                 if all(
-                    resource.get("resource_id") in completion_by_resource
+                    (milestone.id, resource.get("resource_id")) in completion_by_resource
                     for resource in (milestone.resources or [])
                     if resource.get("required", True)
                 )
@@ -254,15 +257,24 @@ def get_public_challenge_detail(
             resources=[
                 {
                     **resource,
-                    "completed": resource.get("resource_id") in completion_by_resource,
-                    **(
-                        {
-                            "completed_at": completion_by_resource[resource["resource_id"]].completed_at,
-                            "resource_minutes": completion_by_resource[resource["resource_id"]].resource_minutes,
-                            "note": completion_by_resource[resource["resource_id"]].note,
-                        }
-                        if resource.get("resource_id") in completion_by_resource
-                        else {}
+                    "completed": (
+                        milestone.id,
+                        resource.get("resource_id"),
+                    ) in completion_by_resource,
+                    "completed_at": (
+                        completion_by_resource[(milestone.id, resource["resource_id"])].completed_at
+                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
+                        else None
+                    ),
+                    "resource_minutes": (
+                        completion_by_resource[(milestone.id, resource["resource_id"])].resource_minutes
+                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
+                        else None
+                    ),
+                    "note": (
+                        completion_by_resource[(milestone.id, resource["resource_id"])].note
+                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
+                        else None
                     ),
                 }
                 for resource in (milestone.resources or [])
