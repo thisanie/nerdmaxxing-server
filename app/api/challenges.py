@@ -12,8 +12,7 @@ from app.core.config import settings
 from app.models.category import Category
 from app.models.challenge import Challenge, ChallengeResource
 from app.models.participation import ChallengeParticipant
-from app.models.progress import ChallengeProgressLog
-from app.models.milestone import ParticipantResourceCompletion
+from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.user import User
 from app.schemas.challenge import (
     ChallengeAttemptResponse,
@@ -208,10 +207,12 @@ def get_public_challenge_detail(
             ChallengeParticipant.user_id == current_user.id,
             ChallengeParticipant.status != "REMOVED",
         ))
-    all_logs = list(db.scalars(select(ChallengeProgressLog).where(
-        ChallengeProgressLog.participant_id == participant.id if participant else False
-    ).order_by(ChallengeProgressLog.created_at.desc())).all()) if participant else []
-    logs = all_logs[:20]
+    metric_attempts = list(db.scalars(
+        select(MetricAttempt).where(
+            MetricAttempt.participant_id == participant.id
+        ).order_by(MetricAttempt.created_at.desc())
+    ).all()) if participant else []
+    attempts = metric_attempts[:20]
     completions = list(db.scalars(
         select(ParticipantResourceCompletion).where(
             ParticipantResourceCompletion.participant_id == participant.id
@@ -230,7 +231,7 @@ def get_public_challenge_detail(
             "direction": "AT_LEAST", "is_primary": True, "format": "DECIMAL_2",
         }]
     metric_values = {
-        metric["key"]: [log.metrics.get(metric["key"]) for log in logs if log.metrics and metric["key"] in log.metrics]
+        metric["key"]: [attempt.value for attempt in metric_attempts if attempt.metric_key == metric["key"]]
         for metric in configured_metrics
     }
     response_metrics = []
@@ -238,7 +239,14 @@ def get_public_challenge_detail(
         values = metric_values[definition["key"]]
         entry = dict(definition)
         if values:
-            entry.update(current=values[0], baseline=values[-1], best=max(values), average=sum(values) / len(values))
+            numeric_values = [value for value in values if isinstance(value, (int, float)) and not isinstance(value, bool)]
+            best = (
+                min(numeric_values)
+                if definition.get("direction") == "AT_MOST" and numeric_values
+                else max(numeric_values) if numeric_values else values[0]
+            )
+            average = sum(numeric_values) / len(numeric_values) if numeric_values else values[0]
+            entry.update(current=values[0], baseline=values[-1], best=best, average=average)
         response_metrics.append(entry)
     requirements = challenge.requirements or []
     milestone_data = []
@@ -305,14 +313,27 @@ def get_public_challenge_detail(
     primary_metric = next((metric for metric in configured_metrics if metric.get("is_primary")), None)
     primary_key = primary_metric.get("key") if primary_metric else None
     primary_values = [
-        log.metrics[primary_key]
-        for log in all_logs
-        if primary_key and log.metrics and primary_key in log.metrics
+        attempt.value
+        for attempt in metric_attempts
+        if primary_key and attempt.metric_key == primary_key
     ]
+    primary_numeric_values = [
+        value for value in primary_values
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    ]
+    primary_best = (
+        min(primary_numeric_values)
+        if primary_metric and primary_metric.get("direction") == "AT_MOST" and primary_numeric_values
+        else max(primary_numeric_values) if primary_numeric_values else (primary_values[0] if primary_values else None)
+    )
     progress = ChallengeProgressSummaryResponse(
         current_value=primary_values[0] if primary_values else 0,
         target_value=primary_metric.get("target") if primary_metric else challenge.target_value,
         unit=primary_metric.get("unit") if primary_metric else challenge.target_unit,
+        baseline_value=primary_values[-1] if primary_values else None,
+        best_value=primary_best,
+        average_value=(sum(primary_numeric_values) / len(primary_numeric_values)) if primary_numeric_values else None,
+        attempt_count=len(primary_values),
         logged_minutes=sum(item["logged_minutes"] for item in milestone_data),
         completed_resource_count=completed_resource_count,
         total_resource_count=total_resource_count,
@@ -335,7 +356,18 @@ def get_public_challenge_detail(
         requirements=requirements,
         progress=progress,
         milestones=milestones,
-        attempts=[ChallengeAttemptResponse(id=log.id, metrics=log.metrics or ({"value": log.value} if log.value is not None else {}), created_at=log.created_at) for log in logs],
+        attempts=[
+            ChallengeAttemptResponse(
+                id=attempt.id,
+                metric_key=attempt.metric_key,
+                value=attempt.value,
+                unit=attempt.unit,
+                note=attempt.note,
+                meets_target=attempt.meets_target,
+                created_at=attempt.created_at,
+            )
+            for attempt in attempts
+        ],
         participants=[ChallengeParticipantPreviewResponse(user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, status=entry.status, completed_at=entry.completed_at) for entry, user in participants],
         verification=ChallengeVerificationResponse(type=challenge.verification_type, requirements=requirements, required_runs=challenge.required_runs, instructions=challenge.verification_instructions),
     )

@@ -154,6 +154,10 @@ class ChallengeProgressSummaryResponse(BaseModel):
     current_value: float | bool
     target_value: float | bool | None
     unit: str | None
+    baseline_value: float | bool | None = None
+    best_value: float | bool | None = None
+    average_value: float | None = None
+    attempt_count: int = 0
     logged_minutes: int
     completed_resource_count: int
     total_resource_count: int
@@ -179,13 +183,12 @@ class ChallengeMilestoneResponse(BaseModel):
 
 class ChallengeAttemptResponse(BaseModel):
     id: str
-    metrics: dict[str, float | bool]
+    metric_key: str
+    value: float | bool
+    unit: str | None
+    note: str | None
+    meets_target: bool
     created_at: datetime
-
-    @field_validator("metrics", mode="before")
-    @classmethod
-    def normalize_attempt_metrics(cls, value):
-        return value or {}
 
 
 class ChallengeParticipantPreviewResponse(BaseModel):
