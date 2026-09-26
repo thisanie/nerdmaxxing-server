@@ -222,14 +222,31 @@
     {
       "title": "Do a Handstand for 30 Seconds",
       "image_url": "https://source.unsplash.com/featured/800x600/?handstand,gymnastics",
-      "short_description": "Hold a freestanding handstand for 30 seconds.",
-      "full_description": "Build shoulder and core strength and balance through progressive handstand drills until you can hold a freestanding handstand for 30 seconds.",
+      "short_description": "Build the strength, balance and control to hold a freestanding handstand for 30 seconds.",
+      "full_description": "Learn wrist and shoulder preparation, body alignment, wall handstands, controlled kick-ups, safe exits and freestanding balance. The challenge is complete when you hold a clean freestanding handstand for 30 consecutive seconds without a wall, parallettes or external support.",
       "difficulty_level": "ADVANCED",
       "verification_type": "VIDEO_VERIFIED",
+      "metrics": [
+        {"key": "hold_duration", "label": "Freestanding hold", "kind": "DURATION", "unit": "seconds", "target": 30, "direction": "AT_LEAST", "is_primary": true, "format": "INTEGER"}
+      ],
+      "requirements": [
+        {"metric_key": "hold_duration", "operator": "AT_LEAST", "value": 30, "unit": "seconds", "label": "Hold a freestanding handstand for 30 consecutive seconds"}
+      ],
+      "verification_instructions": "Record one continuous, unedited video showing your full body, both hands and the surrounding area. Start recording before the attempt. The attempt starts when both feet leave the ground and ends when a foot touches the ground, the hands move from the floor or external support is used.",
       "resources": [
-        {"title": "Handstand Progression for Beginners", "url": "https://www.youtube.com/watch?v=6EVh4kwzUQU", "resource_type": "VIDEO", "rationale": "Breaks down the progressive drills needed to build handstand balance."},
-        {"title": "Wall Drills to Build Confidence", "url": "https://example.com/handstand-wall-drills", "resource_type": "ARTICLE", "rationale": "Helps beginners get comfortable being upside down before freestanding."},
-        {"title": "r/Handbalancing Community", "url": "https://www.reddit.com/r/handbalancing/", "resource_type": "COMMUNITY", "rationale": "Get form critiques on your handstand videos from experienced athletes."}
+        {"title": "Wrist Strength & Mobility Exercises", "url": "https://www.youtube.com/watch?v=mSZWSQSSEjE", "resource_type": "VIDEO", "rationale": "Prepares the wrists for repeated hand loading before handstand practice."},
+        {"title": "Handstand Warm-Up Routine", "url": "https://www.youtube.com/watch?v=BBbQ1FUpewk", "resource_type": "VIDEO", "rationale": "Covers wrist preparation, shoulder preparation and bail practice."},
+        {"title": "How to Do a Perfect Handstand", "url": "https://gmb.io/handstand/", "resource_type": "ARTICLE", "rationale": "Explains wall work, kick-ups, body alignment and a progressive training structure."},
+        {"title": "Taking Your Handstand Off the Wall", "url": "https://gmb.io/freestanding-handstand/", "resource_type": "ARTICLE", "rationale": "Focuses on finger control, kick-ups, balance and safe exits."},
+        {"title": "Handstand Progression", "url": "https://www.youtube.com/watch?v=d6_lcWtQDxw", "resource_type": "VIDEO", "rationale": "Demonstrates the progression from wall-supported practice toward freestanding holds."},
+        {"title": "Handbalancing Community", "url": "https://www.reddit.com/r/handbalancing/", "resource_type": "COMMUNITY", "rationale": "Provides accountability and a place to request form feedback."}
+      ],
+      "milestones": [
+        {"title": "Prepare Your Body", "description": "Prepare your wrists, shoulders and body for handstand training.", "target_value": 1},
+        {"title": "Master the Wall Handstand", "description": "Develop a controlled chest-to-wall handstand and consistent body alignment.", "target_value": 10},
+        {"title": "Learn the Kick-Up", "description": "Practice controlled entries and safe exits without losing body awareness.", "target_value": 15},
+        {"title": "Find Your Balance", "description": "Accumulate short freestanding holds using finger pressure and shoulder control.", "target_value": 20},
+        {"title": "Hold for 30 Seconds", "description": "Complete the final clean freestanding handstand under video verification.", "target_value": 30}
       ]
     },
     {
