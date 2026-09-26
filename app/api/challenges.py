@@ -210,7 +210,7 @@ def get_public_challenge_detail(
         ))
     all_logs = list(db.scalars(select(ChallengeProgressLog).where(
         ChallengeProgressLog.participant_id == participant.id if participant else False
-    ).order_by(ChallengeProgressLog.created_at.desc()).all())) if participant else []
+    ).order_by(ChallengeProgressLog.created_at.desc())).all()) if participant else []
     logs = all_logs[:20]
     completions = list(db.scalars(
         select(ParticipantResourceCompletion).where(
