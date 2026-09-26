@@ -254,6 +254,7 @@ def complete_milestone_resource(
             ParticipantResourceCompletion.resource_id == resource_id,
         )
     )
+    is_new_completion = completion is None
     if completion is None:
         completion = ParticipantResourceCompletion(
             participant_id=participant.id,
@@ -269,7 +270,7 @@ def complete_milestone_resource(
         completion.milestone_minutes = payload.milestone_minutes
         completion.note = payload.note
 
-    if payload.log_progress and (payload.resource_minutes or payload.milestone_minutes):
+    if is_new_completion and payload.log_progress and (payload.resource_minutes or payload.milestone_minutes):
         record_progress(
             db,
             current_user,
@@ -304,7 +305,7 @@ def complete_milestone_resource(
         note=completion.note,
         milestone_status=statuses[milestone.id],
         milestone_completed=milestone.id in completed_milestones,
-        challenge_status=participant.completion_status,
+        challenge_status="READY_FOR_PROOF" if ready_for_proof else "IN_PROGRESS",
         ready_for_proof=ready_for_proof,
     )
 

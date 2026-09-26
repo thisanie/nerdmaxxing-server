@@ -135,6 +135,34 @@ class ChallengeProgressResponse(BaseModel):
     metrics: list[dict]
 
 
+class ChallengeResourceProgressResponse(BaseModel):
+    id: str
+    resource_id: str
+    title: str | None
+    url: str | None
+    resource_type: str | None
+    rationale: str | None
+    order_index: int | None
+    required: bool
+    completed: bool
+    completed_at: datetime | None
+    resource_minutes: int | None
+    note: str | None
+
+
+class ChallengeProgressSummaryResponse(BaseModel):
+    current_value: float | bool
+    target_value: float | bool | None
+    unit: str | None
+    logged_minutes: int
+    completed_resource_count: int
+    total_resource_count: int
+    completed_milestone_count: int
+    total_milestone_count: int
+    challenge_status: str
+    ready_for_proof: bool
+
+
 class ChallengeMilestoneResponse(BaseModel):
     id: str
     order_index: int
@@ -143,12 +171,10 @@ class ChallengeMilestoneResponse(BaseModel):
     status: str
     current_value: float
     target_value: float
-    resources: list[dict] = Field(default_factory=list)
-
-    @field_validator("resources", mode="before")
-    @classmethod
-    def normalize_resources(cls, value):
-        return value or []
+    completed_resource_count: int = 0
+    total_resource_count: int = 0
+    logged_minutes: int = 0
+    resources: list[ChallengeResourceProgressResponse] = Field(default_factory=list)
 
 
 class ChallengeAttemptResponse(BaseModel):
@@ -188,6 +214,7 @@ class ChallengeDetailResponse(BaseModel):
     stats: ChallengeStatsResponse
     metrics: list[dict]
     requirements: list[ChallengeRequirement]
+    progress: ChallengeProgressSummaryResponse
     milestones: list[ChallengeMilestoneResponse]
     attempts: list[ChallengeAttemptResponse]
     participants: list[ChallengeParticipantPreviewResponse]

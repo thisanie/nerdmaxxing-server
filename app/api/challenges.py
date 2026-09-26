@@ -21,6 +21,8 @@ from app.schemas.challenge import (
     ChallengeDetailResponse,
     ChallengeMilestoneResponse,
     ChallengeParticipantPreviewResponse,
+    ChallengeProgressSummaryResponse,
+    ChallengeResourceProgressResponse,
     ChallengeProgressResponse,
     ChallengeResponse,
     ChallengeStatsResponse,
@@ -206,9 +208,10 @@ def get_public_challenge_detail(
             ChallengeParticipant.user_id == current_user.id,
             ChallengeParticipant.status != "REMOVED",
         ))
-    logs = list(db.scalars(select(ChallengeProgressLog).where(
+    all_logs = list(db.scalars(select(ChallengeProgressLog).where(
         ChallengeProgressLog.participant_id == participant.id if participant else False
-    ).order_by(ChallengeProgressLog.created_at.desc()).limit(20)).all()) if participant else []
+    ).order_by(ChallengeProgressLog.created_at.desc()).all())) if participant else []
+    logs = all_logs[:20]
     completions = list(db.scalars(
         select(ParticipantResourceCompletion).where(
             ParticipantResourceCompletion.participant_id == participant.id
@@ -218,6 +221,7 @@ def get_public_challenge_detail(
         (completion.milestone_id, completion.resource_id): completion
         for completion in completions
     }
+    resources_by_id = {resource.id: resource for resource in challenge.resources}
     configured_metrics = challenge.metrics or []
     if not configured_metrics and challenge.target_value is not None:
         configured_metrics = [{
@@ -237,51 +241,86 @@ def get_public_challenge_detail(
             entry.update(current=values[0], baseline=values[-1], best=max(values), average=sum(values) / len(values))
         response_metrics.append(entry)
     requirements = challenge.requirements or []
-    milestones = [
-        ChallengeMilestoneResponse(
-            id=milestone.id,
-            order_index=milestone.order_index,
-            title=milestone.title,
-            description=milestone.description,
-            status=(
-                "COMPLETED"
-                if all(
-                    (milestone.id, resource.get("resource_id")) in completion_by_resource
-                    for resource in (milestone.resources or [])
-                    if resource.get("required", True)
-                )
-                else ("CURRENT" if milestone.order_index == 1 else "LOCKED")
-            ),
-            current_value=logs[0].value if logs and logs[0].value is not None else 0,
-            target_value=milestone.target_value,
-            resources=[
-                {
-                    **resource,
-                    "completed": (
-                        milestone.id,
-                        resource.get("resource_id"),
-                    ) in completion_by_resource,
-                    "completed_at": (
-                        completion_by_resource[(milestone.id, resource["resource_id"])].completed_at
-                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
-                        else None
-                    ),
-                    "resource_minutes": (
-                        completion_by_resource[(milestone.id, resource["resource_id"])].resource_minutes
-                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
-                        else None
-                    ),
-                    "note": (
-                        completion_by_resource[(milestone.id, resource["resource_id"])].note
-                        if (milestone.id, resource.get("resource_id")) in completion_by_resource
-                        else None
-                    ),
-                }
-                for resource in (milestone.resources or [])
-            ],
+    milestone_data = []
+    previous_complete = True
+    for milestone in challenge.milestones:
+        attachments = milestone.resources or []
+        required_attachments = [resource for resource in attachments if resource.get("required", True)]
+        completed_attachments = [
+            resource for resource in attachments
+            if (milestone.id, resource.get("resource_id")) in completion_by_resource
+        ]
+        milestone_completed = all(
+            (milestone.id, resource.get("resource_id")) in completion_by_resource
+            for resource in required_attachments
         )
-        for milestone in challenge.milestones
+        milestone_status = "COMPLETED" if milestone_completed else ("CURRENT" if previous_complete else "LOCKED")
+        previous_complete = milestone_completed
+        milestone_completions = [
+            completion for (milestone_id, _), completion in completion_by_resource.items()
+            if milestone_id == milestone.id
+        ]
+        resources = []
+        for attachment in attachments:
+            resource_id = attachment.get("resource_id")
+            resource = resources_by_id.get(resource_id)
+            completion = completion_by_resource.get((milestone.id, resource_id))
+            resources.append({
+                "id": resource_id,
+                "resource_id": resource_id,
+                "title": resource.title if resource else None,
+                "url": resource.url if resource else None,
+                "resource_type": resource.resource_type if resource else None,
+                "rationale": resource.rationale if resource else None,
+                "order_index": resource.order_index if resource else None,
+                "required": attachment.get("required", True),
+                "completed": completion is not None,
+                "completed_at": completion.completed_at if completion else None,
+                "resource_minutes": completion.resource_minutes if completion else None,
+                "note": completion.note if completion else None,
+            })
+        milestone_data.append({
+            "id": milestone.id,
+            "order_index": milestone.order_index,
+            "title": milestone.title,
+            "description": milestone.description,
+            "status": milestone_status,
+            "current_value": sum(
+                completion.resource_minutes or 0 for completion in milestone_completions
+            ),
+            "target_value": milestone.target_value,
+            "completed_resource_count": len(completed_attachments),
+            "total_resource_count": len(attachments),
+            "logged_minutes": sum(
+                completion.milestone_minutes or completion.resource_minutes or 0
+                for completion in milestone_completions
+            ),
+            "resources": resources,
+        })
+    milestones = [ChallengeMilestoneResponse.model_validate(item) for item in milestone_data]
+    completed_milestone_count = sum(item["status"] == "COMPLETED" for item in milestone_data)
+    total_resource_count = sum(item["total_resource_count"] for item in milestone_data)
+    completed_resource_count = sum(item["completed_resource_count"] for item in milestone_data)
+    ready_for_proof = bool(milestone_data) and completed_milestone_count == len(milestone_data)
+    primary_metric = next((metric for metric in configured_metrics if metric.get("is_primary")), None)
+    primary_key = primary_metric.get("key") if primary_metric else None
+    primary_values = [
+        log.metrics[primary_key]
+        for log in all_logs
+        if primary_key and log.metrics and primary_key in log.metrics
     ]
+    progress = ChallengeProgressSummaryResponse(
+        current_value=primary_values[0] if primary_values else 0,
+        target_value=primary_metric.get("target") if primary_metric else challenge.target_value,
+        unit=primary_metric.get("unit") if primary_metric else challenge.target_unit,
+        logged_minutes=sum(log.minutes_spent for log in all_logs),
+        completed_resource_count=completed_resource_count,
+        total_resource_count=total_resource_count,
+        completed_milestone_count=completed_milestone_count,
+        total_milestone_count=len(milestone_data),
+        challenge_status="READY_FOR_PROOF" if ready_for_proof else "IN_PROGRESS",
+        ready_for_proof=ready_for_proof,
+    )
     participants = db.execute(
         select(ChallengeParticipant, User)
         .join(User, User.id == ChallengeParticipant.user_id)
@@ -294,6 +333,7 @@ def get_public_challenge_detail(
         stats=ChallengeStatsResponse(participant_count=participant_count, completed_participant_count=completed_count),
         metrics=response_metrics,
         requirements=requirements,
+        progress=progress,
         milestones=milestones,
         attempts=[ChallengeAttemptResponse(id=log.id, metrics=log.metrics or ({"value": log.value} if log.value is not None else {}), created_at=log.created_at) for log in logs],
         participants=[ChallengeParticipantPreviewResponse(user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, status=entry.status, completed_at=entry.completed_at) for entry, user in participants],
