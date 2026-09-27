@@ -146,6 +146,40 @@ Available endpoints:
 
 ## Users
 
+### Notification routing payloads
+
+`GET /api/v1/users/me/notifications` preserves routing metadata for clickable notifications:
+
+```json
+{
+  "notification_type": "FOLLOW",
+  "actor_id": "user-a-id",
+  "actor_username": "ada",
+  "actor_name": "Ada Lovelace",
+  "body": "ada started following you.",
+  "is_read": false
+}
+```
+
+Comment replies include the parent comment and challenge route:
+
+```json
+{
+  "notification_type": "COMMENT_REPLY",
+  "actor_id": "user-b-id",
+  "actor_username": "grace",
+  "actor_name": "Grace Hopper",
+  "challenge_id": "challenge-id",
+  "challenge_slug": "learn-debugging",
+  "discussion_id": "parent-comment-id",
+  "reply_id": "reply-id",
+  "body": "grace replied to your comment.",
+  "is_read": false
+}
+```
+
+The same routing fields are included in FCM data payloads. Existing invitation notifications continue to use `invitation_id` and `invitation_status`.
+
 ### `GET /api/v1/users/username-availability?username={username}`
 
 Checks availability for a username. Rate limited to 60 requests per minute. Usernames must be 3-24 characters and contain only letters, numbers, or underscores.

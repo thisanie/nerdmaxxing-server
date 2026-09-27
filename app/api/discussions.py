@@ -119,8 +119,9 @@ def _reply_response(reply: DiscussionReply, db: Session) -> ReplyResponse:
 def _notify_reply_participants(
     discussion: Discussion, reply: DiscussionReply, challenge: Challenge, db: Session
 ) -> None:
-    recipient_ids = {discussion.author_id}
-    recipient_ids.update(
+    actor = db.get(User, reply.author_id)
+    actor_username = actor.username or actor.display_name or "Someone"
+    recipient_ids = set(
         db.scalars(
             select(DiscussionReply.author_id).where(
                 DiscussionReply.discussion_id == discussion.id,
@@ -129,13 +130,18 @@ def _notify_reply_participants(
         ).all()
     )
     recipient_ids.discard(reply.author_id)
+    if discussion.author_id != reply.author_id:
+        recipient_ids.add(discussion.author_id)
     for recipient_id in recipient_ids:
+        is_parent_author = recipient_id == discussion.author_id
         notification = Notification(
             user_id=recipient_id,
-            notification_type="DISCUSSION_REPLY",
-            title="New challenge comment",
-            body="Someone replied to a challenge discussion you follow.",
+            notification_type="COMMENT_REPLY" if is_parent_author else "DISCUSSION_REPLY",
+            title="New comment reply",
+            body=f"{actor_username} replied to your comment." if is_parent_author else "Someone replied to a challenge discussion you follow.",
             actor_id=reply.author_id,
+            actor_username=actor_username,
+            actor_name=actor.display_name,
             discussion_id=discussion.id,
             reply_id=reply.id,
             challenge_id=challenge.id,

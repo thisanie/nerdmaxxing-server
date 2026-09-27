@@ -52,6 +52,8 @@ class Notification(Base):
     actor_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    actor_username: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     invitation_id: Mapped[str | None] = mapped_column(
         ForeignKey("challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
     )

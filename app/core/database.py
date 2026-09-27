@@ -77,6 +77,8 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "reply_id": "VARCHAR(36)",
                         "challenge_id": "VARCHAR(36)",
                         "challenge_slug": "VARCHAR(180)",
+                        "actor_username": "VARCHAR(24)",
+                        "actor_name": "VARCHAR(100)",
                 }.items():
                         if notification_columns and name not in notification_columns:
                                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))

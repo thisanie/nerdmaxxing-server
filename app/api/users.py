@@ -435,13 +435,21 @@ def follow_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     if db.get(UserFollow, {"follower_id": current_user.id, "following_id": user_id}) is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already following this user.")
+    if not current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Set a username before following another user.",
+        )
     db.add(UserFollow(follower_id=current_user.id, following_id=user_id))
+    actor_username = current_user.username
     notification = Notification(
         user_id=user_id,
         actor_id=current_user.id,
+        actor_username=actor_username,
+        actor_name=current_user.display_name,
         notification_type="FOLLOW",
         title="New follower",
-        body=f"{current_user.username or current_user.display_name or 'Someone'} started following you.",
+        body=f"{actor_username} started following you.",
     )
     db.add(notification)
     db.commit()

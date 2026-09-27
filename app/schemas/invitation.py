@@ -47,6 +47,8 @@ class NotificationResponse(BaseModel):
     title: str
     body: str
     actor_id: str | None
+    actor_username: str | None
+    actor_name: str | None
     invitation_id: str | None
     discussion_id: str | None
     reply_id: str | None
