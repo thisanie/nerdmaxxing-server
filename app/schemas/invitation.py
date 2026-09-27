@@ -48,6 +48,10 @@ class NotificationResponse(BaseModel):
     body: str
     actor_id: str | None
     invitation_id: str | None
+    discussion_id: str | None
+    reply_id: str | None
+    challenge_id: str | None
+    challenge_slug: str | None
     invitation_status: str | None
     is_read: bool
     created_at: datetime

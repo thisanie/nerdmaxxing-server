@@ -14,6 +14,7 @@ from app.api.skills import router as skills_router
 from app.api.discover import router as discover_router
 from app.api.groups import router as groups_router
 from app.api.invitations import router as invitations_router
+from app.api.discussions import router as discussions_router
 from app.core.database import ensure_local_schema, schema_engine
 from app.models.base import Base
 from app.core.config import settings
@@ -73,6 +74,7 @@ app.include_router(skills_router)
 app.include_router(discover_router)
 app.include_router(groups_router)
 app.include_router(invitations_router)
+app.include_router(discussions_router)
 
 
 

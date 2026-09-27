@@ -125,6 +125,25 @@ Request:
 
 Response: `204 No Content`.
 
+## Challenge Discussions
+
+Discussion reads are public for published public challenges. Creating comments or replies requires an authenticated user with an active participation (`ACCEPTED` or `IN_PROGRESS`). Comments are body-only, accept `COMMENT` or `QUESTION` as `type`, and are limited to 2,200 characters. Replies are one level deep and use the same limit.
+
+`GET /api/v1/challenges/{slug}/discussions` returns `{ "items": [...], "next_cursor": "..." }`, ordered by newest activity. Pass `cursor` to continue. Replies use the same cursor envelope and are returned oldest-first for conversation order.
+
+Comments and replies are soft-deleted. Authors may edit their own content for 15 minutes and may delete it at any time. Only a question author or challenge creator may resolve a question. Posting is limited to 10 comments or replies per minute per client IP.
+
+Available endpoints:
+
+- `POST /api/v1/challenges/{slug}/discussions`
+- `GET /api/v1/discussions/{discussion_id}`
+- `PATCH|DELETE /api/v1/discussions/{discussion_id}`
+- `GET|POST /api/v1/discussions/{discussion_id}/replies`
+- `PATCH|DELETE /api/v1/discussions/{discussion_id}/replies/{reply_id}`
+- `PATCH /api/v1/discussions/{discussion_id}/resolve`
+- `POST /api/v1/discussions/{discussion_id}/report`
+- `POST /api/v1/discussions/{discussion_id}/replies/{reply_id}/report`
+
 ## Users
 
 ### `GET /api/v1/users/username-availability?username={username}`

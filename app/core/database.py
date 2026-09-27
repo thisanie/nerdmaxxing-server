@@ -70,4 +70,15 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 if milestone_columns and "resources" not in milestone_columns:
                         connection.execute(text("ALTER TABLE challenge_milestones ADD COLUMN resources JSON"))
 
+                inspector = inspect(connection)
+                notification_columns = {column["name"] for column in inspector.get_columns("notifications")}
+                for name, definition in {
+                        "discussion_id": "VARCHAR(36)",
+                        "reply_id": "VARCHAR(36)",
+                        "challenge_id": "VARCHAR(36)",
+                        "challenge_slug": "VARCHAR(180)",
+                }.items():
+                        if notification_columns and name not in notification_columns:
+                                connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
 

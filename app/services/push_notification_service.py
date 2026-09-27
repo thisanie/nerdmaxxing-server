@@ -74,6 +74,10 @@ def send_notification_push(db: Session, notification: Notification) -> None:
                 "notification_type": notification.notification_type,
                 "actor_id": notification.actor_id or "",
                 "invitation_id": notification.invitation_id or "",
+                "discussion_id": notification.discussion_id or "",
+                "reply_id": notification.reply_id or "",
+                "challenge_id": notification.challenge_id or "",
+                "challenge_slug": notification.challenge_slug or "",
             },
         )
         try:

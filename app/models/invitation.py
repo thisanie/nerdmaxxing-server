@@ -55,6 +55,10 @@ class Notification(Base):
     invitation_id: Mapped[str | None] = mapped_column(
         ForeignKey("challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    discussion_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    reply_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    challenge_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    challenge_slug: Mapped[str | None] = mapped_column(String(180), nullable=True)
     is_read: Mapped[bool] = mapped_column(nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
