@@ -90,8 +90,14 @@ def list_my_participation(
 ) -> list[ChallengeParticipant]:
     statement = (
         select(ChallengeParticipant)
-        .where(ChallengeParticipant.user_id == current_user.id)
-        .order_by(ChallengeParticipant.last_activity_at.desc())
+        .where(
+            ChallengeParticipant.user_id == current_user.id,
+            ChallengeParticipant.status.in_(ACTIVE_STATUSES),
+        )
+        .order_by(
+            ChallengeParticipant.last_activity_at.desc().nulls_last(),
+            ChallengeParticipant.started_at.desc(),
+        )
     )
     return list(db.scalars(statement).all())
 
