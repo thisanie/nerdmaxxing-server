@@ -1,0 +1,57 @@
+{
+  "challenges": [
+    {
+      "title": "Replace with challenge title",
+      "image_url": null,
+      "short_description": "Replace with a short description of 300 characters or fewer.",
+      "full_description": "Explain what the participant will learn or do, how they should approach it, and exactly when the challenge is complete.",
+      "difficulty_level": "BEGINNER",
+      "category_slugs": ["knowledge"],
+      "verification_type": "SELF_REPORTED",
+      "required_runs": 1,
+      "verification_instructions": "Explain exactly what evidence the participant must submit, what must be visible, whether continuous recording is required, what starts the attempt, and what invalidates it.",
+      "estimated_effort_min_minutes": 60,
+      "estimated_effort_max_minutes": 120,
+      "estimated_duration_days": 30,
+      "metrics": [
+        {
+          "key": "metric_key",
+          "label": "Human-readable metric name",
+          "kind": "COUNT",
+          "unit": "items",
+          "target": 1,
+          "baseline": null,
+          "direction": "AT_LEAST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
+      ],
+      "requirements": [
+        {
+          "metric_key": "metric_key",
+          "operator": "AT_LEAST",
+          "value": 1,
+          "unit": "items",
+          "label": "Complete at least 1 item."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Resource title",
+          "url": "https://example.com/resource",
+          "resource_type": "ARTICLE",
+          "rationale": "Explain why this resource helps the participant.",
+          "required": true
+        }
+      ],
+      "milestones": [
+        {
+          "title": "First milestone",
+          "description": "Explain the progress represented by this milestone.",
+          "target_value": 1,
+          "resource_order_indexes": [0]
+        }
+      ]
+    }
+  ]
+}
