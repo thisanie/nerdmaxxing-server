@@ -5,6 +5,7 @@ import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.dependencies import get_current_user, get_db, get_optional_current_user
@@ -13,6 +14,7 @@ from app.models.category import Category
 from app.models.challenge import Challenge, ChallengeResource
 from app.models.participation import ChallengeParticipant
 from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
+from app.models.saved_challenge import SavedChallenge
 from app.models.user import User
 from app.schemas.challenge import (
     ChallengeAttemptResponse,
@@ -25,6 +27,7 @@ from app.schemas.challenge import (
     ChallengeProgressResponse,
     ChallengeResponse,
     ChallengeStatsResponse,
+    ChallengeSaveStatusResponse,
     ChallengeVerificationResponse,
 )
 from app.services.discovery_service import _responses
@@ -32,6 +35,70 @@ from app.services.blob_storage import upload_blob
 
 
 router = APIRouter(prefix="/api/v1/challenges", tags=["Challenges"])
+
+
+def _get_public_challenge_for_save(slug: str, db: Session) -> Challenge:
+    challenge = db.scalar(
+        select(Challenge).where(
+            Challenge.slug == slug,
+            Challenge.status == "PUBLISHED",
+            Challenge.visibility == "PUBLIC",
+        )
+    )
+    if challenge is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
+    return challenge
+
+
+@router.post("/{slug}/save", response_model=ChallengeSaveStatusResponse)
+def save_challenge(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChallengeSaveStatusResponse:
+    challenge = _get_public_challenge_for_save(slug, db)
+    saved = db.get(
+        SavedChallenge,
+        {"user_id": current_user.id, "challenge_id": challenge.id},
+    )
+    if saved is None:
+        db.add(SavedChallenge(user_id=current_user.id, challenge_id=challenge.id))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+    return ChallengeSaveStatusResponse(is_saved=True)
+
+
+@router.delete("/{slug}/save", response_model=ChallengeSaveStatusResponse)
+def unsave_challenge(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChallengeSaveStatusResponse:
+    challenge = _get_public_challenge_for_save(slug, db)
+    saved = db.get(
+        SavedChallenge,
+        {"user_id": current_user.id, "challenge_id": challenge.id},
+    )
+    if saved is not None:
+        db.delete(saved)
+        db.commit()
+    return ChallengeSaveStatusResponse(is_saved=False)
+
+
+@router.get("/{slug}/save-status", response_model=ChallengeSaveStatusResponse)
+def get_challenge_save_status(
+    slug: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChallengeSaveStatusResponse:
+    challenge = _get_public_challenge_for_save(slug, db)
+    saved = db.get(
+        SavedChallenge,
+        {"user_id": current_user.id, "challenge_id": challenge.id},
+    )
+    return ChallengeSaveStatusResponse(is_saved=saved is not None)
 
 
 def make_slug(title: str) -> str:

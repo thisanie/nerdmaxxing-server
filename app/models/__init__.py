@@ -13,6 +13,7 @@ from app.models.group import Group, GroupMembership
 from app.models.progress import ChallengeProgressLog
 from app.models.invitation import ChallengeInvitation, Notification, PushToken
 from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
+from app.models.saved_challenge import SavedChallenge
 
 
 __all__ = [
@@ -37,4 +38,5 @@ __all__ = [
         "PushToken",
         "ParticipantResourceCompletion",
         "MetricAttempt",
+        "SavedChallenge",
         ]

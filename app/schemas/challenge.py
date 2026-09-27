@@ -135,6 +135,10 @@ class ChallengeProgressResponse(BaseModel):
     metrics: list[dict]
 
 
+class ChallengeSaveStatusResponse(BaseModel):
+    is_saved: bool
+
+
 class ChallengeResourceProgressResponse(BaseModel):
     id: str
     resource_id: str
