@@ -94,8 +94,9 @@ def group_member_response(membership: GroupMembership, user: User) -> GroupMembe
 
 def notify_group_members(
     group: Group, message: GroupMessage, actor: User, db: Session
-) -> None:
+) -> list[Notification]:
     actor_name = actor.username or actor.display_name or "Someone"
+    notifications = []
     recipients = db.scalars(
         select(GroupMembership.user_id).where(
             GroupMembership.group_id == group.id,
@@ -117,7 +118,8 @@ def notify_group_members(
         )
         db.add(notification)
         db.flush()
-        send_notification_push(db, notification)
+        notifications.append(notification)
+    return notifications
 
 
 @router.post("", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
@@ -239,8 +241,10 @@ def create_group_message(
     message = GroupMessage(group_id=group_id, author_id=current_user.id, body=body)
     db.add(message)
     db.flush()
-    notify_group_members(group, message, current_user, db)
+    notifications = notify_group_members(group, message, current_user, db)
     db.commit()
+    for notification in notifications:
+        send_notification_push(db, notification)
     db.refresh(message)
     return group_message_response(message, db)
 

@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from app.api.discussions import _notify_reply_participants
+from app.api.groups import notify_group_members
 from app.api.invitations import list_my_notifications
 from app.api.users import follow_user
 from app.models.discussion import Discussion, DiscussionReply
@@ -129,3 +130,20 @@ def test_notification_list_preserves_routing_fields_and_invitation_status():
     assert response[0].reply_id == "reply-1"
     assert response[1].invitation_id == "invitation-1"
     assert response[1].invitation_status == "PENDING"
+
+
+def test_group_message_notification_preserves_group_routing_fields():
+    group = SimpleNamespace(id="group-1", name="Study Group")
+    message = SimpleNamespace(id="message-1", body="New idea")
+    actor = SimpleNamespace(id="user-a", username="ada", display_name="Ada Lovelace")
+    db = FakeDb(reply_authors=["user-b"])
+
+    with patch("app.api.groups.send_notification_push") as send_push:
+        notifications = notify_group_members(group, message, actor, db)
+
+    assert len(notifications) == 1
+    notification = notifications[0]
+    assert notification.notification_type == "GROUP_MESSAGE"
+    assert notification.group_id == "group-1"
+    assert notification.group_message_id == "message-1"
+    send_push.assert_not_called()
