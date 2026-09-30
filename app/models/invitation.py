@@ -37,6 +37,41 @@ class ChallengeInvitation(Base):
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class GroupChallengeInvitation(Base):
+    __tablename__ = "group_challenge_invitations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    challenge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    invited_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="OPEN")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class GroupChallengeInvitationResponse(Base):
+    __tablename__ = "group_challenge_invitation_responses"
+    __table_args__ = (
+        UniqueConstraint("invitation_id", "user_id", name="uq_group_invitation_response_member"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    invitation_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("group_challenge_invitations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    response: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class Notification(Base):
     __tablename__ = "notifications"
 
@@ -54,13 +89,12 @@ class Notification(Base):
     )
     actor_username: Mapped[str | None] = mapped_column(String(24), nullable=True)
     actor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    invitation_id: Mapped[str | None] = mapped_column(
-        ForeignKey("challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
-    )
+    invitation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     discussion_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     reply_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_slug: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    challenge_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
     group_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     group_message_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     is_read: Mapped[bool] = mapped_column(nullable=False, default=False)

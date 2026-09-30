@@ -322,6 +322,68 @@ Requires authentication by the group creator. Converts the pending request to an
 
 Requires authentication by the group creator. Rejects and removes the pending request.
 
+### `GET /api/v1/groups/{group_id}/messages`
+
+Requires active group membership. Returns `{ "items": [...], "limit": 50, "offset": 0 }` in chronological order. Normal messages retain their body and author fields and have `type: "TEXT"`.
+
+Challenge invitation messages have `type: "CHALLENGE_INVITATION"` and include:
+
+```json
+{
+  "id": "message-id",
+  "group_id": "group-id",
+  "type": "CHALLENGE_INVITATION",
+  "body": "Alex invited the group to join a challenge.",
+  "created_at": "2026-09-30T12:00:00Z",
+  "challenge_invitation": {
+    "id": "invitation-id",
+    "challenge_id": "challenge-id",
+    "challenge_slug": "challenge-slug",
+    "challenge_title": "Challenge title",
+    "status": "OPEN",
+    "my_response": "PENDING",
+    "response_counts": { "pending": 4, "accepted": 2, "declined": 1 }
+  }
+}
+```
+
+`my_response` is calculated for the authenticated caller. Counts are visible to active group members; the invitation message remains in chat after individual responses.
+
+### `POST /api/v1/challenges/{challenge_slug}/group-invitations`
+
+Requires the caller to be an active member of the group and an active participant in the published, public challenge. The caller is excluded, as are active group members who already participate in the challenge. Only active members at creation time receive `PENDING` response records.
+
+Request:
+
+```json
+{ "group_id": "group-id" }
+```
+
+Response `201 Created` contains `invitation_id` and the created typed group message. A second open invitation for the same challenge and group returns `409 Conflict`. Invitations expire after 30 days; removed members cannot respond, and members joining later are not added to an existing invitation. Once all recorded members respond, the invitation is closed and a later invitation may be created.
+
+### `POST /api/v1/group-invitations/{invitation_id}/respond`
+
+Requires active membership and a response record for the invitation. A response can be `ACCEPTED` or `DECLINED`:
+
+```json
+{ "response": "ACCEPTED" }
+```
+
+Acceptance creates normal participation for the responding user only and enforces the five-active-challenge limit. Declining only updates that member's response. Repeated responses return `409 Conflict`; expired invitations return `410 Gone`.
+
+Response `200 OK`:
+
+```json
+{
+  "invitation_id": "invitation-id",
+  "response": "ACCEPTED",
+  "participation": { "id": "participation-id", "challenge_id": "challenge-id" },
+  "response_counts": { "pending": 3, "accepted": 3, "declined": 1 }
+}
+```
+
+Unauthenticated requests return `401`, non-members or non-invitees return `403`, missing resources return `404`, duplicate/already-responded/already-participating requests return `409`, and malformed bodies return `422`, all using `{ "detail": "Human-readable explanation." }`.
+
 ## Challenges
 
 ### `GET /api/v1/challenges?limit={limit}&offset={offset}`

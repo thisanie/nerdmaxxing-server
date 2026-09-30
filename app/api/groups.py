@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, limiter
 from app.models.group import Group, GroupMembership, GroupMessage
-from app.models.invitation import Notification
+from app.models.invitation import (
+    GroupChallengeInvitation,
+    GroupChallengeInvitationResponse,
+    Notification,
+)
+from app.models.challenge import Challenge
 from app.models.user import User
 from app.schemas.group import (
     GroupCreate,
@@ -15,6 +20,8 @@ from app.schemas.group import (
     GroupMembershipResponse,
     GroupMessageCreate,
     GroupMessageResponse,
+    GroupChallengeInvitationPayload,
+    GroupInvitationResponseCounts,
     GroupResponse,
 )
 from app.services.push_notification_service import send_notification_push
@@ -68,14 +75,53 @@ def require_active_member(db: Session, group_id: str, user_id: str) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Active group membership is required.")
 
 
-def group_message_response(message: GroupMessage, db: Session) -> GroupMessageResponse:
+def group_message_response(
+    message: GroupMessage, db: Session, viewer_id: str | None = None
+) -> GroupMessageResponse:
     author = db.get(User, message.author_id)
+    challenge_invitation = None
+    if message.message_type == "CHALLENGE_INVITATION" and message.challenge_invitation_id:
+        invitation = db.get(GroupChallengeInvitation, message.challenge_invitation_id)
+        challenge = db.get(Challenge, invitation.challenge_id) if invitation else None
+        if invitation and challenge:
+            counts = {
+                response: db.scalar(
+                    select(func.count())
+                    .select_from(GroupChallengeInvitationResponse)
+                    .where(
+                        GroupChallengeInvitationResponse.invitation_id == invitation.id,
+                        GroupChallengeInvitationResponse.response == response,
+                    )
+                ) or 0
+                for response in ("PENDING", "ACCEPTED", "DECLINED")
+            }
+            my_response = db.scalar(
+                select(GroupChallengeInvitationResponse.response).where(
+                    GroupChallengeInvitationResponse.invitation_id == invitation.id,
+                    GroupChallengeInvitationResponse.user_id == viewer_id,
+                )
+            ) if viewer_id else None
+            challenge_invitation = GroupChallengeInvitationPayload(
+                id=invitation.id,
+                challenge_id=challenge.id,
+                challenge_slug=challenge.slug,
+                challenge_title=challenge.title,
+                status=invitation.status,
+                my_response=my_response or "PENDING",
+                response_counts=GroupInvitationResponseCounts(
+                    pending=counts["PENDING"],
+                    accepted=counts["ACCEPTED"],
+                    declined=counts["DECLINED"],
+                ),
+            )
     return GroupMessageResponse(
         id=message.id,
         group_id=message.group_id,
         author=author,
+        type=message.message_type,
         body=message.body,
         created_at=message.created_at,
+        challenge_invitation=challenge_invitation,
     )
 
 
@@ -221,7 +267,11 @@ def list_group_messages(
         .offset(offset)
         .limit(limit)
     ).all()
-    return {"items": [group_message_response(message, db) for message in messages], "limit": limit, "offset": offset}
+    return {
+        "items": [group_message_response(message, db, current_user.id) for message in messages],
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.post("/{group_id}/messages", response_model=GroupMessageResponse, status_code=status.HTTP_201_CREATED)
@@ -238,7 +288,7 @@ def create_group_message(
     body = payload.body.strip()
     if not body:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Message cannot be blank.")
-    message = GroupMessage(group_id=group_id, author_id=current_user.id, body=body)
+    message = GroupMessage(group_id=group_id, author_id=current_user.id, message_type="TEXT", body=body)
     db.add(message)
     db.flush()
     notifications = notify_group_members(group, message, current_user, db)

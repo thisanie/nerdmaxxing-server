@@ -59,6 +59,7 @@ class NotificationResponse(BaseModel):
     invitation_status: str | None
     is_read: bool
     created_at: datetime
+    challenge_title: str | None = None
 
 
 class PushTokenCreate(BaseModel):

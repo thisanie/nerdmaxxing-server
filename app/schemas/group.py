@@ -57,6 +57,30 @@ class GroupMessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 
 
+class GroupChallengeInvitationCreate(BaseModel):
+    group_id: str = Field(min_length=1)
+
+
+class GroupInvitationResponseRequest(BaseModel):
+    response: Literal["ACCEPTED", "DECLINED"]
+
+
+class GroupInvitationCreatedResponse(BaseModel):
+    invitation_id: str
+    invitation: "GroupChallengeInvitationSummary"
+    message: "GroupMessageResponse"
+
+
+class GroupChallengeInvitationSummary(BaseModel):
+    id: str
+    group_id: str
+    challenge_id: str
+    invited_by: str
+    status: str
+    created_at: datetime
+    expires_at: datetime | None
+
+
 class GroupMessageAuthorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -70,5 +94,23 @@ class GroupMessageResponse(BaseModel):
     id: str
     group_id: str
     author: GroupMessageAuthorResponse
+    type: str
     body: str
     created_at: datetime
+    challenge_invitation: "GroupChallengeInvitationPayload | None" = None
+
+
+class GroupInvitationResponseCounts(BaseModel):
+    pending: int
+    accepted: int
+    declined: int
+
+
+class GroupChallengeInvitationPayload(BaseModel):
+    id: str
+    challenge_id: str
+    challenge_slug: str
+    challenge_title: str
+    status: str
+    my_response: str
+    response_counts: GroupInvitationResponseCounts

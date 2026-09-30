@@ -11,7 +11,13 @@ from app.models.follow import UserFollow
 from app.models.aura import AuraTransaction
 from app.models.group import Group, GroupMembership, GroupMessage
 from app.models.progress import ChallengeProgressLog
-from app.models.invitation import ChallengeInvitation, Notification, PushToken
+from app.models.invitation import (
+        ChallengeInvitation,
+        GroupChallengeInvitation,
+        GroupChallengeInvitationResponse,
+        Notification,
+        PushToken,
+)
 from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 from app.models.saved_challenge import SavedChallenge
 from app.models.discussion import Discussion, DiscussionReply, DiscussionReport
@@ -36,6 +42,8 @@ __all__ = [
         "GroupMessage",
         "ChallengeProgressLog",
         "ChallengeInvitation",
+        "GroupChallengeInvitation",
+        "GroupChallengeInvitationResponse",
         "Notification",
         "PushToken",
         "ParticipantResourceCompletion",

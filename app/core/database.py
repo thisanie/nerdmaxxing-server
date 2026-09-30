@@ -81,8 +81,18 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "actor_name": "VARCHAR(100)",
                         "group_id": "VARCHAR(36)",
                         "group_message_id": "VARCHAR(36)",
+                        "challenge_title": "VARCHAR(160)",
                 }.items():
                         if notification_columns and name not in notification_columns:
                                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
+                inspector = inspect(connection)
+                group_message_columns = {column["name"] for column in inspector.get_columns("group_messages")}
+                for name, definition in {
+                        "type": "VARCHAR(40) NOT NULL DEFAULT 'TEXT'",
+                        "challenge_invitation_id": "VARCHAR(36)",
+                }.items():
+                        if group_message_columns and name not in group_message_columns:
+                                connection.execute(text(f"ALTER TABLE group_messages ADD COLUMN {name} {definition}"))
 
 

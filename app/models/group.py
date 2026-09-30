@@ -57,5 +57,9 @@ class GroupMessage(Base):
     author_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    message_type: Mapped[str] = mapped_column("type", String(40), nullable=False, default="TEXT")
+    challenge_invitation_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("group_challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     body: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

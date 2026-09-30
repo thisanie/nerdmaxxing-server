@@ -10,8 +10,14 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.challenge import Challenge
+from app.models.group import Group, GroupMembership, GroupMessage
 from app.models.follow import UserFollow
-from app.models.invitation import ChallengeInvitation, Notification
+from app.models.invitation import (
+    ChallengeInvitation,
+    GroupChallengeInvitation,
+    GroupChallengeInvitationResponse,
+    Notification,
+)
 from app.models.participation import ChallengeParticipant
 from app.models.user import User
 from app.schemas.invitation import (
@@ -22,12 +28,21 @@ from app.schemas.invitation import (
     NotificationResponse,
 )
 from app.schemas.participation import ParticipationResponse
+from app.schemas.group import (
+    GroupChallengeInvitationCreate,
+    GroupInvitationCreatedResponse,
+    GroupChallengeInvitationSummary,
+    GroupInvitationResponseCounts,
+    GroupInvitationResponseRequest,
+)
+from app.api.groups import group_message_response
 from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(prefix="/api/v1", tags=["Invitations"])
 ACTIVE_STATUSES = ("ACCEPTED", "IN_PROGRESS")
 INVITE_LINK_TTL = timedelta(days=30)
+GROUP_INVITATION_TTL = timedelta(days=30)
 
 
 def token_hash(token: str) -> str:
@@ -103,6 +118,32 @@ def ensure_can_accept(db: Session, challenge_id: str, user_id: str) -> None:
             status_code=status.HTTP_409_CONFLICT,
             detail="You have reached the limit of five active challenges.",
         )
+
+
+def group_response_counts(db: Session, invitation_id: str) -> GroupInvitationResponseCounts:
+    counts = {
+        response: db.scalar(
+            select(func.count())
+            .select_from(GroupChallengeInvitationResponse)
+            .where(
+                GroupChallengeInvitationResponse.invitation_id == invitation_id,
+                GroupChallengeInvitationResponse.response == response,
+            )
+        ) or 0
+        for response in ("PENDING", "ACCEPTED", "DECLINED")
+    }
+    return GroupInvitationResponseCounts(
+        pending=counts["PENDING"], accepted=counts["ACCEPTED"], declined=counts["DECLINED"]
+    )
+
+
+def close_expired_group_invitation(db: Session, invitation: GroupChallengeInvitation) -> None:
+    if invitation.status == "OPEN" and invitation.expires_at and invitation.expires_at <= datetime.utcnow():
+        invitation.status = "EXPIRED"
+
+
+def group_invitation_counts_dict(db: Session, invitation_id: str) -> dict[str, int]:
+    return group_response_counts(db, invitation_id).model_dump()
 
 
 def accept_invitation(
@@ -218,6 +259,201 @@ def invite_follower(
     db.refresh(invitation)
     send_notification_push(db, notification)
     return invitation_response(invitation, challenge, current_user)
+
+
+@router.post(
+    "/challenges/{slug}/group-invitations",
+    response_model=GroupInvitationCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_group_invitation(
+    slug: str,
+    payload: GroupChallengeInvitationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> GroupInvitationCreatedResponse:
+    challenge = get_joinable_challenge(db, slug)
+    group = db.get(Group, payload.group_id)
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
+    if db.scalar(
+        select(GroupMembership.id).where(
+            GroupMembership.group_id == group.id,
+            GroupMembership.user_id == current_user.id,
+            GroupMembership.status == "ACTIVE",
+        )
+    ) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Active group membership is required.")
+    if db.scalar(
+        select(ChallengeParticipant.id).where(
+            ChallengeParticipant.challenge_id == challenge.id,
+            ChallengeParticipant.user_id == current_user.id,
+            ChallengeParticipant.status.in_(ACTIVE_STATUSES),
+        )
+    ) is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Active challenge participation is required to invite a group.",
+        )
+
+    active_invitation = db.scalar(
+        select(GroupChallengeInvitation).where(
+            GroupChallengeInvitation.group_id == group.id,
+            GroupChallengeInvitation.challenge_id == challenge.id,
+            GroupChallengeInvitation.status == "OPEN",
+        )
+    )
+    if active_invitation is not None:
+        close_expired_group_invitation(db, active_invitation)
+        if active_invitation.status == "OPEN":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This group already has a pending invitation.")
+
+    invitation = GroupChallengeInvitation(
+        group_id=group.id,
+        challenge_id=challenge.id,
+        invited_by=current_user.id,
+        expires_at=datetime.utcnow() + GROUP_INVITATION_TTL,
+    )
+    db.add(invitation)
+    db.flush()
+    invitee_ids = db.scalars(
+        select(GroupMembership.user_id).where(
+            GroupMembership.group_id == group.id,
+            GroupMembership.status == "ACTIVE",
+            GroupMembership.user_id != current_user.id,
+        )
+    ).all()
+    existing_participants = set(
+        db.scalars(
+            select(ChallengeParticipant.user_id).where(
+                ChallengeParticipant.challenge_id == challenge.id,
+                ChallengeParticipant.user_id.in_(invitee_ids),
+                ChallengeParticipant.status != "REMOVED",
+            )
+        ).all()
+    ) if invitee_ids else set()
+    invitee_ids = [user_id for user_id in invitee_ids if user_id not in existing_participants]
+    for user_id in invitee_ids:
+        db.add(GroupChallengeInvitationResponse(invitation_id=invitation.id, user_id=user_id))
+    if not invitee_ids:
+        invitation.status = "CLOSED"
+
+    message = GroupMessage(
+        group_id=group.id,
+        author_id=current_user.id,
+        message_type="CHALLENGE_INVITATION",
+        challenge_invitation_id=invitation.id,
+        body=f"{current_user.display_name or current_user.username or 'Someone'} invited the group to join a challenge.",
+    )
+    db.add(message)
+    db.flush()
+    notifications = []
+    for user_id in invitee_ids:
+        notification = Notification(
+            user_id=user_id,
+            notification_type="GROUP_MESSAGE",
+            title=f"New challenge invitation in {group.name}",
+            body=message.body,
+            actor_id=current_user.id,
+            actor_username=current_user.username,
+            actor_name=current_user.display_name,
+            invitation_id=invitation.id,
+            challenge_id=challenge.id,
+            challenge_slug=challenge.slug,
+            challenge_title=challenge.title,
+            group_id=group.id,
+            group_message_id=message.id,
+        )
+        db.add(notification)
+        notifications.append(notification)
+    db.commit()
+    for notification in notifications:
+        send_notification_push(db, notification)
+    db.refresh(message)
+    return GroupInvitationCreatedResponse(
+        invitation_id=invitation.id,
+        invitation=GroupChallengeInvitationSummary(
+            id=invitation.id,
+            group_id=invitation.group_id,
+            challenge_id=invitation.challenge_id,
+            invited_by=invitation.invited_by,
+            status=invitation.status,
+            created_at=invitation.created_at,
+            expires_at=invitation.expires_at,
+        ),
+        message=group_message_response(message, db, current_user.id),
+    )
+
+
+@router.post("/group-invitations/{invitation_id}/respond")
+def respond_to_group_invitation(
+    invitation_id: str,
+    payload: GroupInvitationResponseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    invitation = db.get(GroupChallengeInvitation, invitation_id)
+    if invitation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group invitation not found.")
+    membership = db.scalar(
+        select(GroupMembership.id).where(
+            GroupMembership.group_id == invitation.group_id,
+            GroupMembership.user_id == current_user.id,
+            GroupMembership.status == "ACTIVE",
+        )
+    )
+    if membership is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Active group membership is required.")
+    response = db.scalar(
+        select(GroupChallengeInvitationResponse).where(
+            GroupChallengeInvitationResponse.invitation_id == invitation.id,
+            GroupChallengeInvitationResponse.user_id == current_user.id,
+        )
+    )
+    if response is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You were not invited to this challenge.")
+    get_joinable_challenge_by_id(db, invitation.challenge_id)
+    close_expired_group_invitation(db, invitation)
+    if invitation.status == "EXPIRED":
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="This invitation has expired.")
+    if response.response != "PENDING":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already responded to this invitation.")
+
+    participant = None
+    if payload.response == "ACCEPTED":
+        ensure_can_accept(db, invitation.challenge_id, current_user.id)
+        participant = ChallengeParticipant(challenge_id=invitation.challenge_id, user_id=current_user.id)
+        db.add(participant)
+    response.response = payload.response
+    response.responded_at = datetime.utcnow()
+    pending = db.scalar(
+        select(func.count())
+        .select_from(GroupChallengeInvitationResponse)
+        .where(
+            GroupChallengeInvitationResponse.invitation_id == invitation.id,
+            GroupChallengeInvitationResponse.response == "PENDING",
+        )
+    ) or 0
+    if pending == 0:
+        invitation.status = "CLOSED"
+    db.query(Notification).filter(
+        Notification.invitation_id == invitation.id,
+        Notification.user_id == current_user.id,
+    ).update({Notification.is_read: True}, synchronize_session=False)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already joined this challenge.")
+    if participant is not None:
+        db.refresh(participant)
+    return {
+        "invitation_id": invitation.id,
+        "response": response.response,
+        "participation": ParticipationResponse.model_validate(participant) if participant else None,
+        "response_counts": group_invitation_counts_dict(db, invitation.id),
+    }
 
 
 @router.get("/users/me/invitations", response_model=list[ChallengeInvitationResponse])
@@ -401,6 +637,7 @@ def list_my_notifications(
             reply_id=notification.reply_id,
             challenge_id=notification.challenge_id,
             challenge_slug=notification.challenge_slug,
+            challenge_title=notification.challenge_title,
             group_id=notification.group_id,
             group_message_id=notification.group_message_id,
             invitation_status=invitation_status,
@@ -446,6 +683,7 @@ def mark_notification_read(
         reply_id=notification.reply_id,
         challenge_id=notification.challenge_id,
         challenge_slug=notification.challenge_slug,
+        challenge_title=notification.challenge_title,
         group_id=notification.group_id,
         group_message_id=notification.group_message_id,
         invitation_status=invitation_status,
