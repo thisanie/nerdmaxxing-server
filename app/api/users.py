@@ -39,6 +39,7 @@ from app.services.user_service import (
 )
 from app.services.blob_storage import upload_blob
 from app.services.push_notification_service import send_notification_push
+from app.services.rank_service import rank_for_aura
 
 
 router = APIRouter(
@@ -283,6 +284,7 @@ def get_my_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserStatsResponse:
+    rank_summary = rank_for_aura(current_user.aura_points)
     now = utcnow()
     if (
         current_user.last_progress_at is not None
@@ -312,6 +314,10 @@ def get_my_stats(
         completed_challenge_count=completed_count,
         day_streak=current_user.day_streak,
         aura_points=current_user.aura_points,
+        rank=rank_summary.rank,
+        rank_progress=rank_summary.progress,
+        next_rank=rank_summary.next_rank,
+        aura_to_next_rank=rank_summary.aura_to_next_rank,
     )
 
 

@@ -67,6 +67,10 @@ class UserStatsResponse(BaseModel):
     completed_challenge_count: int
     day_streak: int
     aura_points: int
+    rank: str
+    rank_progress: int
+    next_rank: str | None
+    aura_to_next_rank: int
 
 
 class AuraTransactionResponse(BaseModel):
