@@ -40,3 +40,24 @@ class GroupMembershipResponse(BaseModel):
 class GroupJoinRequestResponse(GroupMembershipResponse):
     username: str | None
     display_name: str | None
+
+
+class GroupMessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
+class GroupMessageAuthorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    username: str | None
+    name: str | None = Field(validation_alias="display_name")
+    avatar_url: str | None
+
+
+class GroupMessageResponse(BaseModel):
+    id: str
+    group_id: str
+    author: GroupMessageAuthorResponse
+    body: str
+    created_at: datetime

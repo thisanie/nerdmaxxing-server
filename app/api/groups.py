@@ -1,15 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db
-from app.models.group import Group, GroupMembership
+from app.core.config import settings
+from app.core.dependencies import get_current_user, get_db, limiter
+from app.models.group import Group, GroupMembership, GroupMessage
 from app.models.user import User
 from app.schemas.group import (
     GroupCreate,
     GroupJoinRequestResponse,
     GroupMembershipResponse,
+    GroupMessageCreate,
+    GroupMessageResponse,
     GroupResponse,
 )
 
@@ -48,6 +51,29 @@ def get_group_or_404(db: Session, group_id: str) -> Group:
     if group is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
     return group
+
+
+def require_active_member(db: Session, group_id: str, user_id: str) -> None:
+    is_member = db.scalar(
+        select(GroupMembership.id).where(
+            GroupMembership.group_id == group_id,
+            GroupMembership.user_id == user_id,
+            GroupMembership.status == "ACTIVE",
+        )
+    )
+    if is_member is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Active group membership is required.")
+
+
+def group_message_response(message: GroupMessage, db: Session) -> GroupMessageResponse:
+    author = db.get(User, message.author_id)
+    return GroupMessageResponse(
+        id=message.id,
+        group_id=message.group_id,
+        author=author,
+        body=message.body,
+        created_at=message.created_at,
+    )
 
 
 @router.post("", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
@@ -113,6 +139,47 @@ def get_group(
     current_user: User = Depends(get_current_user),
 ) -> GroupResponse:
     return group_response(db, get_group_or_404(db, group_id), current_user.id)
+
+
+@router.get("/{group_id}/messages")
+def list_group_messages(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
+    get_group_or_404(db, group_id)
+    require_active_member(db, group_id, current_user.id)
+    messages = db.scalars(
+        select(GroupMessage)
+        .where(GroupMessage.group_id == group_id)
+        .order_by(GroupMessage.created_at.asc(), GroupMessage.id.asc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return {"items": [group_message_response(message, db) for message in messages], "limit": limit, "offset": offset}
+
+
+@router.post("/{group_id}/messages", response_model=GroupMessageResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(settings.discussion_post_rate_limit)
+def create_group_message(
+    request: Request,
+    group_id: str,
+    payload: GroupMessageCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> GroupMessageResponse:
+    get_group_or_404(db, group_id)
+    require_active_member(db, group_id, current_user.id)
+    body = payload.body.strip()
+    if not body:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Message cannot be blank.")
+    message = GroupMessage(group_id=group_id, author_id=current_user.id, body=body)
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return group_message_response(message, db)
 
 
 @router.post("/{group_id}/join", response_model=GroupMembershipResponse, status_code=status.HTTP_201_CREATED)
