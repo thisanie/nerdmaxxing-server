@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -9,7 +9,10 @@ from app.models.base import Base
 
 class ChallengeParticipant(Base):
     __tablename__ = "challenge_participants"
-    __table_args__ = (UniqueConstraint("challenge_id", "user_id"),)
+    __table_args__ = (
+        UniqueConstraint("challenge_id", "user_id"),
+        Index("ix_challenge_participants_completion_period", "completion_status", "completed_at", "user_id"),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())

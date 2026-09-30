@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (Index("ix_users_public_ranking", "is_deleted", "is_suspended", "is_private", "aura_points"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username: Mapped[str | None] = mapped_column(String(24), nullable=True)

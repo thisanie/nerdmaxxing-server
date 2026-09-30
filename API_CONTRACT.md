@@ -146,6 +146,69 @@ Available endpoints:
 
 ## Users
 
+### `GET /api/v1/users/me/stats`
+
+Requires authentication. The existing activity fields are preserved and rank fields are added:
+
+```json
+{
+  "active_challenge_count": 3,
+  "completed_challenge_count": 16,
+  "day_streak": 9,
+  "aura_points": 860,
+  "rank": "B",
+  "rank_progress": 72,
+  "next_rank": "A",
+  "aura_to_next_rank": 140
+}
+```
+
+Ranks are based on lifetime aura and use these centralized thresholds: `E` 0-99, `D` 100-249, `C` 250-499, `B` 500-999, `A` 1000-1999, and `S` 2000+. New users start at `E`. `rank_progress` is the percentage through the current interval. `S` always returns `rank_progress: 100`, `next_rank: null`, and `aura_to_next_rank: 0`.
+
+### `GET /api/v1/leaderboard`
+
+Public endpoint. Query parameters:
+
+- `period`: `week`, `month`, or `all_time`; defaults to `week`.
+- `metric`: `aura`, `completed`, or `streak`; defaults to `aura`.
+- `player_rank`: optional `E`, `D`, `C`, `B`, `A`, or `S` filter.
+- `limit`: defaults to 20, range 1-100.
+- `offset`: defaults to 0 and must be nonnegative.
+
+Unsupported values, limits above 100, and negative offsets return `422`.
+
+Response:
+
+```json
+{
+  "period": "week",
+  "metric": "aura",
+  "entries": [
+    {
+      "rank": 1,
+      "user_id": "user-id",
+      "username": "maya_chen",
+      "display_name": "Maya Chen",
+      "avatar_url": "https://example.com/avatar.png",
+      "player_rank": "A",
+      "aura_points": 1280,
+      "completed_challenge_count": 24,
+      "day_streak": 18,
+      "metric_value": 1280,
+      "is_current_user": false
+    }
+  ],
+  "viewer": {"rank": 3, "metric_value": 860, "user_id": "current-user-id"},
+  "total": 1240
+}
+```
+
+`rank` is leaderboard position; `player_rank` is the E-to-S progression rank. Aura and completion period boundaries use UTC: the current Monday 00:00 for `week`, the first day of the current month at 00:00 for `month`, and no lower bound for `all_time`. Streak rankings use the current streak and require progress during the selected period except for `all_time`.
+
+Entries are ordered by metric descending, aura descending, achievement timestamp ascending, and user ID ascending. Competition ranking is used for equal metric values (`1, 2, 2, 4`), and `viewer.rank` uses the same metric ranking. Pagination is server-side and stable across pages.
+
+Only public users and public, published challenges are included. Deleted, suspended, private, or opted-out users and private/draft challenge completions are excluded. Only public profile fields are returned; email and private challenge data are never exposed. Users with zero activity remain eligible and return zero metric values. `viewer` is null for unauthenticated requests or when the authenticated user is not eligible for the selected public ranking.
+
 ### Notification routing payloads
 
 `GET /api/v1/users/me/notifications` preserves routing metadata for clickable notifications:
@@ -197,7 +260,7 @@ Returns `422 Unprocessable Entity` for an invalid username.
 
 ### `GET /api/v1/users/{username}`
 
-Public profile view. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
+Public profile view. The response includes the user’s current E-to-S `rank`, calculated from lifetime aura using the same thresholds as personal stats and the leaderboard. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
 
 ### `GET /api/v1/users/{user_id}/follow-status`
 

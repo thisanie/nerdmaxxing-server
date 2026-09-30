@@ -54,6 +54,18 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 for name, definition in user_additions.items():
                         if user_columns and name not in user_columns:
                                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {name} {definition}"))
+                connection.execute(text(
+                        "CREATE INDEX IF NOT EXISTS ix_users_public_ranking "
+                        "ON users (is_deleted, is_suspended, is_private, aura_points)"
+                ))
+                connection.execute(text(
+                        "CREATE INDEX IF NOT EXISTS ix_aura_transactions_created_user "
+                        "ON aura_transactions (created_at, user_id)"
+                ))
+                connection.execute(text(
+                        "CREATE INDEX IF NOT EXISTS ix_challenge_participants_completion_period "
+                        "ON challenge_participants (completion_status, completed_at, user_id)"
+                ))
 
                 inspector = inspect(connection)
                 columns = {column["name"] for column in inspector.get_columns("challenges")}

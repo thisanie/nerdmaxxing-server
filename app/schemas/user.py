@@ -32,6 +32,7 @@ class UserProfileResponse(BaseModel):
     bio: str | None
     avatar_url: str | None
     aura_points: int
+    rank: str
     follower_count: int
     following_count: int
     skills_count: int
@@ -67,6 +68,10 @@ class UserStatsResponse(BaseModel):
     completed_challenge_count: int
     day_streak: int
     aura_points: int
+    rank: str
+    rank_progress: int
+    next_rank: str | None
+    aura_to_next_rank: int
 
 
 class AuraTransactionResponse(BaseModel):
