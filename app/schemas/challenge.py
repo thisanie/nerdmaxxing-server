@@ -236,3 +236,4 @@ class CategoryResponse(BaseModel):
     name: str
     description: str | None = None
     icon: str | None = None
+    challenge_count: int = 0

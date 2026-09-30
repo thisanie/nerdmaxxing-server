@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -25,6 +25,9 @@ class User(Base):
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     aura_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     day_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_progress_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -24,6 +24,7 @@ from app.schemas.participation import (
     MetricAttemptResponse,
 )
 from app.models.progress import ChallengeProgressLog
+from app.models.activity import Activity
 from app.services.progress_service import record_progress
 
 
@@ -150,6 +151,7 @@ def accept_challenge(
 
     participant = ChallengeParticipant(challenge_id=challenge.id, user_id=current_user.id)
     db.add(participant)
+    db.add(Activity(user_id=current_user.id, action="JOINED_CHALLENGE", challenge_id=challenge.id))
     try:
         db.commit()
     except IntegrityError:
@@ -492,6 +494,8 @@ def update_participation_status(
 
     participant.status = payload.status
     participant.last_activity_at = datetime.utcnow()
+    if payload.status == "IN_PROGRESS":
+        db.add(Activity(user_id=current_user.id, action="STARTED_CHALLENGE", challenge_id=participant.challenge_id))
     db.commit()
     db.refresh(participant)
     return participant

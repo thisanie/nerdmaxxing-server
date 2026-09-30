@@ -47,6 +47,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "aura_points": "INTEGER NOT NULL DEFAULT 0",
                         "day_streak": "INTEGER NOT NULL DEFAULT 0",
                         "last_progress_at": timestamp_type,
+                        "is_deleted": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "is_suspended": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "is_private": "BOOLEAN NOT NULL DEFAULT FALSE",
                 }
                 for name, definition in user_additions.items():
                         if user_columns and name not in user_columns:

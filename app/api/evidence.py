@@ -11,6 +11,7 @@ from app.models.participation import ChallengeParticipant
 from app.models.progress import ChallengeProgressLog
 from app.models.skill import UserSkill
 from app.models.user import User
+from app.models.activity import Activity
 from app.schemas.evidence import EvidenceCreate, EvidenceResponse
 from app.services.blob_storage import upload_blob
 
@@ -152,6 +153,7 @@ def self_verify_evidence(
     participant.verification_status = "VERIFIED"
     participant.completed_at = datetime.utcnow()
     participant.last_activity_at = datetime.utcnow()
+    db.add(Activity(user_id=current_user.id, action="COMPLETED_CHALLENGE", challenge_id=challenge.id))
     if db.scalar(
         select(UserSkill).where(
             UserSkill.user_id == current_user.id,

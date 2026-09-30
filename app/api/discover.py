@@ -1,19 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
 from app.models.user import User
 from app.schemas.challenge import CategoryResponse
-from app.schemas.discover import DiscoverResponse
+from app.schemas.discover import DiscoverResponse, DiscoverSearchResponse, DiscoverUserResult
 from app.services.discovery_service import (
     get_categories,
     get_featured,
     get_legendary,
     get_new,
     get_recommended,
+    get_recent_activity,
     get_trending,
+    get_top_nerds,
     get_unexpected,
+    search_discover,
 )
 
 
@@ -52,6 +55,28 @@ def discover(
         recommended=get_recommended(db, current_user) if current_user else [],
         legendary=get_legendary(db),
         unexpected=get_unexpected(db, exclude_id=featured.id if featured else None),
+        top_nerds=get_top_nerds(db),
+        recent_activity=get_recent_activity(db),
+    )
+
+
+@router.get("/discover/search", response_model=DiscoverSearchResponse)
+def discover_search(
+    q: str = Query(min_length=2, max_length=160),
+    type: str = Query(default="all", pattern="^(all|users|challenges)$"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> DiscoverSearchResponse:
+    query = q.strip()
+    if len(query) < 2:
+        raise HTTPException(status_code=422, detail="q must contain at least 2 non-whitespace characters.")
+    users, challenges, total_users, total_challenges = search_discover(db, query, type, limit, offset)
+    return DiscoverSearchResponse(
+        users=[DiscoverUserResult(user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url) for user in users],
+        challenges=challenges,
+        total_users=total_users,
+        total_challenges=total_challenges,
     )
 
 

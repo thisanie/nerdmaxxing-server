@@ -21,6 +21,7 @@ from app.models.invitation import (
 from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 from app.models.saved_challenge import SavedChallenge
 from app.models.discussion import Discussion, DiscussionReply, DiscussionReport
+from app.models.activity import Activity
 
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
         "Discussion",
         "DiscussionReply",
         "DiscussionReport",
+        "Activity",
         ]

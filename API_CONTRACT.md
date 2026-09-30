@@ -699,6 +699,66 @@ At least one of `text_content` or `file` is required. `explanation` is limited t
 
 Response `201 Created`: an [Evidence submission](#evidence-submission-object) object.
 
+## Discover
+
+### `GET /api/v1/discover`
+
+Authentication is optional. Anonymous callers receive public feed data and an
+empty `recommended` collection. Authenticated recommendations exclude completed
+and active challenges. Every challenge collection is bounded to at most 20
+items, and every challenge is `PUBLISHED`, `PUBLIC`, and serialized with the
+same Challenge object shape returned by the challenges endpoints. Empty data is
+represented by `[]`; `featured` is `null` when trending has no results.
+
+The response is:
+
+```json
+{
+  "featured": null,
+  "trending": [],
+  "categories": [],
+  "new_challenges": [],
+  "recommended": [],
+  "legendary": [],
+  "unexpected": [],
+  "top_nerds": [],
+  "recent_activity": []
+}
+```
+
+`featured` is always the first item in the current `trending` ranking. Trending
+uses recent participation activity, completion weight, and exponential time
+decay over the last 30 days; it is not a newest or lifetime-popularity list.
+New challenges require a non-null `published_at` and are newest first.
+Categories include only active categories attached to at least one public,
+published challenge, and `challenge_count` counts only those challenges.
+Legendary uses the challenge's `legendary` flag. Unexpected is a randomized
+public selection per request. Recommendations use the caller's completed and
+active categories and difficulty history plus saved challenges; insufficient
+history produces an empty list.
+
+`top_nerds` contains up to 10 non-deleted, non-suspended, public users ranked by
+completed public challenges from Monday 00:00:00 UTC through the request time.
+Ties use latest completion time and then user ID. `completed_count` is weekly,
+while `day_streak` is the persisted current streak. `recent_activity` contains
+up to 10 supported public events, newest first, and only includes public users
+and public, published challenges. Timestamps are ISO 8601 UTC.
+
+### `GET /api/v1/discover/search?q={query}&type={type}&limit={limit}&offset={offset}`
+
+This endpoint is public and searches server-side. `q` is trimmed and must have
+at least two characters. `type` is `all`, `users`, or `challenges`; `limit`
+defaults to 20 and must be 1-100; `offset` defaults to 0 and must not be
+negative. Invalid values return FastAPI's standard `422` response.
+
+Users are matched case-insensitively by username and display name. Challenges
+are matched by title, short description, full description, and category name.
+Exact matches sort before prefix matches, followed by relevance and stable
+tie-breakers. Results include `total_users` and `total_challenges`, while
+pagination is applied independently to the selected result collections.
+Deleted, suspended, and private users plus draft, private, and otherwise
+non-public challenges never appear.
+
 Returns `404 Not Found` for a participation not owned by the caller and `409 Conflict` when its state cannot accept evidence.
 
 ### `POST /api/v1/evidence/{submission_id}/self-verify`
