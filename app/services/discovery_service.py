@@ -151,9 +151,32 @@ def search_discover(db: Session, query: str, result_type: str, limit: int, offse
     user_total = db.scalar(select(func.count()).select_from(users_statement.subquery())) or 0
     users = [] if result_type == "challenges" else db.scalars(users_statement.order_by(user_rank, User.username, User.id).offset(offset).limit(limit)).all()
     match = or_(func.lower(Challenge.title).like(pattern), func.lower(Challenge.short_description).like(pattern), func.lower(Challenge.full_description).like(pattern), func.lower(Category.name).like(pattern))
-    challenge_statement = _public_query().join(Challenge.categories, isouter=True).where(match).distinct()
     challenge_rank = case((func.lower(Challenge.title) == term, 0), (func.lower(Challenge.title).like(prefix), 1), else_=2)
-    count_statement = challenge_statement.with_only_columns(Challenge.id).order_by(None).distinct().subquery()
-    challenge_total = db.scalar(select(func.count()).select_from(count_statement)) or 0
-    challenges = [] if result_type == "users" else list(db.scalars(challenge_statement.order_by(challenge_rank, Challenge.published_at.desc(), Challenge.id).offset(offset).limit(limit)).unique().all())
+    matching_challenges = (
+        select(
+            Challenge.id.label("challenge_id"),
+            challenge_rank.label("search_rank"),
+            Challenge.published_at,
+        )
+        .select_from(Challenge)
+        .join(Challenge.categories, isouter=True)
+        .where(*PUBLIC_CHALLENGE, match)
+        .distinct()
+        .subquery()
+    )
+    challenge_total = db.scalar(select(func.count()).select_from(matching_challenges)) or 0
+    challenge_statement = _public_query().join(
+        matching_challenges,
+        Challenge.id == matching_challenges.c.challenge_id,
+    )
+    challenges = [] if result_type == "users" else list(db.scalars(
+        challenge_statement
+        .order_by(
+            matching_challenges.c.search_rank,
+            Challenge.published_at.desc(),
+            Challenge.id,
+        )
+        .offset(offset)
+        .limit(limit)
+    ).unique().all())
     return users, _responses(challenges, db), user_total, challenge_total
