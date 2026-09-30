@@ -260,7 +260,7 @@ Returns `422 Unprocessable Entity` for an invalid username.
 
 ### `GET /api/v1/users/{username}`
 
-Public profile view. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
+Public profile view. The response includes the user’s current E-to-S `rank`, calculated from lifetime aura using the same thresholds as personal stats and the leaderboard. The `completed_challenges` collection contains only challenges that are both `PUBLIC` and `PUBLISHED`, and that the user has completed. Private, draft, active, and incomplete challenges are excluded. The completed challenge count uses the same filter.
 
 ### `GET /api/v1/users/{user_id}/follow-status`
 

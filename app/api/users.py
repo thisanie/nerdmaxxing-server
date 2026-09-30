@@ -182,6 +182,7 @@ def profile_response(
         bio=user.bio,
         avatar_url=user.avatar_url,
         aura_points=user.aura_points,
+        rank=rank_for_aura(user.aura_points).rank,
         follower_count=follower_count,
         following_count=following_count,
         skills_count=len(skills),

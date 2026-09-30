@@ -32,6 +32,7 @@ class UserProfileResponse(BaseModel):
     bio: str | None
     avatar_url: str | None
     aura_points: int
+    rank: str
     follower_count: int
     following_count: int
     skills_count: int
