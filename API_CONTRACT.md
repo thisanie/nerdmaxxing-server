@@ -178,7 +178,7 @@ Comment replies include the parent comment and challenge route:
 }
 ```
 
-The same routing fields are included in FCM data payloads. Existing invitation notifications continue to use `invitation_id` and `invitation_status`.
+The same routing fields are included in FCM data payloads. Direct invitation notifications use `invitation_id` and `invitation_status`; group challenge invitation notifications use `group_invitation_id`.
 
 ### `GET /api/v1/users/username-availability?username={username}`
 

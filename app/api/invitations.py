@@ -357,7 +357,7 @@ def create_group_invitation(
             actor_id=current_user.id,
             actor_username=current_user.username,
             actor_name=current_user.display_name,
-            invitation_id=invitation.id,
+            group_invitation_id=invitation.id,
             challenge_id=challenge.id,
             challenge_slug=challenge.slug,
             challenge_title=challenge.title,
@@ -438,7 +438,7 @@ def respond_to_group_invitation(
     if pending == 0:
         invitation.status = "CLOSED"
     db.query(Notification).filter(
-        Notification.invitation_id == invitation.id,
+        Notification.group_invitation_id == invitation.id,
         Notification.user_id == current_user.id,
     ).update({Notification.is_read: True}, synchronize_session=False)
     try:
@@ -633,6 +633,7 @@ def list_my_notifications(
             actor_username=notification.actor_username,
             actor_name=notification.actor_name,
             invitation_id=notification.invitation_id,
+            group_invitation_id=notification.group_invitation_id,
             discussion_id=notification.discussion_id,
             reply_id=notification.reply_id,
             challenge_id=notification.challenge_id,
@@ -679,6 +680,7 @@ def mark_notification_read(
         actor_username=notification.actor_username,
         actor_name=notification.actor_name,
         invitation_id=notification.invitation_id,
+        group_invitation_id=notification.group_invitation_id,
         discussion_id=notification.discussion_id,
         reply_id=notification.reply_id,
         challenge_id=notification.challenge_id,

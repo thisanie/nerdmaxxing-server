@@ -75,6 +75,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 for name, definition in {
                         "discussion_id": "VARCHAR(36)",
                         "reply_id": "VARCHAR(36)",
+                        "group_invitation_id": "VARCHAR(36)",
                         "challenge_id": "VARCHAR(36)",
                         "challenge_slug": "VARCHAR(180)",
                         "actor_username": "VARCHAR(24)",
@@ -85,6 +86,17 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 }.items():
                         if notification_columns and name not in notification_columns:
                                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
+                if (
+                        connection.dialect.name != "sqlite"
+                        and notification_columns
+                        and "group_invitation_id" not in notification_columns
+                ):
+                        connection.execute(text(
+                                "ALTER TABLE notifications ADD CONSTRAINT "
+                                "notifications_group_invitation_id_fkey FOREIGN KEY "
+                                "(group_invitation_id) REFERENCES group_challenge_invitations(id) ON DELETE CASCADE"
+                        ))
 
                 inspector = inspect(connection)
                 group_message_columns = {column["name"] for column in inspector.get_columns("group_messages")}

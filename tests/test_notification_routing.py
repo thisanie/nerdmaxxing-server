@@ -121,7 +121,19 @@ def test_notification_list_preserves_routing_fields_and_invitation_status():
         is_read=False,
         created_at=datetime.utcnow(),
     )
-    db = FakeDb(rows=[(notification, None), (invitation, "PENDING")])
+    group_invitation = Notification(
+        id="notification-3",
+        user_id="user-b",
+        notification_type="GROUP_MESSAGE",
+        title="Group invitation",
+        body="Join this challenge with your group.",
+        group_invitation_id="group-invitation-1",
+        group_id="group-1",
+        group_message_id="message-1",
+        is_read=False,
+        created_at=datetime.utcnow(),
+    )
+    db = FakeDb(rows=[(notification, None), (invitation, "PENDING"), (group_invitation, None)])
     response = list_my_notifications(db, SimpleNamespace(id="user-b"), limit=20, offset=0)
 
     assert response[0].actor_username == "grace"
@@ -130,6 +142,7 @@ def test_notification_list_preserves_routing_fields_and_invitation_status():
     assert response[0].reply_id == "reply-1"
     assert response[1].invitation_id == "invitation-1"
     assert response[1].invitation_status == "PENDING"
+    assert response[2].group_invitation_id == "group-invitation-1"
 
 
 def test_group_message_notification_preserves_group_routing_fields():

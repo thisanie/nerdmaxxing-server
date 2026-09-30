@@ -50,6 +50,7 @@ class NotificationResponse(BaseModel):
     actor_username: str | None
     actor_name: str | None
     invitation_id: str | None
+    group_invitation_id: str | None
     discussion_id: str | None
     reply_id: str | None
     challenge_id: str | None

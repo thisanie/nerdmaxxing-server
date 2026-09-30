@@ -90,6 +90,9 @@ class Notification(Base):
     actor_username: Mapped[str | None] = mapped_column(String(24), nullable=True)
     actor_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     invitation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    group_invitation_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("group_challenge_invitations.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     discussion_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     reply_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
