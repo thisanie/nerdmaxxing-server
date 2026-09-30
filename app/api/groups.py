@@ -6,15 +6,18 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, limiter
 from app.models.group import Group, GroupMembership, GroupMessage
+from app.models.invitation import Notification
 from app.models.user import User
 from app.schemas.group import (
     GroupCreate,
     GroupJoinRequestResponse,
+    GroupMemberResponse,
     GroupMembershipResponse,
     GroupMessageCreate,
     GroupMessageResponse,
     GroupResponse,
 )
+from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(prefix="/api/v1/groups", tags=["Groups"])
@@ -74,6 +77,47 @@ def group_message_response(message: GroupMessage, db: Session) -> GroupMessageRe
         body=message.body,
         created_at=message.created_at,
     )
+
+
+def group_member_response(membership: GroupMembership, user: User) -> GroupMemberResponse:
+    return GroupMemberResponse(
+        id=membership.id,
+        group_id=membership.group_id,
+        user_id=membership.user_id,
+        status=membership.status,
+        created_at=membership.created_at,
+        username=user.username,
+        display_name=user.display_name,
+        avatar_url=user.avatar_url,
+    )
+
+
+def notify_group_members(
+    group: Group, message: GroupMessage, actor: User, db: Session
+) -> None:
+    actor_name = actor.username or actor.display_name or "Someone"
+    recipients = db.scalars(
+        select(GroupMembership.user_id).where(
+            GroupMembership.group_id == group.id,
+            GroupMembership.status == "ACTIVE",
+            GroupMembership.user_id != actor.id,
+        )
+    ).all()
+    for recipient_id in recipients:
+        notification = Notification(
+            user_id=recipient_id,
+            notification_type="GROUP_MESSAGE",
+            title=f"New message in {group.name}",
+            body=f"{actor_name}: {message.body}"[:500],
+            actor_id=actor.id,
+            actor_username=actor.username,
+            actor_name=actor.display_name,
+            group_id=group.id,
+            group_message_id=message.id,
+        )
+        db.add(notification)
+        db.flush()
+        send_notification_push(db, notification)
 
 
 @router.post("", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
@@ -141,6 +185,23 @@ def get_group(
     return group_response(db, get_group_or_404(db, group_id), current_user.id)
 
 
+@router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
+def list_group_members(
+    group_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[GroupMemberResponse]:
+    get_group_or_404(db, group_id)
+    require_active_member(db, group_id, current_user.id)
+    rows = db.execute(
+        select(GroupMembership, User)
+        .join(User, User.id == GroupMembership.user_id)
+        .where(GroupMembership.group_id == group_id, GroupMembership.status == "ACTIVE")
+        .order_by(GroupMembership.created_at.asc())
+    ).all()
+    return [group_member_response(membership, user) for membership, user in rows]
+
+
 @router.get("/{group_id}/messages")
 def list_group_messages(
     group_id: str,
@@ -170,13 +231,15 @@ def create_group_message(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> GroupMessageResponse:
-    get_group_or_404(db, group_id)
+    group = get_group_or_404(db, group_id)
     require_active_member(db, group_id, current_user.id)
     body = payload.body.strip()
     if not body:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Message cannot be blank.")
     message = GroupMessage(group_id=group_id, author_id=current_user.id, body=body)
     db.add(message)
+    db.flush()
+    notify_group_members(group, message, current_user, db)
     db.commit()
     db.refresh(message)
     return group_message_response(message, db)

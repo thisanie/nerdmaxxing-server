@@ -61,6 +61,8 @@ class Notification(Base):
     reply_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_slug: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    group_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    group_message_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     is_read: Mapped[bool] = mapped_column(nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

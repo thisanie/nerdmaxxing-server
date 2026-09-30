@@ -54,6 +54,8 @@ class NotificationResponse(BaseModel):
     reply_id: str | None
     challenge_id: str | None
     challenge_slug: str | None
+    group_id: str | None
+    group_message_id: str | None
     invitation_status: str | None
     is_read: bool
     created_at: datetime

@@ -42,6 +42,17 @@ class GroupJoinRequestResponse(GroupMembershipResponse):
     display_name: str | None
 
 
+class GroupMemberResponse(BaseModel):
+    id: str
+    group_id: str
+    user_id: str
+    status: MembershipStatus
+    created_at: datetime
+    username: str | None
+    display_name: str | None
+    avatar_url: str | None
+
+
 class GroupMessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=4000)
 

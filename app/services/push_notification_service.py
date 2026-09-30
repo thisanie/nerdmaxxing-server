@@ -80,6 +80,8 @@ def send_notification_push(db: Session, notification: Notification) -> None:
                 "reply_id": notification.reply_id or "",
                 "challenge_id": notification.challenge_id or "",
                 "challenge_slug": notification.challenge_slug or "",
+                "group_id": notification.group_id or "",
+                "group_message_id": notification.group_message_id or "",
             },
         )
         try:
