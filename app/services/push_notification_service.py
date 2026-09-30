@@ -76,6 +76,7 @@ def send_notification_push(db: Session, notification: Notification) -> None:
                 "actor_username": notification.actor_username or "",
                 "actor_name": notification.actor_name or "",
                 "invitation_id": notification.invitation_id or "",
+                "group_invitation_id": notification.group_invitation_id or "",
                 "discussion_id": notification.discussion_id or "",
                 "reply_id": notification.reply_id or "",
                 "challenge_id": notification.challenge_id or "",
