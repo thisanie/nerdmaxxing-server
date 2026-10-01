@@ -25,7 +25,7 @@ from app.schemas.participation import (
 )
 from app.models.progress import ChallengeProgressLog
 from app.models.activity import Activity
-from app.services.progress_service import record_progress
+from app.services.progress_service import record_progress, record_progress_activity
 
 
 router = APIRouter(prefix="/api/v1/participation", tags=["Participation"])
@@ -357,6 +357,8 @@ def complete_milestone_resource(
             note=payload.note,
         )
     participant.last_activity_at = datetime.utcnow()
+    if not (is_new_completion and payload.log_progress and payload.resource_minutes):
+        record_progress_activity(current_user, participant.last_activity_at)
     db.flush()
     milestones = list(db.scalars(
         select(ChallengeMilestone)
@@ -442,6 +444,7 @@ def create_metric_attempt(
     )
     db.add(attempt)
     participant.last_activity_at = datetime.utcnow()
+    record_progress_activity(current_user, participant.last_activity_at)
     db.commit()
     db.refresh(attempt)
     return attempt
