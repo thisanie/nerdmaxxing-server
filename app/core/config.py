@@ -6,27 +6,24 @@ class Settings(BaseSettings):
 
     database_url:str
 
-    s3_endpoint_url: str | None = Field(
+    r2_endpoint_url: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("AWS_ENDPOINT_URL_S3", "S3_ENDPOINT_URL"),
+        validation_alias=AliasChoices("R2_ENDPOINT_URL", "CLOUDFLARE_R2_URL"),
     )
-    s3_bucket: str | None = Field(
+    r2_bucket: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("NEON_STORAGE_BUCKET", "S3_BUCKET"),
+        validation_alias=AliasChoices("R2_BUCKET", "CLOUDFLARE_R2_BUCKET"),
     )
-    s3_access_key_id: str | None = Field(
+    r2_access_key_id: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"),
+        validation_alias=AliasChoices("R2_ACCESS_KEY_ID", "CLOUDFLARE_R2_ACCESS_KEY_ID"),
     )
-    s3_secret_access_key: str | None = Field(
+    r2_secret_access_key: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"),
+        validation_alias=AliasChoices("R2_SECRET_ACCESS_KEY", "CLOUDFLARE_R2_SECRET_ACCESS_KEY"),
     )
-    s3_region: str = Field(
-        default="us-east-1",
-        validation_alias=AliasChoices("AWS_REGION", "S3_REGION"),
-    )
-    s3_public_url: str | None = None
+    r2_region: str = Field(default="auto", validation_alias="R2_REGION")
+    r2_public_url: str | None = Field(default=None, validation_alias="R2_PUBLIC_URL")
 
     jwt_secret_key:str
     jwt_algorithm: str = "HS256"
@@ -55,7 +52,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
             env_file = ".env",
-            case_sensitive = False
+            case_sensitive = False,
+            extra = "ignore",
     )
 
 

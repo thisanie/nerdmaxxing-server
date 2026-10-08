@@ -28,20 +28,20 @@ Application errors use this shape:
 }
 ```
 
-### Blob storage configuration
+### Cloudflare R2 storage configuration
 
 Uploads require these environment variables:
 
 ```text
-AWS_ENDPOINT_URL_S3=https://your-branch.storage.c-2.us-east-2.aws.neon.tech
-NEON_STORAGE_BUCKET=your-bucket
-AWS_ACCESS_KEY_ID=your-neon-token-id
-AWS_SECRET_ACCESS_KEY=your-neon-s3-secret
-AWS_REGION=us-east-2
-S3_PUBLIC_URL=https://your-public-bucket-url
+R2_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
+R2_BUCKET=your-bucket
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret
+R2_REGION=auto
+R2_PUBLIC_URL=https://images.example.com
 ```
 
-Create the bucket in Neon with `public_read` access if API responses should contain directly readable object URLs; set `S3_PUBLIC_URL` to the bucket's public base URL. Uploads are limited to 10 MB and support JPEG, PNG, WebP, PDF, and plain text.
+Create an R2 API token with object read/write access to the bucket. Configure a public custom domain or `r2.dev` URL and set `R2_PUBLIC_URL` so profile image URLs remain readable after the upload response; without it, the API returns a one-hour presigned URL. Uploads are limited to 10 MB and support JPEG, JPG, PNG, WebP, AVIF, HEIC, HEIF, PDF, and plain text.
 
 ## Health
 
