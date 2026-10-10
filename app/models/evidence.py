@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -27,6 +27,9 @@ class EvidenceSubmission(Base):
     verification_kind: Mapped[str] = mapped_column(String(30), nullable=False, default="SELF_REPORTED")
     provider_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     provider_account_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    provider_metric: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    provider_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    provider_observed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -55,7 +55,7 @@ def verification_config(challenge: Challenge) -> dict:
             {
                 "id": "chess_com",
                 "name": "Chess.com",
-                "connect_url": "/api/v1/integrations/chess_com/connect",
+                "connect_url": "/api/v1/integrations/chess_com/start",
             },
         )
         config.setdefault(

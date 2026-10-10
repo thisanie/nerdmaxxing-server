@@ -2,7 +2,7 @@ import mimetypes
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -27,6 +27,7 @@ from app.services.blob_storage import (
     upload_blob,
 )
 from app.services.verification_service import verification_config, verification_kind
+from app.services.chess_com import ChessComError, fetch_rapid_rating
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -102,6 +103,9 @@ def evidence_response(
         ],
         verification_kind=submission.verification_kind,
         provider_id=submission.provider_id,
+        provider_metric=submission.provider_metric,
+        provider_value=submission.provider_value,
+        provider_observed_at=submission.provider_observed_at,
         file_url=file_url,
         file_name=item.file_name if item else None,
         mime_type=item.content_type if item else None,
@@ -198,6 +202,9 @@ async def submit_evidence(
     connection = None
     provider_id = None
     provider_account_id = None
+    provider_metric = None
+    provider_value = None
+    provider_observed_at = None
     if kind == "EXTERNAL_ACCOUNT":
         provider_id = config["provider"]["id"]
         connection = db.scalar(
@@ -209,6 +216,54 @@ async def submit_evidence(
         if connection is None:
             raise HTTPException(status_code=409, detail="Connect the required external account first.")
         provider_account_id = connection.provider_user_id
+        requirements = config.get("requirements") or challenge.requirements or []
+        requires_rapid_rating = any(
+            requirement.get("metric_key", requirement.get("key")) == "rapid_rating"
+            for requirement in requirements
+        )
+        if requires_rapid_rating:
+            now = datetime.utcnow()
+            cache_valid = (
+                connection.rapid_rating is not None
+                and connection.rapid_rating_observed_at is not None
+                and connection.refreshed_at is not None
+                and connection.refreshed_at >= now - timedelta(
+                    minutes=settings.chess_com_rating_cache_minutes
+                )
+            )
+            if cache_valid:
+                provider_value = connection.rapid_rating
+                provider_observed_at = connection.rapid_rating_observed_at
+            else:
+                try:
+                    rating = fetch_rapid_rating(connection.username)
+                except ChessComError as error:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="Chess.com rapid rating could not be verified.",
+                    ) from error
+                provider_value = rating.value
+                provider_observed_at = rating.observed_at
+                connection.rapid_rating = rating.value
+                connection.rapid_rating_observed_at = rating.observed_at
+                connection.refreshed_at = now
+            provider_metric = "rapid_rating"
+            for requirement in requirements:
+                if requirement.get("metric_key", requirement.get("key")) != "rapid_rating":
+                    continue
+                expected = requirement.get("value")
+                operator = requirement.get("operator", "AT_LEAST")
+                passes = (
+                    provider_value >= expected if operator == "AT_LEAST"
+                    else provider_value <= expected if operator == "AT_MOST"
+                    else provider_value == expected if operator == "EXACTLY"
+                    else False
+                )
+                if not passes:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="The verified Chess.com rating does not satisfy this challenge.",
+                    )
 
     storage_key = None
     file_size = None
@@ -260,6 +315,9 @@ async def submit_evidence(
         verification_kind=kind,
         provider_id=provider_id,
         provider_account_id=provider_account_id,
+        provider_metric=provider_metric,
+        provider_value=provider_value,
+        provider_observed_at=provider_observed_at,
         status=submission_status,
     )
     db.add(submission)

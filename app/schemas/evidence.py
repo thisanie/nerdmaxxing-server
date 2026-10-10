@@ -25,6 +25,9 @@ class EvidenceResponse(BaseModel):
     items: list[EvidenceItemResponse] = Field(default_factory=list)
     verification_kind: str = "SELF_REPORTED"
     provider_id: str | None = None
+    provider_metric: str | None = None
+    provider_value: int | None = None
+    provider_observed_at: datetime | None = None
     file_url: str | None = None
     file_name: str | None = None
     mime_type: str | None = None

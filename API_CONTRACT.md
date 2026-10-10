@@ -775,31 +775,27 @@ Requires authentication. Returns the current user's activity summary: `active_ch
 
 ## External Integrations
 
-### `POST /api/v1/integrations/{provider_id}/connect`
+### Chess.com account linking
 
-Requires authentication. The current mock provider is `chess_com`; it connects
-the caller to the seeded account without OAuth:
+OAuth is not assumed or faked. The current MVP uses Chess.com's documented
+public profile API: `POST /api/v1/integrations/chess_com/start` validates the
+profile and returns a cryptographically random, expiring code. The user
+temporarily places that exact code in the public Chess.com profile `Location`
+field. `POST /api/v1/integrations/chess_com/confirm` fetches the profile again
+server-side, verifies the player ID and exact location code, consumes the
+single-use challenge, and links the account transactionally. This profile proof
+is not equivalent to OAuth and is intentionally replaceable.
 
-```json
-{
-  "provider_id": "chess_com",
-  "connected": true,
-  "account": {
-    "provider_user_id": "seed-chess-user-1",
-    "username": "demo_player",
-    "avatar_url": null,
-    "verified_at": "2026-10-08T12:00:00Z"
-  }
-}
-```
+`GET /api/v1/integrations/chess_com/status` returns the authenticated user's
+verified connection. `DELETE /api/v1/integrations/chess_com/disconnect`
+removes it and invalidates pending challenges. `GET
+/api/v1/integrations/chess_com/rating/rapid` fetches a short-lived server-side
+cache of the public Rapid rating and returns its observation timestamp.
 
-Unknown providers return `404`. The response shape is reserved for a future
-OAuth implementation.
-
-### `GET /api/v1/integrations/{provider_id}/status`
-
-Requires authentication. Returns the same `provider_id`, `connected`, and
-`account` fields without changing the connection.
+The legacy `POST /api/v1/integrations/chess_com/connect` endpoint returns `410`
+and cannot create an unverified link. Chess.com requests use the configured
+identifiable `CHESS_COM_USER_AGENT`; no login scraping or client-supplied
+ratings are accepted.
 
 ## Evidence
 

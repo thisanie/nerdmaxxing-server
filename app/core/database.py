@@ -1,10 +1,22 @@
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
 
-is_sqlite = settings.database_url.startswith("sqlite")
+def _normalized_database_url(database_url: str) -> str:
+        """Ensure hosted PostgreSQL providers, including Neon, use TLS."""
+        if database_url.startswith("sqlite"):
+                return database_url
+        parsed = make_url(database_url)
+        if parsed.get_backend_name() == "postgresql" and "sslmode" not in parsed.query:
+                parsed = parsed.update_query_dict({"sslmode": ["require"]})
+        return parsed.render_as_string(hide_password=False)
+
+
+database_url = _normalized_database_url(settings.database_url)
+is_sqlite = database_url.startswith("sqlite")
 engine_options = {
         "connect_args": {"check_same_thread": False} if is_sqlite else {},
 }
@@ -14,13 +26,14 @@ if not is_sqlite:
                 pool_pre_ping=True,
                 pool_recycle=300,
         )
+        engine_options["connect_args"].update(connect_timeout=10)
 
 
-engine = create_engine(settings.database_url, **engine_options)
+engine = create_engine(database_url, **engine_options)
 
 # Neon transaction poolers can terminate connections during DDL. Keep pooled
 # connections for requests, but use the direct endpoint for startup schema work.
-schema_database_url = settings.database_url.replace("-pooler.", ".")
+schema_database_url = database_url.replace("-pooler.", ".")
 schema_engine = (
         create_engine(schema_database_url, **engine_options)
         if schema_database_url != settings.database_url
@@ -132,6 +145,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "verification_kind": "VARCHAR(30) NOT NULL DEFAULT 'SELF_REPORTED'",
                         "provider_id": "VARCHAR(100)",
                         "provider_account_id": "VARCHAR(200)",
+                        "provider_metric": "VARCHAR(100)",
+                        "provider_value": "INTEGER",
+                        "provider_observed_at": timestamp_type,
                         "review_reason": "TEXT",
                 }.items():
                         if submission_columns and name not in submission_columns:
@@ -146,4 +162,22 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         if group_message_columns and name not in group_message_columns:
                                 connection.execute(text(f"ALTER TABLE group_messages ADD COLUMN {name} {definition}"))
 
-
+                inspector = inspect(connection)
+                integration_columns = {
+                        column["name"] for column in inspector.get_columns("external_account_connections")
+                }
+                for name, definition in {
+                        "rapid_rating": "INTEGER",
+                        "rapid_rating_observed_at": timestamp_type,
+                        "refreshed_at": timestamp_type,
+                }.items():
+                        if integration_columns and name not in integration_columns:
+                                connection.execute(text(
+                                        f"ALTER TABLE external_account_connections ADD COLUMN {name} {definition}"
+                                ))
+                if integration_columns:
+                        connection.execute(text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                                "uq_external_account_connections_provider_user "
+                                "ON external_account_connections (provider_id, provider_user_id)"
+                        ))

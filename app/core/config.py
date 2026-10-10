@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     refresh_auth_rate_limit: str = "30/minute"
     username_availability_rate_limit: str = "60/minute"
     discussion_post_rate_limit: str = "10/minute"
+    chess_com_user_agent: str = "Nerdmaxxing/1.0 (contact: admin@nerdmaxxing.com)"
+    chess_com_api_timeout_seconds: float = 8.0
+    chess_com_challenge_ttl_minutes: int = 15
+    chess_com_max_confirmation_attempts: int = 5
+    chess_com_rating_cache_minutes: int = 5
     default_challenge_image_url: str = "https://hips.hearstapps.com/hmg-prod/images/bright-forget-me-nots-royalty-free-image-1677788394.jpg"
     default_challenge_image_key: str = "defaults/challenge-cover.webp"
     app_base_url: str = "http://localhost:3000"

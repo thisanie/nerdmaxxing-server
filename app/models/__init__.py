@@ -22,7 +22,7 @@ from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 from app.models.saved_challenge import SavedChallenge
 from app.models.discussion import Discussion, DiscussionReply, DiscussionReport
 from app.models.activity import Activity
-from app.models.integration import ExternalAccountConnection
+from app.models.integration import ExternalAccountConnection, ExternalAccountVerificationChallenge
 
 
 __all__ = [
@@ -56,4 +56,5 @@ __all__ = [
         "DiscussionReport",
         "Activity",
         "ExternalAccountConnection",
+        "ExternalAccountVerificationChallenge",
         ]
