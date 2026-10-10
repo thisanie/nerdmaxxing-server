@@ -773,8 +773,7 @@ The response includes the attempt ID, metric, value, unit, timestamp, and `meets
 
 Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, and `aura_points`.
 
-## External Integrations
-
+## External Linking
 ### Chess.com account linking
 
 OAuth is not assumed or faked. The current MVP uses Chess.com's documented
