@@ -135,3 +135,38 @@ def private_blob_url(key: str, bucket: str) -> str:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Could not create a private evidence URL.",
         )
+
+
+def create_upload_url(
+    key: str,
+    bucket: str,
+    content_type: str,
+    *,
+    expires_in: int = 900,
+) -> str:
+    try:
+        return _client(bucket).generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": bucket,
+                "Key": key,
+                "ContentType": content_type,
+            },
+            ExpiresIn=expires_in,
+        )
+    except (BotoCoreError, ClientError):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not create a blob upload URL.",
+        )
+
+
+def blob_metadata(key: str, bucket: str) -> tuple[int, str | None]:
+    try:
+        response = _client(bucket).head_object(Bucket=bucket, Key=key)
+    except (BotoCoreError, ClientError):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="The uploaded file could not be found in blob storage.",
+        )
+    return int(response.get("ContentLength", 0)), response.get("ContentType")

@@ -845,6 +845,21 @@ Response `201 Created`:
 Evidence object URLs are private one-hour presigned URLs and are returned only
 to the uploader or an admin.
 
+For video uploads from clients that enforce a request payload limit (such as
+Vercel serverless functions), use the direct-upload flow:
+
+1. `POST /api/v1/evidence/participation/{participant_id}/upload-url` with
+   `file_name`, `content_type`, and `file_size` query parameters. The response
+   contains a short-lived `upload_url` and `storage_key`.
+2. Upload the video bytes directly to `upload_url` with an HTTP `PUT`, using
+   the returned `Content-Type`.
+3. Submit the evidence to the endpoint above without a `file`, using the
+   fields `uploaded_key`, `uploaded_file_name`, `uploaded_content_type`, and
+   `uploaded_file_size`, together with the required `explanation`.
+
+The API verifies that the uploaded object belongs to the caller's challenge,
+matches the declared size and MIME type, and is within the challenge limit.
+
 ### `GET /api/v1/evidence/{submission_id}`
 
 Requires authentication by the uploader or an admin. Returns the evidence metadata and a one-hour presigned `video_url`. Evidence is never exposed through a public R2 URL.

@@ -2,7 +2,9 @@ import mimetypes
 import shutil
 import subprocess
 import tempfile
+import uuid
 from datetime import datetime, timedelta
+from pathlib import PurePosixPath
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -22,6 +24,8 @@ from app.schemas.evidence import EvidenceItemResponse, EvidenceResponse
 from app.services.blob_storage import (
     MAX_VIDEO_UPLOAD_BYTES,
     VIDEO_CONTENT_TYPES,
+    blob_metadata,
+    create_upload_url,
     delete_blob,
     private_blob_url,
     upload_blob,
@@ -31,6 +35,56 @@ from app.services.chess_com import ChessComError, fetch_rapid_rating
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
+
+
+def _video_upload_details(challenge: Challenge) -> tuple[int, set[str]]:
+    config = verification_config(challenge)["evidence"]
+    maximum = config.get("max_file_size_bytes") or MAX_VIDEO_UPLOAD_BYTES
+    allowed_types = set(config.get("allowed_mime_types") or VIDEO_CONTENT_TYPES)
+    return maximum, allowed_types
+
+
+@router.post("/participation/{participant_id}/upload-url")
+def create_evidence_upload_url(
+    participant_id: str,
+    file_name: str,
+    content_type: str,
+    file_size: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str | int]:
+    participant = get_owned_participation(participant_id, db, current_user)
+    challenge = db.get(Challenge, participant.challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
+    if verification_kind(challenge) != "VIDEO_UPLOAD":
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="This challenge does not accept video uploads.")
+    if participant.status not in {"ACCEPTED", "IN_PROGRESS", "PAUSED"}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Evidence can only be submitted for an active challenge attempt.")
+    if db.scalar(
+        select(EvidenceSubmission.id).where(
+            EvidenceSubmission.participant_id == participant.id,
+            EvidenceSubmission.status.in_(("PENDING", "PROCESSING", "VERIFIED")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Evidence was already submitted.")
+    maximum, allowed_types = _video_upload_details(challenge)
+    if file_size <= 0 or file_size > maximum:
+        raise HTTPException(status_code=422, detail="The uploaded file exceeds the challenge size limit.")
+    if content_type not in allowed_types:
+        raise HTTPException(status_code=422, detail="The uploaded file type is not allowed for this challenge.")
+    extension = PurePosixPath(file_name).suffix.lower()
+    key = f"challenges/{challenge.id}/users/{current_user.id}/{uuid.uuid4().hex}{extension}"
+    return {
+        "upload_url": create_upload_url(
+            key,
+            settings.r2_evidence_bucket,
+            content_type,
+        ),
+        "storage_key": key,
+        "expires_in": 900,
+        "max_file_size_bytes": maximum,
+    }
 
 
 def get_owned_participation(
@@ -167,7 +221,19 @@ async def submit_evidence(
     file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    uploaded_key: str | None = Form(default=None),
+    uploaded_file_name: str | None = Form(default=None),
+    uploaded_content_type: str | None = Form(default=None),
+    uploaded_file_size: int | None = Form(default=None),
 ) -> EvidenceSubmission:
+    if not isinstance(uploaded_key, str):
+        uploaded_key = None
+    if not isinstance(uploaded_file_name, str):
+        uploaded_file_name = None
+    if not isinstance(uploaded_content_type, str):
+        uploaded_content_type = None
+    if not isinstance(uploaded_file_size, int):
+        uploaded_file_size = None
     participant = get_owned_participation(participant_id, db, current_user)
     challenge = db.get(Challenge, participant.challenge_id)
     if challenge is None:
@@ -192,7 +258,7 @@ async def submit_evidence(
     evidence_config = config["evidence"]
     requires_file = evidence_config.get("requires_file", False)
     requires_explanation = evidence_config.get("requires_explanation", False)
-    if requires_file and file is None:
+    if requires_file and file is None and uploaded_key is None:
         raise HTTPException(status_code=422, detail="A video file is required for this challenge.")
     if requires_explanation and not explanation:
         raise HTTPException(status_code=422, detail="An explanation is required for this challenge.")
@@ -269,7 +335,28 @@ async def submit_evidence(
     file_size = None
     normalized_content_type = None
     file_name = None
-    if file is not None:
+    if uploaded_key is not None:
+        expected_prefix = f"challenges/{challenge.id}/users/{current_user.id}/"
+        if not uploaded_key.startswith(expected_prefix):
+            raise HTTPException(status_code=422, detail="The uploaded file is invalid.")
+        if kind != "VIDEO_UPLOAD" or not uploaded_file_name or not uploaded_content_type:
+            raise HTTPException(status_code=422, detail="Video upload metadata is required.")
+        maximum = evidence_config.get("max_file_size_bytes") or MAX_VIDEO_UPLOAD_BYTES
+        allowed_mime_types = set(evidence_config.get("allowed_mime_types") or VIDEO_CONTENT_TYPES)
+        if uploaded_content_type not in allowed_mime_types:
+            raise HTTPException(status_code=422, detail="The uploaded file type is not allowed for this challenge.")
+        actual_size, actual_content_type = blob_metadata(uploaded_key, settings.r2_evidence_bucket)
+        if actual_size <= 0 or actual_size > maximum or (
+            uploaded_file_size is not None and actual_size != uploaded_file_size
+        ):
+            raise HTTPException(status_code=422, detail="The uploaded file exceeds the challenge size limit.")
+        if actual_content_type and actual_content_type != uploaded_content_type:
+            raise HTTPException(status_code=422, detail="The uploaded file type is not allowed for this challenge.")
+        storage_key = uploaded_key
+        file_name = uploaded_file_name
+        file_size = actual_size
+        normalized_content_type = uploaded_content_type
+    elif file is not None:
         file_name = file.filename
         normalized_content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0]
         allowed_mime_types = set(evidence_config.get("allowed_mime_types") or [])
