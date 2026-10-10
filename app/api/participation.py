@@ -130,10 +130,13 @@ def accept_challenge(
         )
     )
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You have already accepted this challenge.",
-        )
+        if existing.status != "REMOVED":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You have already accepted this challenge.",
+            )
+        db.delete(existing)
+        db.flush()
 
     active_count = db.scalar(
         select(func.count())

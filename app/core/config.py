@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     )
     r2_region: str = Field(default="auto", validation_alias="R2_REGION")
     r2_public_url: str | None = Field(default=None, validation_alias="R2_PUBLIC_URL")
+    r2_evidence_bucket: str = Field(default="evidence", validation_alias="R2_EVIDENCE_BUCKET")
 
     jwt_secret_key:str
     jwt_algorithm: str = "HS256"

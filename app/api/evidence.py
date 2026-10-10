@@ -1,19 +1,32 @@
+import mimetypes
+import shutil
+import subprocess
+import tempfile
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.challenge import Challenge
+from app.models.integration import ExternalAccountConnection
 from app.models.participation import ChallengeParticipant
 from app.models.progress import ChallengeProgressLog
 from app.models.skill import UserSkill
 from app.models.user import User
 from app.models.activity import Activity
-from app.schemas.evidence import EvidenceCreate, EvidenceResponse
-from app.services.blob_storage import upload_blob
+from app.schemas.evidence import EvidenceItemResponse, EvidenceResponse
+from app.services.blob_storage import (
+    MAX_VIDEO_UPLOAD_BYTES,
+    VIDEO_CONTENT_TYPES,
+    delete_blob,
+    private_blob_url,
+    upload_blob,
+)
+from app.services.verification_service import verification_config, verification_kind
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -33,6 +46,110 @@ def get_owned_participation(
     return participant
 
 
+def get_submission(submission_id: str, db: Session, current_user: User) -> EvidenceSubmission:
+    submission = db.get(EvidenceSubmission, submission_id)
+    if submission is None or (
+        submission.user_id != current_user.id and not current_user.is_admin
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence submission not found.",
+        )
+    return submission
+
+
+def evidence_response(
+    submission: EvidenceSubmission,
+    db: Session,
+) -> EvidenceResponse:
+    items = list(
+        db.scalars(
+            select(EvidenceItem)
+            .where(EvidenceItem.submission_id == submission.id)
+            .order_by(EvidenceItem.created_at.asc())
+        ).all()
+    )
+    item = items[0] if items else None
+    file_url = None
+    if item:
+        file_url = (
+            private_blob_url(item.storage_key, settings.r2_evidence_bucket)
+            if item.storage_key
+            else item.external_url
+        )
+    return EvidenceResponse(
+        id=submission.id,
+        challenge_id=submission.challenge_id,
+        participant_id=submission.participant_id,
+        user_id=submission.user_id,
+        status=submission.status,
+        explanation=submission.explanation,
+        submitted_at=submission.submitted_at,
+        reviewed_at=submission.reviewed_at,
+        items=[
+            EvidenceItemResponse(
+                id=item.id,
+                evidence_type=item.evidence_type,
+                content_type=item.content_type,
+                file_size=item.file_size,
+                video_url=(
+                    private_blob_url(item.storage_key, settings.r2_evidence_bucket)
+                    if item.storage_key
+                    else None
+                ),
+            )
+            for item in items
+        ],
+        verification_kind=submission.verification_kind,
+        provider_id=submission.provider_id,
+        file_url=file_url,
+        file_name=item.file_name if item else None,
+        mime_type=item.content_type if item else None,
+        review_reason=submission.review_reason,
+    )
+
+
+async def _file_size(file: UploadFile, maximum: int) -> int:
+    if file.size is not None:
+        return file.size
+    content = await file.read(maximum + 1)
+    await file.seek(0)
+    return len(content)
+
+
+async def _video_duration_seconds(file: UploadFile) -> float | None:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        return None
+    content = await file.read()
+    await file.seek(0)
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".video") as temporary:
+            temporary.write(content)
+            temporary.flush()
+            result = subprocess.run(
+                [
+                    ffprobe,
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    temporary.name,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        return None
+
+
 @router.post(
     "/participation/{participant_id}",
     response_model=EvidenceResponse,
@@ -42,43 +159,166 @@ async def submit_evidence(
     participant_id: str,
     explanation: str | None = Form(default=None, max_length=5000),
     text_content: str | None = Form(default=None, max_length=20000),
+    external_url: str | None = Form(default=None, max_length=2048),
     file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EvidenceSubmission:
     participant = get_owned_participation(participant_id, db, current_user)
-    if participant.completion_status != "READY_FOR_PROOF":
+    challenge = db.get(Challenge, participant.challenge_id)
+    if challenge is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
+    kind = verification_kind(challenge)
+    config = verification_config(challenge)
+    if participant.status not in {"ACCEPTED", "IN_PROGRESS", "PAUSED"} and not (
+        kind == "SELF_REPORTED" and participant.completion_status == "READY_FOR_PROOF"
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Complete all required milestones before submitting evidence.",
+            detail="Evidence can only be submitted for an active challenge attempt.",
         )
+    if db.scalar(
+        select(EvidenceSubmission.id).where(
+            EvidenceSubmission.participant_id == participant.id,
+            EvidenceSubmission.status.in_(("PENDING", "PROCESSING", "VERIFIED")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Evidence was already submitted.")
 
-    if not text_content and file is None:
-        raise HTTPException(status_code=422, detail="Provide text content or an uploaded file as evidence.")
-    file_url = await upload_blob(file, f"users/{current_user.id}/evidence") if file else None
-    evidence_type = "TEXT" if text_content else "FILE"
+    evidence_config = config["evidence"]
+    requires_file = evidence_config.get("requires_file", False)
+    requires_explanation = evidence_config.get("requires_explanation", False)
+    if requires_file and file is None:
+        raise HTTPException(status_code=422, detail="A video file is required for this challenge.")
+    if requires_explanation and not explanation:
+        raise HTTPException(status_code=422, detail="An explanation is required for this challenge.")
+    if kind == "SELF_REPORTED" and not (explanation or text_content or external_url or file):
+        raise HTTPException(status_code=422, detail="Provide evidence or an explanation.")
+
+    connection = None
+    provider_id = None
+    provider_account_id = None
+    if kind == "EXTERNAL_ACCOUNT":
+        provider_id = config["provider"]["id"]
+        connection = db.scalar(
+            select(ExternalAccountConnection).where(
+                ExternalAccountConnection.user_id == current_user.id,
+                ExternalAccountConnection.provider_id == provider_id,
+            )
+        )
+        if connection is None:
+            raise HTTPException(status_code=409, detail="Connect the required external account first.")
+        provider_account_id = connection.provider_user_id
+
+    storage_key = None
+    file_size = None
+    normalized_content_type = None
+    file_name = None
+    if file is not None:
+        file_name = file.filename
+        normalized_content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0]
+        allowed_mime_types = set(evidence_config.get("allowed_mime_types") or [])
+        allowed_types = allowed_mime_types or (VIDEO_CONTENT_TYPES if kind == "VIDEO_UPLOAD" else None)
+        if allowed_types and normalized_content_type not in allowed_types:
+            raise HTTPException(status_code=422, detail="The uploaded file type is not allowed for this challenge.")
+        maximum = evidence_config.get("max_file_size_bytes") or MAX_VIDEO_UPLOAD_BYTES
+        file_size = await _file_size(file, maximum)
+        if file_size > maximum:
+            raise HTTPException(status_code=422, detail="The uploaded file exceeds the challenge size limit.")
+        if kind == "VIDEO_UPLOAD":
+            duration = await _video_duration_seconds(file)
+            max_duration = evidence_config.get("max_duration_seconds")
+            if duration is not None and max_duration is not None and duration > max_duration:
+                raise HTTPException(status_code=422, detail="The uploaded video exceeds the duration limit.")
+        if kind == "VIDEO_UPLOAD":
+            storage_key = await upload_blob(
+                file,
+                f"challenges/{challenge.id}/users/{current_user.id}",
+                bucket=settings.r2_evidence_bucket,
+                public_url="",
+                return_key=True,
+                max_upload_bytes=maximum,
+                allowed_content_types=allowed_types or VIDEO_CONTENT_TYPES,
+            )
+        else:
+            storage_key = await upload_blob(
+                file,
+                f"challenges/{challenge.id}/users/{current_user.id}",
+                bucket=settings.r2_evidence_bucket,
+                public_url="",
+                return_key=True,
+            )
+
+    submission_status = "PROCESSING" if kind == "VIDEO_UPLOAD" else (
+        "VERIFIED" if kind == "EXTERNAL_ACCOUNT" else "PENDING"
+    )
     submission = EvidenceSubmission(
         challenge_id=participant.challenge_id,
         participant_id=participant.id,
         user_id=current_user.id,
         explanation=explanation,
+        verification_kind=kind,
+        provider_id=provider_id,
+        provider_account_id=provider_account_id,
+        status=submission_status,
     )
     db.add(submission)
     db.flush()
     db.add(
         EvidenceItem(
             submission_id=submission.id,
-            evidence_type=evidence_type,
+            evidence_type="VIDEO" if kind == "VIDEO_UPLOAD" else (
+                "ACCOUNT_CONNECTION" if kind == "EXTERNAL_ACCOUNT" else "TEXT"
+            ),
             text_content=text_content,
-            external_url=file_url,
+            external_url=external_url,
+            storage_key=storage_key,
+            file_name=file_name,
+            content_type=normalized_content_type,
+            file_size=file_size,
         )
     )
     participant.status = "SUBMITTED"
-    participant.verification_status = "PENDING"
+    participant.verification_status = "VERIFIED" if submission_status == "VERIFIED" else "PENDING"
+    if submission_status == "VERIFIED":
+        participant.status = "COMPLETED"
+        participant.completion_status = "COMPLETED"
+        participant.completed_at = datetime.utcnow()
+        participant.verification_status = "VERIFIED"
     participant.last_activity_at = datetime.utcnow()
     db.commit()
     db.refresh(submission)
-    return submission
+    return evidence_response(submission, db)
+
+
+@router.get("/{submission_id}", response_model=EvidenceResponse)
+def get_evidence(
+    submission_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EvidenceResponse:
+    submission = get_submission(submission_id, db, current_user)
+    return evidence_response(submission, db)
+
+
+@router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_evidence(
+    submission_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    submission = get_submission(submission_id, db, current_user)
+    items = list(db.scalars(select(EvidenceItem).where(EvidenceItem.submission_id == submission.id)).all())
+    for item in items:
+        if item.storage_key:
+            delete_blob(item.storage_key, settings.r2_evidence_bucket)
+        db.delete(item)
+    participant = db.get(ChallengeParticipant, submission.participant_id)
+    if participant and participant.status == "SUBMITTED":
+        participant.status = "IN_PROGRESS"
+        participant.verification_status = "NOT_SUBMITTED"
+    db.delete(submission)
+    db.commit()
 
 
 @router.post("/{submission_id}/self-verify", response_model=EvidenceResponse)
@@ -170,4 +410,4 @@ def self_verify_evidence(
         )
     db.commit()
     db.refresh(submission)
-    return submission
+    return evidence_response(submission, db)

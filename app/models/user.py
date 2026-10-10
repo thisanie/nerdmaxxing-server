@@ -28,6 +28,7 @@ class User(Base):
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     aura_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     day_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -11,6 +11,7 @@ from app.core.time import utcnow
 from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
 from app.models.category import Category
 from app.models.user import User
+from app.models.integration import ExternalAccountConnection
 
 SEED_USERNAME = "nerdmaxxing_seed"
 SEED_USER_ID = "00000000-0000-0000-0000-000000000001"
@@ -90,6 +91,117 @@ SEED_METRICS = {
     "Learn 500 Chess Opening Moves": (500, "MOVES"),
 }
 
+SPECIAL_CHALLENGES = [
+    {
+        "slug": "daily-reading",
+        "title": "Read for 30 minutes",
+        "short_description": "Read for thirty focused minutes.",
+        "full_description": "Spend thirty minutes reading and explain what you learned.",
+        "verification_type": "SELF_REPORTED",
+        "verification_config": {
+            "kind": "SELF_REPORTED",
+            "instructions": "Read for thirty minutes and explain what you learned.",
+            "required_runs": 1,
+            "evidence": {
+                "allowed_types": ["TEXT"],
+                "requires_file": False,
+                "requires_explanation": True,
+                "max_file_size_bytes": None,
+                "max_duration_seconds": None,
+                "allowed_mime_types": [],
+            },
+            "completion": {"mode": "SELF_CONFIRMATION", "requires_review": False},
+        },
+    },
+    {
+        "slug": "one-minute-plank",
+        "title": "Hold a one-minute plank",
+        "short_description": "Hold a plank continuously for one minute.",
+        "full_description": "Record one continuous attempt showing a one-minute plank with safe form.",
+        "verification_type": "VIDEO_UPLOAD",
+        "requirements": [{
+            "metric_key": "duration",
+            "key": "duration",
+            "label": "Plank duration",
+            "operator": "AT_LEAST",
+            "value": 60,
+            "unit": "seconds",
+        }],
+        "verification_config": {
+            "kind": "VIDEO_UPLOAD",
+            "instructions": "Record one continuous attempt showing your full body and the timer.",
+            "required_runs": 1,
+            "requirements": [{
+                "key": "duration",
+                "label": "Plank duration",
+                "operator": "AT_LEAST",
+                "value": 60,
+                "unit": "seconds",
+            }],
+            "evidence": {
+                "allowed_types": ["VIDEO"],
+                "requires_file": True,
+                "requires_explanation": True,
+                "max_file_size_bytes": 52428800,
+                "max_duration_seconds": 120,
+                "allowed_mime_types": ["video/mp4", "video/quicktime"],
+            },
+            "completion": {"mode": "REVIEW", "requires_review": True},
+        },
+        "metrics": [{
+            "key": "duration",
+            "label": "Plank duration",
+            "kind": "DURATION",
+            "unit": "seconds",
+            "target": 60,
+            "direction": "AT_LEAST",
+            "is_primary": True,
+            "format": "INTEGER",
+        }],
+    },
+    {
+        "slug": "chess-rated-game",
+        "title": "Complete a rated Chess.com game",
+        "short_description": "Complete one rated game on Chess.com.",
+        "full_description": "Connect Chess.com and complete a rated game.",
+        "verification_type": "EXTERNAL_ACCOUNT",
+        "requirements": [{
+            "metric_key": "rated_games",
+            "key": "rated_games",
+            "label": "Rated games completed",
+            "operator": "AT_LEAST",
+            "value": 1,
+            "unit": "game",
+        }],
+        "verification_config": {
+            "kind": "EXTERNAL_ACCOUNT",
+            "instructions": "Connect Chess.com and complete a rated game.",
+            "required_runs": 1,
+            "provider": {
+                "id": "chess_com",
+                "name": "Chess.com",
+                "connect_url": "/api/v1/integrations/chess_com/connect",
+            },
+            "requirements": [{
+                "key": "rated_games",
+                "label": "Rated games completed",
+                "operator": "AT_LEAST",
+                "value": 1,
+                "unit": "game",
+            }],
+            "evidence": {
+                "allowed_types": ["ACCOUNT_CONNECTION"],
+                "requires_file": False,
+                "requires_explanation": False,
+                "max_file_size_bytes": None,
+                "max_duration_seconds": None,
+                "allowed_mime_types": [],
+            },
+            "completion": {"mode": "AUTOMATIC", "requires_review": False},
+        },
+    },
+]
+
 
 def load_seed_data() -> dict:
     return json.loads((Path(__file__).parent / "seed_challenges.json").read_text(encoding="utf-8"))
@@ -112,6 +224,50 @@ def category_slugs_for(title: str) -> list[str]:
 
 def image_url_for(item: dict) -> str:
     return item.get("image_url") or settings.default_challenge_image_url
+
+
+def seed_special_challenges(db, owner: User) -> None:
+    for item in SPECIAL_CHALLENGES:
+        challenge = db.scalar(select(Challenge).where(Challenge.slug == item["slug"]))
+        if challenge is None:
+            challenge = Challenge(
+                slug=item["slug"],
+                title=item["title"],
+                image_url=settings.default_challenge_image_url,
+                short_description=item["short_description"],
+                full_description=item["full_description"],
+                creator_id=owner.id,
+                difficulty_level="BEGINNER",
+                status="PUBLISHED",
+                visibility="PUBLIC",
+                published_at=utcnow(),
+            )
+            db.add(challenge)
+        challenge.title = item["title"]
+        challenge.short_description = item["short_description"]
+        challenge.full_description = item["full_description"]
+        challenge.verification_type = item["verification_type"]
+        challenge.verification_config = item["verification_config"]
+        challenge.requirements = item.get("requirements")
+        challenge.metrics = item.get("metrics")
+        challenge.required_runs = 1
+        challenge.verification_instructions = item["verification_config"]["instructions"]
+        challenge.status = "PUBLISHED"
+        challenge.visibility = "PUBLIC"
+        if item["slug"] == "chess-rated-game":
+            connection = db.scalar(
+                select(ExternalAccountConnection).where(
+                    ExternalAccountConnection.user_id == owner.id,
+                    ExternalAccountConnection.provider_id == "chess_com",
+                )
+            )
+            if connection is None:
+                db.add(ExternalAccountConnection(
+                    user_id=owner.id,
+                    provider_id="chess_com",
+                    provider_user_id="seed-chess-user-1",
+                    username="demo_player",
+                ))
 
 
 def seed() -> None:
@@ -252,6 +408,8 @@ def seed() -> None:
                     start=1,
                 )
             ]
+
+        seed_special_challenges(db, owner)
 
         db.commit()
         print(f"Seeded {created} new challenges and refreshed {updated} existing challenges.")

@@ -1,18 +1,14 @@
 from datetime import datetime
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class EvidenceCreate(BaseModel):
-    explanation: str | None = Field(default=None, max_length=5000)
-    text_content: str | None = Field(default=None, max_length=20000)
-    external_url: AnyHttpUrl | None = None
-
-    @model_validator(mode="after")
-    def require_evidence(self) -> "EvidenceCreate":
-        if not self.text_content and not self.external_url:
-            raise ValueError("Provide text content or an external URL as evidence.")
-        return self
+class EvidenceItemResponse(BaseModel):
+    id: str
+    evidence_type: str
+    content_type: str | None
+    file_size: int | None
+    video_url: str | None
 
 
 class EvidenceResponse(BaseModel):
@@ -26,3 +22,10 @@ class EvidenceResponse(BaseModel):
     explanation: str | None
     submitted_at: datetime
     reviewed_at: datetime | None
+    items: list[EvidenceItemResponse] = Field(default_factory=list)
+    verification_kind: str = "SELF_REPORTED"
+    provider_id: str | None = None
+    file_url: str | None = None
+    file_name: str | None = None
+    mime_type: str | None = None
+    review_reason: str | None = None

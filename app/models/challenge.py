@@ -46,6 +46,7 @@ class Challenge(Base):
     verification_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     metrics: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     requirements: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    verification_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False

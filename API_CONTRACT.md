@@ -507,9 +507,29 @@ Response `200 OK`:
   "participants": [],
   "verification": {
     "type": "SELF_REPORTED",
+    "kind": "SELF_REPORTED",
+    "provider": null,
+    "evidence": {
+      "allowed_types": ["TEXT", "FILE"],
+      "requires_file": false,
+      "requires_explanation": false,
+      "max_file_size_bytes": null,
+      "max_duration_seconds": null,
+      "allowed_mime_types": []
+    },
+    "completion": {
+      "mode": "SELF_CONFIRMATION",
+      "requires_review": false
+    },
     "requirements": [],
     "required_runs": 1,
     "instructions": "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."
+  },
+  "verification_state": {
+    "status": "NOT_STARTED",
+    "submission_id": null,
+    "rejection_reason": null,
+    "can_retry": true
   }
 }
 ```
@@ -519,8 +539,17 @@ or `COMPLETED`. Each milestone may include a `resources` array containing
 `resource_id` and `required`, linking the milestone to the challenge's resource
 collection. `attempts` are newest first and limited to the latest 20
 progress records. `participants` are limited to five previews, while `stats`
-always contains complete counts. The verification object describes the
-requirements used by the evidence API.
+always contains complete counts. `verification.kind` is one of
+`SELF_REPORTED`, `VIDEO_UPLOAD`, or `EXTERNAL_ACCOUNT`. `completion.mode` is
+one of `AUTOMATIC`, `REVIEW`, or `SELF_CONFIRMATION`. `verification_state.status`
+is one of `NOT_STARTED`, `READY`, `PENDING`, `PROCESSING`, `VERIFIED`, or
+`REJECTED`.
+
+For `VIDEO_UPLOAD`, the canonical evidence configuration is `VIDEO`, required,
+with a 50 MiB maximum, 120-second maximum duration, and MIME types
+`video/mp4` and `video/quicktime`; completion is `REVIEW` and requires review.
+For `EXTERNAL_ACCOUNT`, `provider` contains the provider ID, display name,
+connection URL, current connection state, and account when connected.
 
 ### `POST /api/v1/challenges`
 
@@ -744,23 +773,108 @@ The response includes the attempt ID, metric, value, unit, timestamp, and `meets
 
 Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, and `aura_points`.
 
+## External Integrations
+
+### `POST /api/v1/integrations/{provider_id}/connect`
+
+Requires authentication. The current mock provider is `chess_com`; it connects
+the caller to the seeded account without OAuth:
+
+```json
+{
+  "provider_id": "chess_com",
+  "connected": true,
+  "account": {
+    "provider_user_id": "seed-chess-user-1",
+    "username": "demo_player",
+    "avatar_url": null,
+    "verified_at": "2026-10-08T12:00:00Z"
+  }
+}
+```
+
+Unknown providers return `404`. The response shape is reserved for a future
+OAuth implementation.
+
+### `GET /api/v1/integrations/{provider_id}/status`
+
+Requires authentication. Returns the same `provider_id`, `connected`, and
+`account` fields without changing the connection.
+
 ## Evidence
 
 ### `POST /api/v1/evidence/participation/{participant_id}`
 
-Requires authentication. Submits evidence for the caller's participation. Accepts `multipart/form-data` with optional `explanation`, optional `text_content`, and an optional `file`. All required milestones must be complete first, so the participation must have `completion_status` set to `READY_FOR_PROOF`; submission moves it to `SUBMITTED` with pending verification.
+Requires authentication. Submits evidence for the caller's existing challenge participation. The participation must be `ACCEPTED`, `IN_PROGRESS`, or `PAUSED` (or `READY_FOR_PROOF` for legacy self-reported flows); the challenge ID is taken from that participation, so evidence cannot exist without a challenge. The video is stored privately in the R2 bucket configured by `R2_EVIDENCE_BUCKET`.
 
 Request:
 
-```json
+```text
 explanation=I completed the work and published the notes.
-text_content=The work is complete.
-file=<uploaded PDF, image, or text file>
+text_content=I completed the work and learned the key concepts.
+external_url=https://example.com/legacy-proof
+file=<uploaded evidence file>
 ```
 
-At least one of `text_content` or `file` is required. `explanation` is limited to 5,000 characters and `text_content` to 20,000 characters.
+For `SELF_REPORTED`, the existing explanation, text, external URL, and file
+behavior remains supported. For `VIDEO_UPLOAD`, `file` and `explanation` are
+required, the file must use the challenge's allowed MIME type, must not exceed
+the configured byte limit, and is marked `PROCESSING`; duration is checked when
+`ffprobe` is available. For `EXTERNAL_ACCOUNT`, the configured provider must be
+connected by the authenticated user; provider usernames are never accepted
+from the client. Each participant can have one pending, processing, or verified
+submission.
 
-Response `201 Created`: an [Evidence submission](#evidence-submission-object) object.
+Response `201 Created`:
+
+```json
+{
+  "id": "submission-id",
+  "challenge_id": "challenge-id",
+  "participant_id": "participant-id",
+  "user_id": "user-id",
+  "status": "PROCESSING",
+  "verification_kind": "VIDEO_UPLOAD",
+  "provider_id": null,
+  "explanation": "The full attempt is visible.",
+  "file_url": "https://private-presigned-url",
+  "file_name": "proof.mp4",
+  "mime_type": "video/mp4",
+  "review_reason": null,
+  "submitted_at": "2026-10-08T12:00:00Z",
+  "reviewed_at": null
+}
+```
+
+`status` is one of `PENDING`, `PROCESSING`, `VERIFIED`, or `REJECTED`.
+Evidence object URLs are private one-hour presigned URLs and are returned only
+to the uploader or an admin.
+
+### `GET /api/v1/evidence/{submission_id}`
+
+Requires authentication by the uploader or an admin. Returns the evidence metadata and a one-hour presigned `video_url`. Evidence is never exposed through a public R2 URL.
+
+### `DELETE /api/v1/evidence/{submission_id}`
+
+Requires authentication by the uploader or an admin. Deletes the video from R2 and removes its database records. Returns `204 No Content`.
+
+### `POST /api/v1/evidence/{submission_id}/self-verify`
+
+Requires authentication by the uploader. Verifies the pending submission when the challenge requirements are satisfied.
+
+### Seeded verification challenges
+
+The seed script creates these stable public challenges:
+
+| Slug | Kind | Key behavior |
+| --- | --- | --- |
+| `daily-reading` | `SELF_REPORTED` | Explanation required; self-confirmation |
+| `one-minute-plank` | `VIDEO_UPLOAD` | MP4/MOV, 50 MiB, 120 seconds, duration at least 60 seconds, review required |
+| `chess-rated-game` | `EXTERNAL_ACCOUNT` | `chess_com`, one rated game, automatic completion |
+
+The mock Chess.com account is `provider_user_id=seed-chess-user-1`,
+`username=demo_player`. It is test data only; no real OAuth or provider
+credentials are used.
 
 ## Discover
 

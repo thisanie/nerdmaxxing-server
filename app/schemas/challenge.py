@@ -211,9 +211,68 @@ class ChallengeStatsResponse(BaseModel):
 
 class ChallengeVerificationResponse(BaseModel):
     type: str
-    requirements: list[ChallengeRequirement]
-    required_runs: int
-    instructions: str | None
+    kind: str = "SELF_REPORTED"
+    instructions: str = ""
+    required_runs: int = 1
+    provider: "VerificationProviderResponse | None" = None
+    requirements: list["VerificationRequirementResponse"] = Field(default_factory=list)
+    evidence: "VerificationEvidenceResponse" = Field(
+        default_factory=lambda: VerificationEvidenceResponse(
+            allowed_types=["TEXT", "FILE"],
+            requires_file=False,
+            requires_explanation=False,
+        )
+    )
+    completion: "VerificationCompletionResponse" = Field(
+        default_factory=lambda: VerificationCompletionResponse(
+            mode="SELF_CONFIRMATION",
+            requires_review=False,
+        )
+    )
+
+
+class VerificationAccountResponse(BaseModel):
+    provider_user_id: str
+    username: str
+    avatar_url: str | None = None
+    verified_at: datetime
+
+
+class VerificationProviderResponse(BaseModel):
+    id: str
+    name: str
+    connect_url: str
+    connected: bool
+    account: VerificationAccountResponse | None = None
+
+
+class VerificationRequirementResponse(BaseModel):
+    key: str
+    label: str
+    operator: str
+    value: float | bool
+    unit: str | None = None
+
+
+class VerificationEvidenceResponse(BaseModel):
+    allowed_types: list[str]
+    requires_file: bool
+    requires_explanation: bool
+    max_file_size_bytes: int | None = None
+    max_duration_seconds: int | None = None
+    allowed_mime_types: list[str] = Field(default_factory=list)
+
+
+class VerificationCompletionResponse(BaseModel):
+    mode: str
+    requires_review: bool
+
+
+class VerificationStateResponse(BaseModel):
+    status: str
+    submission_id: str | None = None
+    rejection_reason: str | None = None
+    can_retry: bool
 
 
 class ChallengeDetailResponse(BaseModel):
@@ -226,6 +285,9 @@ class ChallengeDetailResponse(BaseModel):
     attempts: list[ChallengeAttemptResponse]
     participants: list[ChallengeParticipantPreviewResponse]
     verification: ChallengeVerificationResponse
+    verification_state: VerificationStateResponse = Field(
+        default_factory=lambda: VerificationStateResponse(status="NOT_STARTED", can_retry=True)
+    )
 
 
 class CategoryResponse(BaseModel):

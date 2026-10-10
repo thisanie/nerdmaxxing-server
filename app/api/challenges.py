@@ -28,10 +28,10 @@ from app.schemas.challenge import (
     ChallengeResponse,
     ChallengeStatsResponse,
     ChallengeSaveStatusResponse,
-    ChallengeVerificationResponse,
 )
 from app.services.discovery_service import _responses
 from app.services.blob_storage import upload_blob
+from app.services.verification_service import challenge_verification, verification_state
 
 
 router = APIRouter(prefix="/api/v1/challenges", tags=["Challenges"])
@@ -436,5 +436,6 @@ def get_public_challenge_detail(
             for attempt in attempts
         ],
         participants=[ChallengeParticipantPreviewResponse(user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, status=entry.status, completed_at=entry.completed_at) for entry, user in participants],
-        verification=ChallengeVerificationResponse(type=challenge.verification_type, requirements=requirements, required_runs=challenge.required_runs, instructions=challenge.verification_instructions),
+        verification=challenge_verification(challenge, db, current_user),
+        verification_state=verification_state(participant.id if participant else None, db),
     )

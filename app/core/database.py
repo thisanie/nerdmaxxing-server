@@ -49,6 +49,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "last_progress_at": timestamp_type,
                         "is_deleted": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "is_suspended": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "is_admin": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "is_private": "BOOLEAN NOT NULL DEFAULT FALSE",
                 }
                 for name, definition in user_additions.items():
@@ -75,6 +76,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "image_key": "TEXT",
                         "featured": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "legendary": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "verification_config": "JSON",
                 }
                 for name, definition in additions.items():
                         if columns and name not in columns:
@@ -112,6 +114,28 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                                 "notifications_group_invitation_id_fkey FOREIGN KEY "
                                 "(group_invitation_id) REFERENCES group_challenge_invitations(id) ON DELETE CASCADE"
                         ))
+
+                inspector = inspect(connection)
+                evidence_columns = {column["name"] for column in inspector.get_columns("evidence_items")}
+                for name, definition in {
+                        "storage_key": "TEXT",
+                        "file_name": "VARCHAR(255)",
+                        "content_type": "VARCHAR(100)",
+                        "file_size": "BIGINT",
+                }.items():
+                        if evidence_columns and name not in evidence_columns:
+                                connection.execute(text(f"ALTER TABLE evidence_items ADD COLUMN {name} {definition}"))
+
+                inspector = inspect(connection)
+                submission_columns = {column["name"] for column in inspector.get_columns("evidence_submissions")}
+                for name, definition in {
+                        "verification_kind": "VARCHAR(30) NOT NULL DEFAULT 'SELF_REPORTED'",
+                        "provider_id": "VARCHAR(100)",
+                        "provider_account_id": "VARCHAR(200)",
+                        "review_reason": "TEXT",
+                }.items():
+                        if submission_columns and name not in submission_columns:
+                                connection.execute(text(f"ALTER TABLE evidence_submissions ADD COLUMN {name} {definition}"))
 
                 inspector = inspect(connection)
                 group_message_columns = {column["name"] for column in inspector.get_columns("group_messages")}
