@@ -219,8 +219,8 @@ def test_participation_is_owned_by_uploader():
 def test_evidence_submission_status_checks_user_and_challenge():
     submission = SimpleNamespace(id="submission-1")
     assert get_evidence_submission_status(
-        "user-1", "challenge-1", FakeDb([submission]), user()
+        "challenge-1", FakeDb([submission]), user()
     ).has_submitted is True
     assert get_evidence_submission_status(
-        "user-1", "challenge-1", FakeDb(), user()
+        "challenge-1", FakeDb(), user()
     ).has_submitted is False

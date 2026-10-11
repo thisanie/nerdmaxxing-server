@@ -441,21 +441,17 @@ async def submit_evidence(
 
 
 @router.get(
-    "/status/{user_id}/{challenge_id}",
+    "/status/{challenge_id}",
     response_model=EvidenceSubmissionStatusResponse,
 )
 def get_evidence_submission_status(
-    user_id: str,
     challenge_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EvidenceSubmissionStatusResponse:
-    if user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
-
     submission_exists = db.scalar(
         select(EvidenceSubmission.id).where(
-            EvidenceSubmission.user_id == user_id,
+            EvidenceSubmission.user_id == current_user.id,
             EvidenceSubmission.challenge_id == challenge_id,
             EvidenceSubmission.status.in_(("PENDING", "PROCESSING", "VERIFIED")),
         )
