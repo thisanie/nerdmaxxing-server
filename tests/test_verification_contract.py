@@ -6,12 +6,21 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException, UploadFile
 from starlette.datastructures import Headers
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.orm import Session
 
 from app.api.evidence import (
     get_evidence_submission_status,
     get_owned_participation,
+    self_verify_evidence,
     submit_evidence,
 )
+from app.models.base import Base
+from app.models.challenge import Challenge
+from app.models.evidence import EvidenceSubmission
+from app.models.participation import ChallengeParticipant
+from app.models.skill import UserSkill
+from app.models.user import User
 from app.services.verification_service import challenge_verification, verification_state
 
 
@@ -104,10 +113,11 @@ def participant():
 def configure_submission_dependencies(monkeypatch, challenge_value, db):
     import app.api.evidence as evidence_api
 
-    monkeypatch.setattr(evidence_api, "get_owned_participation", lambda *args: participant())
+    participant_value = participant()
+    monkeypatch.setattr(evidence_api, "get_owned_participation", lambda *args: participant_value)
     monkeypatch.setattr(evidence_api, "private_blob_url", lambda *args: "https://private.test/video")
     db.challenge = challenge_value
-    return evidence_api
+    return evidence_api, participant_value
 
 
 def test_detail_verification_payloads_have_canonical_kinds():
@@ -144,7 +154,7 @@ def test_missing_video_file_returns_422(monkeypatch):
 
 def test_invalid_video_mime_returns_422(monkeypatch):
     db = FakeDb()
-    evidence_api = configure_submission_dependencies(monkeypatch, challenge("VIDEO_UPLOAD", video_config()), db)
+    evidence_api, _ = configure_submission_dependencies(monkeypatch, challenge("VIDEO_UPLOAD", video_config()), db)
     with pytest.raises(HTTPException) as error:
         asyncio.run(submit_evidence("participant-1", "proof", None, None, upload(content_type="image/png"), db, user()))
     assert error.value.status_code == 422
@@ -152,7 +162,7 @@ def test_invalid_video_mime_returns_422(monkeypatch):
 
 def test_oversized_video_returns_422(monkeypatch):
     db = FakeDb()
-    evidence_api = configure_submission_dependencies(monkeypatch, challenge("VIDEO_UPLOAD", video_config()), db)
+    evidence_api, _ = configure_submission_dependencies(monkeypatch, challenge("VIDEO_UPLOAD", video_config()), db)
     file = upload(content=b"x" * 51)
     with pytest.raises(HTTPException) as error:
         asyncio.run(submit_evidence("participant-1", "proof", None, None, file, db, user()))
@@ -174,7 +184,7 @@ def test_unconnected_external_account_returns_409(monkeypatch):
 def test_connected_external_account_submission_succeeds(monkeypatch):
     connection = SimpleNamespace(provider_user_id="seed-chess-user-1")
     db = FakeDb([None, connection])
-    configure_submission_dependencies(
+    evidence_api, participant_value = configure_submission_dependencies(
         monkeypatch,
         challenge("EXTERNAL_ACCOUNT", {"kind": "EXTERNAL_ACCOUNT", "provider": {"id": "chess_com", "name": "Chess.com"}}),
         db,
@@ -182,15 +192,21 @@ def test_connected_external_account_submission_succeeds(monkeypatch):
     result = asyncio.run(submit_evidence("participant-1", None, None, None, None, db, user()))
     assert result.verification_kind == "EXTERNAL_ACCOUNT"
     assert result.provider_id == "chess_com"
-    assert result.status == "VERIFIED"
+    assert result.status == "PENDING"
+    assert participant_value.status == "SUBMITTED"
+    assert participant_value.completion_status == "NOT_COMPLETED"
+    assert participant_value.verification_status == "PENDING"
 
 
 def test_self_reported_submission_still_accepts_text(monkeypatch):
     db = FakeDb()
-    configure_submission_dependencies(monkeypatch, challenge("SELF_REPORTED"), db)
+    evidence_api, participant_value = configure_submission_dependencies(monkeypatch, challenge("SELF_REPORTED"), db)
     result = asyncio.run(submit_evidence("participant-1", "I completed it.", "I read for 30 minutes.", None, None, db, user()))
     assert result.verification_kind == "SELF_REPORTED"
     assert result.status == "PENDING"
+    assert participant_value.status == "SUBMITTED"
+    assert participant_value.completion_status == "NOT_COMPLETED"
+    assert participant_value.verification_status == "PENDING"
 
 
 def test_verification_state_exposes_submission_lifecycle():
@@ -205,8 +221,12 @@ def test_verification_state_exposes_submission_lifecycle():
         status="VERIFIED",
         review_reason=None,
     )
-    assert verification_state("participant-1", FakeDb([processing])).status == "PROCESSING"
-    assert verification_state("participant-1", FakeDb([verified])).status == "VERIFIED"
+    processing_state = verification_state("participant-1", FakeDb([processing]))
+    verified_state = verification_state("participant-1", FakeDb([verified]))
+    assert processing_state.status == "PROCESSING"
+    assert processing_state.submission_id == "submission-1"
+    assert verified_state.status == "VERIFIED"
+    assert verified_state.submission_id == "submission-2"
 
 
 def test_participation_is_owned_by_uploader():
@@ -224,3 +244,55 @@ def test_evidence_submission_status_checks_user_and_challenge():
     assert get_evidence_submission_status(
         "challenge-1", FakeDb(), user()
     ).has_submitted is False
+
+
+def test_self_verification_completes_participation_and_awards_skill_once():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    db = Session(engine)
+    current_user = User(id="user-1", username="user-1")
+    challenge_value = Challenge(
+        id="challenge-1",
+        title="Learn Python",
+        slug="learn-python",
+        image_url="https://example.com/image.png",
+        short_description="Learn Python.",
+        full_description="Learn Python.",
+        creator_id="creator",
+        requirements=[],
+        required_runs=1,
+    )
+    participant_value = ChallengeParticipant(
+        id="participant-1",
+        challenge_id=challenge_value.id,
+        user_id=current_user.id,
+        status="SUBMITTED",
+        completion_status="NOT_COMPLETED",
+        verification_status="PENDING",
+    )
+    submission = EvidenceSubmission(
+        id="submission-1",
+        challenge_id=challenge_value.id,
+        participant_id=participant_value.id,
+        user_id=current_user.id,
+        status="PENDING",
+    )
+    db.add_all([current_user, challenge_value, participant_value, submission])
+    db.commit()
+
+    result = self_verify_evidence(submission.id, db, current_user)
+
+    assert result.status == "VERIFIED"
+    assert participant_value.status == "COMPLETED"
+    assert participant_value.completion_status == "COMPLETED"
+    assert participant_value.verification_status == "VERIFIED"
+    assert participant_value.completed_at is not None
+    assert db.scalar(
+        select(func.count()).select_from(UserSkill).where(
+            UserSkill.user_id == current_user.id,
+            UserSkill.source_challenge_id == challenge_value.id,
+        )
+    ) == 1
+    with pytest.raises(HTTPException) as error:
+        self_verify_evidence(submission.id, db, current_user)
+    assert error.value.status_code == 409

@@ -8,6 +8,7 @@ from pathlib import PurePosixPath
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -395,9 +396,7 @@ async def submit_evidence(
                 return_key=True,
             )
 
-    submission_status = "PROCESSING" if kind == "VIDEO_UPLOAD" else (
-        "VERIFIED" if kind == "EXTERNAL_ACCOUNT" else "PENDING"
-    )
+    submission_status = "PENDING"
     submission = EvidenceSubmission(
         challenge_id=participant.challenge_id,
         participant_id=participant.id,
@@ -428,14 +427,15 @@ async def submit_evidence(
         )
     )
     participant.status = "SUBMITTED"
-    participant.verification_status = "VERIFIED" if submission_status == "VERIFIED" else "PENDING"
-    if submission_status == "VERIFIED":
-        participant.status = "COMPLETED"
-        participant.completion_status = "COMPLETED"
-        participant.completed_at = datetime.utcnow()
-        participant.verification_status = "VERIFIED"
+    participant.completion_status = "NOT_COMPLETED"
+    participant.verification_status = "PENDING"
+    participant.completed_at = None
     participant.last_activity_at = datetime.utcnow()
-    db.commit()
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
     db.refresh(submission)
     return evidence_response(submission, db)
 
@@ -450,9 +450,15 @@ def get_evidence_submission_status(
     current_user: User = Depends(get_current_user),
 ) -> EvidenceSubmissionStatusResponse:
     submission_exists = db.scalar(
-        select(EvidenceSubmission.id).where(
+        select(EvidenceSubmission.id)
+        .join(
+            ChallengeParticipant,
+            ChallengeParticipant.id == EvidenceSubmission.participant_id,
+        )
+        .where(
+            ChallengeParticipant.user_id == current_user.id,
+            ChallengeParticipant.challenge_id == challenge_id,
             EvidenceSubmission.user_id == current_user.id,
-            EvidenceSubmission.challenge_id == challenge_id,
             EvidenceSubmission.status.in_(("PENDING", "PROCESSING", "VERIFIED")),
         )
     ) is not None

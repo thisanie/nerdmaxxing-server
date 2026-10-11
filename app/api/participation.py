@@ -30,6 +30,7 @@ from app.services.progress_service import record_progress, record_progress_activ
 
 router = APIRouter(prefix="/api/v1/participation", tags=["Participation"])
 ACTIVE_STATUSES = ("ACCEPTED", "IN_PROGRESS")
+LISTED_STATUSES = (*ACTIVE_STATUSES, "PAUSED", "SUBMITTED")
 ALLOWED_TRANSITIONS = {
     "ACCEPTED": {"IN_PROGRESS", "PAUSED", "REMOVED"},
     "IN_PROGRESS": {"PAUSED", "REMOVED"},
@@ -93,7 +94,7 @@ def list_my_participation(
         select(ChallengeParticipant)
         .where(
             ChallengeParticipant.user_id == current_user.id,
-            ChallengeParticipant.status.in_(ACTIVE_STATUSES),
+            ChallengeParticipant.status.in_(LISTED_STATUSES),
         )
         .order_by(
             ChallengeParticipant.last_activity_at.desc().nulls_last(),
@@ -130,10 +131,16 @@ def accept_challenge(
         )
     )
     if existing is not None:
+        if existing.status == "SUBMITTED":
+            return existing
         if existing.status != "REMOVED":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="You have already accepted this challenge.",
+                detail={
+                    "message": "You already have a participation for this challenge.",
+                    "participant_id": existing.id,
+                    "status": existing.status,
+                },
             )
         existing.status = "ACCEPTED"
         existing.completion_status = "INCOMPLETE"

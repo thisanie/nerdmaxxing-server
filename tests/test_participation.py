@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 import app.models
-from app.api.participation import accept_challenge
+from app.api.participation import accept_challenge, list_my_participation
 from app.models.base import Base
 from app.models.challenge import Challenge
 from app.models.participation import ChallengeParticipant
@@ -62,6 +62,56 @@ def test_removed_participation_can_rejoin_without_an_active_challenge_limit():
     assert rejoined.challenge_id == target.id
     assert rejoined.user_id == user.id
     assert rejoined.status == "ACCEPTED"
+    assert db.scalar(
+        select(func.count()).select_from(ChallengeParticipant).where(
+            ChallengeParticipant.challenge_id == target.id,
+            ChallengeParticipant.user_id == user.id,
+        )
+    ) == 1
+
+
+def test_submitted_participation_remains_in_my_participation():
+    db = make_db()
+    user = User(id="user-1", username="user-1")
+    creator = User(id="creator", username="creator")
+    target = challenge("target")
+    db.add_all([user, creator, target])
+    db.flush()
+    participant = ChallengeParticipant(
+        challenge_id=target.id,
+        user_id=user.id,
+        status="SUBMITTED",
+        completion_status="NOT_COMPLETED",
+        verification_status="PENDING",
+    )
+    db.add(participant)
+    db.commit()
+
+    listed = list_my_participation(db, user)
+
+    assert [item.id for item in listed] == [participant.id]
+
+
+def test_duplicate_accept_returns_submitted_participation():
+    db = make_db()
+    user = User(id="user-1", username="user-1")
+    creator = User(id="creator", username="creator")
+    target = challenge("target")
+    db.add_all([user, creator, target])
+    db.flush()
+    participant = ChallengeParticipant(
+        challenge_id=target.id,
+        user_id=user.id,
+        status="SUBMITTED",
+        completion_status="NOT_COMPLETED",
+        verification_status="PENDING",
+    )
+    db.add(participant)
+    db.commit()
+
+    accepted = accept_challenge(target.slug, db, user)
+
+    assert accepted.id == participant.id
     assert db.scalar(
         select(func.count()).select_from(ChallengeParticipant).where(
             ChallengeParticipant.challenge_id == target.id,
