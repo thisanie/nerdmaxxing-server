@@ -99,27 +99,13 @@ def ensure_can_accept(db: Session, challenge_id: str, user_id: str) -> None:
         select(ChallengeParticipant).where(
             ChallengeParticipant.challenge_id == challenge_id,
             ChallengeParticipant.user_id == user_id,
+            ChallengeParticipant.status != "REMOVED",
         )
     ) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="You have already joined this challenge.",
         )
-    active_count = db.scalar(
-        select(func.count())
-        .select_from(ChallengeParticipant)
-        .where(
-            ChallengeParticipant.user_id == user_id,
-            ChallengeParticipant.status.in_(ACTIVE_STATUSES),
-        )
-    ) or 0
-    if active_count >= 5:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You have reached the limit of five active challenges.",
-        )
-
-
 def group_response_counts(db: Session, invitation_id: str) -> GroupInvitationResponseCounts:
     counts = {
         response: db.scalar(
@@ -167,7 +153,21 @@ def accept_invitation(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot accept your own invitation.")
 
     ensure_can_accept(db, invitation.challenge_id, user_id)
-    participant = ChallengeParticipant(challenge_id=invitation.challenge_id, user_id=user_id)
+    participant = db.scalar(
+        select(ChallengeParticipant).where(
+            ChallengeParticipant.challenge_id == invitation.challenge_id,
+            ChallengeParticipant.user_id == user_id,
+            ChallengeParticipant.status == "REMOVED",
+        )
+    )
+    if participant is None:
+        participant = ChallengeParticipant(challenge_id=invitation.challenge_id, user_id=user_id)
+    else:
+        participant.status = "ACCEPTED"
+        participant.completion_status = "INCOMPLETE"
+        participant.verification_status = "NOT_SUBMITTED"
+        participant.completed_at = None
+        participant.last_activity_at = datetime.utcnow()
     invitation.status = "ACCEPTED"
     invitation.accepted_at = datetime.utcnow()
     db.query(Notification).filter(

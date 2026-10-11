@@ -2,7 +2,7 @@ from datetime import datetime
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -135,24 +135,15 @@ def accept_challenge(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="You have already accepted this challenge.",
             )
-        db.delete(existing)
-        db.flush()
+        existing.status = "ACCEPTED"
+        existing.completion_status = "INCOMPLETE"
+        existing.verification_status = "NOT_SUBMITTED"
+        existing.completed_at = None
+        existing.last_activity_at = datetime.utcnow()
+        participant = existing
+    else:
+        participant = ChallengeParticipant(challenge_id=challenge.id, user_id=current_user.id)
 
-    active_count = db.scalar(
-        select(func.count())
-        .select_from(ChallengeParticipant)
-        .where(
-            ChallengeParticipant.user_id == current_user.id,
-            ChallengeParticipant.status.in_(ACTIVE_STATUSES),
-        )
-    )
-    if active_count >= 5:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You have reached the limit of five active challenges.",
-        )
-
-    participant = ChallengeParticipant(challenge_id=challenge.id, user_id=current_user.id)
     db.add(participant)
     db.add(Activity(user_id=current_user.id, action="JOINED_CHALLENGE", challenge_id=challenge.id))
     try:

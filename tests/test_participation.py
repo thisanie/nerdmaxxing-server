@@ -32,12 +32,12 @@ def challenge(identifier: str) -> Challenge:
     )
 
 
-def test_removed_participation_can_rejoin_without_counting_as_active():
+def test_removed_participation_can_rejoin_without_an_active_challenge_limit():
     db = make_db()
     user = User(id="user-1", username="user-1")
     creator = User(id="creator", username="creator")
     target = challenge("target")
-    active_challenges = [challenge(f"active-{index}") for index in range(4)]
+    active_challenges = [challenge(f"active-{index}") for index in range(6)]
     db.add_all([user, creator, target, *active_challenges])
     db.flush()
     db.add(
