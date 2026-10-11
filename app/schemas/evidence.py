@@ -11,6 +11,10 @@ class EvidenceItemResponse(BaseModel):
     video_url: str | None
 
 
+class EvidenceSubmissionStatusResponse(BaseModel):
+    has_submitted: bool
+
+
 class EvidenceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

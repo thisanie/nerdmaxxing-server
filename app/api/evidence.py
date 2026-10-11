@@ -20,7 +20,11 @@ from app.models.progress import ChallengeProgressLog
 from app.models.skill import UserSkill
 from app.models.user import User
 from app.models.activity import Activity
-from app.schemas.evidence import EvidenceItemResponse, EvidenceResponse
+from app.schemas.evidence import (
+    EvidenceItemResponse,
+    EvidenceResponse,
+    EvidenceSubmissionStatusResponse,
+)
 from app.services.blob_storage import (
     MAX_VIDEO_UPLOAD_BYTES,
     VIDEO_CONTENT_TYPES,
@@ -434,6 +438,29 @@ async def submit_evidence(
     db.commit()
     db.refresh(submission)
     return evidence_response(submission, db)
+
+
+@router.get(
+    "/status/{user_id}/{challenge_id}",
+    response_model=EvidenceSubmissionStatusResponse,
+)
+def get_evidence_submission_status(
+    user_id: str,
+    challenge_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EvidenceSubmissionStatusResponse:
+    if user_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
+
+    submission_exists = db.scalar(
+        select(EvidenceSubmission.id).where(
+            EvidenceSubmission.user_id == user_id,
+            EvidenceSubmission.challenge_id == challenge_id,
+            EvidenceSubmission.status.in_(("PENDING", "PROCESSING", "VERIFIED")),
+        )
+    ) is not None
+    return EvidenceSubmissionStatusResponse(has_submitted=submission_exists)
 
 
 @router.get("/{submission_id}", response_model=EvidenceResponse)

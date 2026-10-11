@@ -7,7 +7,11 @@ import pytest
 from fastapi import HTTPException, UploadFile
 from starlette.datastructures import Headers
 
-from app.api.evidence import get_owned_participation, submit_evidence
+from app.api.evidence import (
+    get_evidence_submission_status,
+    get_owned_participation,
+    submit_evidence,
+)
 from app.services.verification_service import challenge_verification, verification_state
 
 
@@ -210,3 +214,13 @@ def test_participation_is_owned_by_uploader():
     with pytest.raises(HTTPException) as error:
         get_owned_participation("other-participant", db, user())
     assert error.value.status_code == 404
+
+
+def test_evidence_submission_status_checks_user_and_challenge():
+    submission = SimpleNamespace(id="submission-1")
+    assert get_evidence_submission_status(
+        "user-1", "challenge-1", FakeDb([submission]), user()
+    ).has_submitted is True
+    assert get_evidence_submission_status(
+        "user-1", "challenge-1", FakeDb(), user()
+    ).has_submitted is False

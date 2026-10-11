@@ -860,6 +860,20 @@ Vercel serverless functions), use the direct-upload flow:
 The API verifies that the uploaded object belongs to the caller's challenge,
 matches the declared size and MIME type, and is within the challenge limit.
 
+### `GET /api/v1/evidence/status/{user_id}/{challenge_id}`
+
+Requires authentication as the requested user or an admin. Returns whether the
+user has a pending, processing, or verified evidence submission for the given
+challenge. Rejected submissions return `false` so the user can submit again.
+
+Response `200 OK`:
+
+```json
+{
+  "has_submitted": true
+}
+```
+
 ### `GET /api/v1/evidence/{submission_id}`
 
 Requires authentication by the uploader or an admin. Returns the evidence metadata and a one-hour presigned `video_url`. Evidence is never exposed through a public R2 URL.
