@@ -234,6 +234,30 @@ def get_my_profile(
     return profile_response(db, current_user, current_user.id)
 
 
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    owned_challenges = list(
+        db.scalars(
+            select(Challenge).where(Challenge.creator_id == current_user.id)
+        ).all()
+    )
+    owned_groups = list(
+        db.scalars(
+            select(Group).where(Group.creator_id == current_user.id)
+        ).all()
+    )
+
+    for challenge in owned_challenges:
+        db.delete(challenge)
+    for group in owned_groups:
+        db.delete(group)
+    db.delete(current_user)
+    db.commit()
+
+
 @router.post("/me/push-tokens", response_model=PushTokenResponse)
 def register_push_token(
     payload: PushTokenCreate,

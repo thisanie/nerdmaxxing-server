@@ -146,6 +146,10 @@ Available endpoints:
 
 ## Users
 
+### `DELETE /api/v1/users/me`
+
+Requires authentication. Permanently deletes the authenticated user's account, sessions, owned challenges and groups, and associated database records. Returns `204 No Content`. Account deletion is immediate; a one-month recovery window is not currently supported because there is no retention scheduler or purge workflow.
+
 ### `GET /api/v1/users/me/stats`
 
 Requires authentication. The existing activity fields are preserved and rank fields are added:
