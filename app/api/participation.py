@@ -30,6 +30,7 @@ from app.services.progress_service import record_progress, record_progress_activ
 
 router = APIRouter(prefix="/api/v1/participation", tags=["Participation"])
 ACTIVE_STATUSES = ("ACCEPTED", "IN_PROGRESS")
+LOGGABLE_STATUSES = (*ACTIVE_STATUSES, "SUBMITTED")
 LISTED_STATUSES = (*ACTIVE_STATUSES, "PAUSED", "SUBMITTED")
 ALLOWED_TRANSITIONS = {
     "ACCEPTED": {"IN_PROGRESS", "PAUSED", "REMOVED"},
@@ -47,7 +48,7 @@ def get_active_participant(participant_id: str, db: Session, current_user: User)
     )
     if participant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
-    if participant.status not in ACTIVE_STATUSES:
+    if participant.status not in LOGGABLE_STATUSES:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Participation is not active.")
     return participant
 
@@ -180,7 +181,7 @@ def log_progress(
     )
     if participant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
-    if participant.status not in ACTIVE_STATUSES:
+    if participant.status not in LOGGABLE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Progress can only be logged for an active challenge.",
