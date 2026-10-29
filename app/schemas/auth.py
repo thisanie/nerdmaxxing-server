@@ -8,9 +8,18 @@ class PasswordSetupRequest(BaseModel):
     password: SecretStr = Field(min_length=12, max_length=128)
 
 
+class PasswordUpdateRequest(BaseModel):
+    current_password: SecretStr = Field(min_length=1, max_length=128)
+    new_password: SecretStr = Field(min_length=12, max_length=128)
+
+
 class PasswordLoginRequest(BaseModel):
     username: str = Field(min_length=3, max_length=24)
     password: SecretStr = Field(min_length=1, max_length=128)
+
+
+class PasswordStatusResponse(BaseModel):
+    has_password: bool
 
 
 class RefreshTokenRequest(BaseModel):

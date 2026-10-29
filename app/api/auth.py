@@ -6,13 +6,19 @@ from app.schemas.auth import (
    GoogleAuthResponse,
    PasswordLoginRequest,
    PasswordSetupRequest,
+   PasswordStatusResponse,
+   PasswordUpdateRequest,
    RefreshTokenRequest,
    TokenPair,
 )
 from app.services.google_auth import verify_google_id_token
 from app.services.user_service import get_or_create_google_user
 from app.services.session_service import create_session, revoke_refresh_token, rotate_refresh_token
-from app.services.password_service import authenticate_password_user, hash_password
+from app.services.password_service import (
+   authenticate_password_user,
+   hash_password,
+   verify_password,
+)
 from app.services.token_service import create_access_token
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, limiter
@@ -96,6 +102,40 @@ def setup_password(
       )
 
    current_user.password_hash = hash_password(payload.password.get_secret_value())
+   db.commit()
+   return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/password/status", response_model=PasswordStatusResponse)
+def password_status(
+   current_user: User = Depends(get_current_user),
+) -> PasswordStatusResponse:
+   return PasswordStatusResponse(has_password=current_user.password_hash is not None)
+
+
+@router.patch("/password", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit(settings.password_setup_rate_limit)
+def update_password(
+   request: Request,
+   payload: PasswordUpdateRequest,
+   db: Session = Depends(get_db),
+   current_user: User = Depends(get_current_user),
+) -> Response:
+   if current_user.password_hash is None:
+      raise HTTPException(
+         status_code=status.HTTP_409_CONFLICT,
+         detail="No password is set. Use the password setup endpoint first.",
+      )
+   if not verify_password(
+      payload.current_password.get_secret_value(),
+      current_user.password_hash,
+   ):
+      raise HTTPException(
+         status_code=status.HTTP_401_UNAUTHORIZED,
+         detail="Current password is incorrect.",
+      )
+
+   current_user.password_hash = hash_password(payload.new_password.get_secret_value())
    db.commit()
    return Response(status_code=status.HTTP_204_NO_CONTENT)
 

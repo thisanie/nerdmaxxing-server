@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 import app.models
 from app.models.base import Base
 from app.models.user import User
+from app.schemas.auth import PasswordStatusResponse
 from app.services.password_service import (
     authenticate_password_user,
     hash_password,
+    verify_password,
 )
 
 
@@ -63,3 +65,17 @@ def test_password_authentication_rejects_unknown_user_and_wrong_password():
         username="unknown",
         password="incorrect-password",
     ) is None
+
+
+def test_password_status_reflects_stored_hash_and_updated_password_hashes():
+    user = User(id="user-1", username="ada", username_normalized="ada")
+    assert PasswordStatusResponse(has_password=user.password_hash is not None).has_password is False
+
+    current_password = "a-long-user-chosen-password"
+    user.password_hash = hash_password(current_password)
+    assert PasswordStatusResponse(has_password=user.password_hash is not None).has_password is True
+
+    new_password = "a-different-long-password"
+    user.password_hash = hash_password(new_password)
+    assert verify_password(new_password, user.password_hash)
+    assert not verify_password(current_password, user.password_hash)

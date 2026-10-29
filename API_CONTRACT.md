@@ -106,6 +106,33 @@ Response: `204 No Content`.
 
 Returns `409 Conflict` if the user has not selected a username or already has a password.
 
+### `GET /api/v1/auth/password/status`
+
+Requires a bearer token. Reports whether the authenticated user has set a password without returning password data.
+
+Response `200 OK`:
+
+```json
+{
+  "has_password": false
+}
+```
+
+### `PATCH /api/v1/auth/password`
+
+Requires a bearer token and the current password. New passwords must be 12-128 characters. Returns `204 No Content` when updated. If no password is set, use the setup endpoint instead.
+
+Request:
+
+```json
+{
+  "current_password": "current-user-password",
+  "new_password": "a-new-long-user-chosen-password"
+}
+```
+
+Returns `401 Unauthorized` when the current password is incorrect and `409 Conflict` when no password has been set.
+
 ### `POST /api/v1/auth/password/login`
 
 Authenticates with the selected username and password. Rate limited to 10 requests per minute. Returns the same access and refresh token pair as Google authentication.
