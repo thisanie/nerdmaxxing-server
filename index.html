@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description"
+        content="Nerdmaxxing helps people turn curiosity into real skills through challenges, practice, and proof.">
+    <title>NERDMAXXING - Coming Soon</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box
+        }
+
+        :root {
+            --ink: #0b0b0d;
+            --paper: #f2efe6;
+            --lime: #c8ff2c;
+            --pink: #ff4fa3;
+            --cyan: #42e8ff;
+            --orange: #ff7a1a;
+            --violet: #9d7cff
+        }
+
+        body {
+            margin: 0;
+            background: var(--ink);
+            color: var(--paper);
+            font-family: "Space Grotesk", sans-serif;
+            overflow-x: hidden
+        }
+
+        body:before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: .13;
+            background: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+            background-size: 40px 40px
+        }
+
+        .ticker {
+            overflow: hidden;
+            white-space: nowrap;
+            background: var(--lime);
+            color: #111;
+            padding: 9px 0;
+            border-bottom: 3px solid #111;
+            font: 500 12px "DM Mono", monospace
+        }
+
+        .track {
+            display: inline-block;
+            animation: marquee 20s linear infinite
+        }
+
+        .track span {
+            margin-right: 45px
+        }
+
+        @keyframes marquee {
+            to {
+                transform: translateX(-50%)
+            }
+        }
+
+        header {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 5vw;
+            border-bottom: 1px solid #333;
+            z-index: 2
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -2px
+        }
+
+        .mark {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            background: var(--pink);
+            transform: rotate(45deg);
+            margin-left: 8px
+        }
+
+        .status {
+            font: 11px "DM Mono", monospace;
+            color: var(--lime);
+            border: 1px solid var(--lime);
+            padding: 7px 10px
+        }
+
+        main {
+            position: relative;
+            max-width: 1400px;
+            margin: auto;
+            padding: 9vw 5vw 70px
+        }
+
+        .stamp {
+            display: inline-block;
+            background: var(--pink);
+            color: #111;
+            padding: 8px 13px;
+            font: 12px "DM Mono", monospace;
+            transform: rotate(-3deg);
+            box-shadow: 6px 6px var(--cyan);
+            margin-bottom: 30px
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(70px, 13vw, 185px);
+            line-height: .78;
+            letter-spacing: -.075em
+        }
+
+        .outline {
+            color: transparent;
+            -webkit-text-stroke: 2px var(--paper)
+        }
+
+        .accent {
+            color: var(--lime)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 330px;
+            gap: 60px;
+            align-items: end;
+            margin-top: 55px
+        }
+
+        .manifesto {
+            max-width: 720px;
+            font-size: clamp(21px, 2.5vw, 32px);
+            line-height: 1.15
+        }
+
+        .manifesto strong {
+            color: var(--cyan)
+        }
+
+        .terminal {
+            background: var(--paper);
+            color: #111;
+            padding: 18px;
+            border: 3px solid var(--paper);
+            box-shadow: 12px 12px var(--orange);
+            transform: rotate(2deg);
+            font: 12px/1.4 "DM Mono", monospace
+        }
+
+        .terminal-head {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #111;
+            padding-bottom: 10px;
+            margin-bottom: 15px
+        }
+
+        .ok {
+            color: #398800
+        }
+
+        .loader {
+            height: 13px;
+            border: 2px solid #111;
+            padding: 2px;
+            margin-top: 15px
+        }
+
+        .loader i {
+            display: block;
+            height: 100%;
+            width: 70%;
+            background: var(--violet);
+            animation: load 2.5s ease-in-out infinite alternate
+        }
+
+        @keyframes load {
+            to {
+                width: 90%
+            }
+        }
+
+        .tiles {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-top: 100px
+        }
+
+        .tile {
+            min-height: 145px;
+            padding: 17px;
+            border: 2px solid var(--paper)
+        }
+
+        .tile:nth-child(1) {
+            background: #ffe14a;
+            color: #111;
+            transform: rotate(-2deg)
+        }
+
+        .tile:nth-child(2) {
+            background: var(--violet);
+            color: #111;
+            transform: translateY(15px) rotate(1deg)
+        }
+
+        .tile:nth-child(3) {
+            background: var(--cyan);
+            color: #111;
+            transform: rotate(-1deg)
+        }
+
+        .tile:nth-child(4) {
+            background: var(--orange);
+            color: #111;
+            transform: translateY(10px) rotate(2deg)
+        }
+
+        .num {
+            font: 11px "DM Mono", monospace;
+            opacity: .7
+        }
+
+        .tile h2 {
+            margin-top: 28px;
+            font-size: 24px;
+            line-height: .92;
+            letter-spacing: -.05em
+        }
+
+        .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 30px;
+            border-top: 2px solid var(--paper);
+            margin-top: 100px;
+            padding-top: 24px
+        }
+
+        .bottom p {
+            font: 12px/1.6 "DM Mono", monospace;
+            margin: 0
+        }
+
+        .button {
+            background: var(--lime);
+            color: #111;
+            border: 3px solid var(--paper);
+            padding: 14px 20px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 7px 7px var(--pink)
+        }
+
+        .button:hover {
+            transform: translate(4px, 4px);
+            box-shadow: 3px 3px var(--pink)
+        }
+
+        .policy-link {
+            color: var(--paper);
+            font: 12px "DM Mono", monospace;
+            text-decoration: underline;
+            text-underline-offset: 4px
+        }
+
+        .star {
+            position: absolute;
+            right: 3%;
+            top: 16%;
+            font-size: 95px;
+            color: var(--pink);
+            animation: spin 12s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @media(max-width:850px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 45px
+            }
+
+            .terminal {
+                max-width: 360px;
+                margin-left: auto
+            }
+
+            .tiles {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @media(max-width:520px) {
+            header {
+                padding: 18px
+            }
+
+            .logo {
+                font-size: 20px
+            }
+
+            main {
+                padding: 60px 18px
+            }
+
+            .tiles {
+                gap: 9px;
+                margin-top: 65px
+            }
+
+            .tile {
+                min-height: 125px;
+                padding: 12px
+            }
+
+            .tile h2 {
+                font-size: 18px
+            }
+
+            .star {
+                font-size: 60px;
+                top: 20%
+            }
+
+            .bottom {
+                flex-direction: column;
+                align-items: flex-start
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ticker">
+        <div class="track"><span>✦ NERDMAXXING IS LOADING</span><span>✦ MAX YOUR SKILLS</span><span>✦ TOUCH GRASS
+                OPTIONAL</span><span>✦ SKILL ACQUISITION IN PROGRESS</span><span>✦ NERDMAXXING IS LOADING</span><span>✦
+                MAX YOUR SKILLS</span><span>✦ TOUCH GRASS OPTIONAL</span><span>✦ SKILL ACQUISITION IN PROGRESS</span>
+        </div>
+    </div>
+    <header>
+        <div class="logo">NERDMAXXING<span class="mark"></span></div>
+        <div class="status">STATUS // BUILDING</div>
+    </header>
+    <main>
+        <div class="star" aria-hidden="true">✳</div>
+        <div class="stamp">COMING SOON / 2026</div>
+        <h1>MAX<br><span class="outline">YOUR</span><br><span class="accent">SKILLS.</span></h1>
+        <div class="grid">
+            <div class="manifesto">A place for people who think <strong>“I want to learn that”</strong> and then
+                actually do it.<br><br>Pick a challenge. Put in the work. Prove you did it. <strong>Build your skill
+                    tree.</strong></div>
+            <div class="terminal">
+                <div class="terminal-head"><span>nerdmaxxing.exe</span><span>v0.1</span></div>
+                <div>$ initializing skill_universe...</div>
+                <div><span class="ok">✓</span> challenges loaded</div>
+                <div><span class="ok">✓</span> verification online</div>
+                <div><span class="ok">✓</span> brainrot resistance: ON</div>
+                <div>$ status: <b>COMING SOON</b></div>
+                <div class="loader" aria-label="Loading"><i></i></div>
+            </div>
+        </div>
+        <div class="tiles">
+            <div class="tile">
+                <div class="num">01 // QUEST</div>
+                <h2>LEARN<br>WEIRD SHIT.</h2>
+            </div>
+            <div class="tile">
+                <div class="num">02 // GRIND</div>
+                <h2>GET<br>ACTUALLY GOOD.</h2>
+            </div>
+            <div class="tile">
+                <div class="num">03 // PROVE</div>
+                <h2>SHOW<br>YOU DID IT.</h2>
+            </div>
+            <div class="tile">
+                <div class="num">04 // UNLOCK</div>
+                <h2>BUILD<br>YOUR TREE.</h2>
+            </div>
+        </div>
+        <div class="bottom">
+            <p>// THE INTERNET HAS ENOUGH CONTENT.<br>// WE'RE BUILDING A PLACE TO TURN IT INTO SKILLS.</p>
+            <div><a class="button" href="mailto:hello@nerdmaxxing.com">GET IN THE LOOP →</a><br><a class="policy-link"
+                    href="/policy">Privacy Policy</a></div>
+        </div>
+    </main>
+</body>
+
+</html>

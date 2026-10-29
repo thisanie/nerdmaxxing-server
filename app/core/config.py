@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     force_https: bool = False
     google_auth_rate_limit: str = "10/minute"
+    password_auth_rate_limit: str = "10/minute"
+    password_setup_rate_limit: str = "5/minute"
     refresh_auth_rate_limit: str = "30/minute"
     username_availability_rate_limit: str = "60/minute"
     discussion_post_rate_limit: str = "10/minute"

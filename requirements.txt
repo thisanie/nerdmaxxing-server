@@ -10,4 +10,5 @@ requests
 boto3
 python-multipart
 firebase-admin
+pwdlib[argon2]
 pytest

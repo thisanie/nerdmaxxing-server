@@ -1,13 +1,22 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.schemas.auth import GoogleAuthRequest, GoogleAuthResponse, RefreshTokenRequest, TokenPair
+from app.schemas.auth import (
+   GoogleAuthRequest,
+   GoogleAuthResponse,
+   PasswordLoginRequest,
+   PasswordSetupRequest,
+   RefreshTokenRequest,
+   TokenPair,
+)
 from app.services.google_auth import verify_google_id_token
 from app.services.user_service import get_or_create_google_user
 from app.services.session_service import create_session, revoke_refresh_token, rotate_refresh_token
+from app.services.password_service import authenticate_password_user, hash_password
 from app.services.token_service import create_access_token
 from app.core.config import settings
-from app.core.dependencies import get_db, limiter
+from app.core.dependencies import get_current_user, get_db, limiter
+from app.models.user import User
 
 
 
@@ -60,9 +69,60 @@ def google_auth(request: Request, payload: GoogleAuthRequest, db:Session = Depen
       user_id = user.id,
       username= user.username,
       needs_username= user.username is None,
+      needs_password= user.username is not None and user.password_hash is None,
       is_new_user=is_new_user,
       display_name= user.display_name,
       avatar_url= user.avatar_url
+   )
+
+
+@router.post("/password/setup", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit(settings.password_setup_rate_limit)
+def setup_password(
+   request: Request,
+   payload: PasswordSetupRequest,
+   db: Session = Depends(get_db),
+   current_user: User = Depends(get_current_user),
+) -> Response:
+   if current_user.username is None:
+      raise HTTPException(
+         status_code=status.HTTP_409_CONFLICT,
+         detail="Set a username before setting a password.",
+      )
+   if current_user.password_hash is not None:
+      raise HTTPException(
+         status_code=status.HTTP_409_CONFLICT,
+         detail="A password is already set for this account.",
+      )
+
+   current_user.password_hash = hash_password(payload.password.get_secret_value())
+   db.commit()
+   return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/password/login", response_model=TokenPair)
+@limiter.limit(settings.password_auth_rate_limit)
+def password_login(
+   request: Request,
+   payload: PasswordLoginRequest,
+   db: Session = Depends(get_db),
+) -> TokenPair:
+   user = authenticate_password_user(
+      db,
+      username=payload.username,
+      password=payload.password.get_secret_value(),
+   )
+   if user is None:
+      raise HTTPException(
+         status_code=status.HTTP_401_UNAUTHORIZED,
+         detail="Invalid username or password.",
+         headers={"WWW-Authenticate": "Bearer"},
+      )
+
+   session, refresh_token = create_session(db=db, user_id=user.id)
+   return TokenPair(
+      access_token=create_access_token(user_id=user.id, session_id=session.id),
+      refresh_token=refresh_token,
    )
 
 

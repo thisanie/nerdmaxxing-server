@@ -79,6 +79,7 @@ Response `200 OK`:
   "user_id": "user-id",
   "username": null,
   "needs_username": true,
+  "needs_password": false,
   "is_new_user": true,
   "display_name": "Ada Lovelace",
   "avatar_url": "https://example.com/avatar.png"
@@ -86,6 +87,39 @@ Response `200 OK`:
 ```
 
 Returns `401 Unauthorized` for an invalid Google token or an unverified Google email address.
+
+After selecting a username, an authenticated user can set a password once:
+
+### `POST /api/v1/auth/password/setup`
+
+Requires a bearer token. Passwords must be 12-128 characters. The password is stored as an Argon2id hash and is never returned.
+
+Request:
+
+```json
+{
+  "password": "a-long-user-chosen-password"
+}
+```
+
+Response: `204 No Content`.
+
+Returns `409 Conflict` if the user has not selected a username or already has a password.
+
+### `POST /api/v1/auth/password/login`
+
+Authenticates with the selected username and password. Rate limited to 10 requests per minute. Returns the same access and refresh token pair as Google authentication.
+
+Request:
+
+```json
+{
+  "username": "ada_lovelace",
+  "password": "a-long-user-chosen-password"
+}
+```
+
+Returns `401 Unauthorized` with the same error for an unknown username or incorrect password.
 
 ### `POST /api/v1/auth/refresh`
 

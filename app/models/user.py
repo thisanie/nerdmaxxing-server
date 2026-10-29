@@ -23,6 +23,7 @@ class User(Base):
     username_normalized: Mapped[str | None] = mapped_column(
         String(24), nullable=True, unique=True, index=True
     )
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)

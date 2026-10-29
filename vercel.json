@@ -8,6 +8,14 @@
   ],
   "routes": [
     {
+      "src": "/policy/?",
+      "dest": "/policy.html"
+    },
+    {
+      "src": "/?",
+      "dest": "/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "app/main.py"
     }

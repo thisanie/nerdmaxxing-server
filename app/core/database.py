@@ -57,6 +57,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 timestamp_type = "DATETIME" if connection.dialect.name == "sqlite" else "TIMESTAMP"
                 user_additions = {
                         "bio": "VARCHAR(500)",
+                        "password_hash": "VARCHAR(255)",
                         "aura_points": "INTEGER NOT NULL DEFAULT 0",
                         "day_streak": "INTEGER NOT NULL DEFAULT 0",
                         "last_progress_at": timestamp_type,
