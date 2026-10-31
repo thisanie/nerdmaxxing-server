@@ -933,6 +933,24 @@ Response `200 OK`:
 Requires an admin account. Returns the evidence metadata and a one-hour
 presigned `video_url`. Evidence is never exposed through a public R2 URL.
 
+### `GET /api/v1/evidence/admin/active?limit={limit}&offset={offset}`
+
+Requires an admin account. Lists evidence awaiting review (`PENDING` or
+`PROCESSING`), oldest submissions first. `limit` defaults to 20 and must be
+1-100; `offset` defaults to 0 and must be non-negative. Each item includes the
+evidence response, including private file URLs available to admins.
+
+Response `200 OK`:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "limit": 20,
+  "offset": 0
+}
+```
+
 ### `POST /api/v1/evidence/{submission_id}/verify`
 
 Requires an admin account. Approves or rejects a pending submission and stores

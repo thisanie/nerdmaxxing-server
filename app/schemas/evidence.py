@@ -53,3 +53,10 @@ class EvidenceResponse(BaseModel):
     file_name: str | None = None
     mime_type: str | None = None
     review_reason: str | None = None
+
+
+class EvidenceSubmissionListResponse(BaseModel):
+    items: list[EvidenceResponse]
+    total: int
+    limit: int
+    offset: int

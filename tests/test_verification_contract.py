@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from app.api.evidence import (
+    get_active_evidence_submissions,
     get_evidence,
     get_evidence_approval_status,
     get_evidence_submission_status,
@@ -368,3 +369,42 @@ def test_non_admin_cannot_review_or_view_other_users_evidence():
     with pytest.raises(HTTPException) as error:
         get_evidence_approval_status(submission.id, db, other_user)
     assert error.value.status_code == 404
+
+
+def test_active_evidence_queue_is_admin_only_and_paginated():
+    db, _, reviewer, challenge_value, participant_value, submission = create_review_database()
+    submission.submitted_at = datetime(2026, 1, 2)
+    processing = EvidenceSubmission(
+        id="submission-processing",
+        challenge_id=challenge_value.id,
+        participant_id=participant_value.id,
+        user_id=submission.user_id,
+        status="PROCESSING",
+        submitted_at=datetime(2026, 1, 1),
+    )
+    verified = EvidenceSubmission(
+        id="submission-verified",
+        challenge_id=challenge_value.id,
+        participant_id=participant_value.id,
+        user_id=submission.user_id,
+        status="VERIFIED",
+    )
+    rejected = EvidenceSubmission(
+        id="submission-rejected",
+        challenge_id=challenge_value.id,
+        participant_id=participant_value.id,
+        user_id=submission.user_id,
+        status="REJECTED",
+    )
+    db.add_all([processing, verified, rejected])
+    db.commit()
+
+    first_page = get_active_evidence_submissions(1, 0, db, reviewer)
+    second_page = get_active_evidence_submissions(1, 1, db, reviewer)
+    assert first_page.total == 2
+    assert [item.id for item in first_page.items] == [processing.id]
+    assert [item.id for item in second_page.items] == [submission.id]
+
+    with pytest.raises(HTTPException) as error:
+        get_active_evidence_submissions(20, 0, db, user())
+    assert error.value.status_code == 403

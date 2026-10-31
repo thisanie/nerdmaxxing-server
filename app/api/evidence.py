@@ -6,8 +6,8 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import PurePosixPath
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ from app.schemas.evidence import (
     EvidenceCreatedResponse,
     EvidenceItemResponse,
     EvidenceResponse,
+    EvidenceSubmissionListResponse,
     EvidenceSubmissionStatusResponse,
     EvidenceVerificationRequest,
 )
@@ -467,6 +468,37 @@ def get_evidence_submission_status(
         )
     ) is not None
     return EvidenceSubmissionStatusResponse(has_submitted=submission_exists)
+
+
+@router.get("/admin/active", response_model=EvidenceSubmissionListResponse)
+def get_active_evidence_submissions(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EvidenceSubmissionListResponse:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    active_statuses = ("PENDING", "PROCESSING")
+    filters = (EvidenceSubmission.status.in_(active_statuses),)
+    total = db.scalar(
+        select(func.count()).select_from(EvidenceSubmission).where(*filters)
+    ) or 0
+    submissions = list(
+        db.scalars(
+            select(EvidenceSubmission)
+            .where(*filters)
+            .order_by(EvidenceSubmission.submitted_at.asc(), EvidenceSubmission.id.asc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+    )
+    return EvidenceSubmissionListResponse(
+        items=[evidence_response(submission, db) for submission in submissions],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{submission_id}", response_model=EvidenceResponse)
