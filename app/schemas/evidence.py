@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -13,6 +15,21 @@ class EvidenceItemResponse(BaseModel):
 
 class EvidenceSubmissionStatusResponse(BaseModel):
     has_submitted: bool
+
+
+class EvidenceCreatedResponse(BaseModel):
+    id: str
+    status: str
+
+
+class EvidenceApprovalStatusResponse(BaseModel):
+    is_approved: bool
+    note: str | None = None
+
+
+class EvidenceVerificationRequest(BaseModel):
+    decision: Literal["APPROVE", "REJECT"]
+    note: str | None = Field(default=None, max_length=5000)
 
 
 class EvidenceResponse(BaseModel):

@@ -17,14 +17,17 @@ from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.challenge import Challenge
 from app.models.integration import ExternalAccountConnection
 from app.models.participation import ChallengeParticipant
-from app.models.progress import ChallengeProgressLog
+from app.models.aura import AuraTransaction
 from app.models.skill import UserSkill
 from app.models.user import User
 from app.models.activity import Activity
 from app.schemas.evidence import (
+    EvidenceApprovalStatusResponse,
+    EvidenceCreatedResponse,
     EvidenceItemResponse,
     EvidenceResponse,
     EvidenceSubmissionStatusResponse,
+    EvidenceVerificationRequest,
 )
 from app.services.blob_storage import (
     MAX_VIDEO_UPLOAD_BYTES,
@@ -37,6 +40,7 @@ from app.services.blob_storage import (
 )
 from app.services.verification_service import verification_config, verification_kind
 from app.services.chess_com import ChessComError, fetch_rapid_rating
+from app.services.aura_service import award_aura, calculate_aura
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -107,10 +111,10 @@ def get_owned_participation(
 
 
 def get_submission(submission_id: str, db: Session, current_user: User) -> EvidenceSubmission:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
     submission = db.get(EvidenceSubmission, submission_id)
-    if submission is None or (
-        submission.user_id != current_user.id and not current_user.is_admin
-    ):
+    if submission is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Evidence submission not found.",
@@ -215,7 +219,7 @@ async def _video_duration_seconds(file: UploadFile) -> float | None:
 
 @router.post(
     "/participation/{participant_id}",
-    response_model=EvidenceResponse,
+    response_model=EvidenceCreatedResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def submit_evidence(
@@ -230,7 +234,7 @@ async def submit_evidence(
     uploaded_file_name: str | None = Form(default=None),
     uploaded_content_type: str | None = Form(default=None),
     uploaded_file_size: int | None = Form(default=None),
-) -> EvidenceSubmission:
+) -> EvidenceCreatedResponse:
     if not isinstance(uploaded_key, str):
         uploaded_key = None
     if not isinstance(uploaded_file_name, str):
@@ -437,7 +441,7 @@ async def submit_evidence(
         db.rollback()
         raise
     db.refresh(submission)
-    return evidence_response(submission, db)
+    return EvidenceCreatedResponse(id=submission.id, status=submission.status)
 
 
 @router.get(
@@ -475,13 +479,115 @@ def get_evidence(
     return evidence_response(submission, db)
 
 
+@router.get(
+    "/{submission_id}/is-approved",
+    response_model=EvidenceApprovalStatusResponse,
+)
+def get_evidence_approval_status(
+    submission_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EvidenceApprovalStatusResponse:
+    statement = select(EvidenceSubmission).where(EvidenceSubmission.id == submission_id)
+    if not current_user.is_admin:
+        statement = statement.where(EvidenceSubmission.user_id == current_user.id)
+    submission = db.scalar(statement)
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
+    return EvidenceApprovalStatusResponse(
+        is_approved=submission.status == "VERIFIED",
+        note=submission.review_reason,
+    )
+
+
+@router.post("/{submission_id}/verify", response_model=EvidenceResponse)
+def verify_evidence(
+    submission_id: str,
+    request: EvidenceVerificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EvidenceResponse:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    submission = db.scalar(
+        select(EvidenceSubmission)
+        .where(EvidenceSubmission.id == submission_id)
+        .with_for_update()
+    )
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
+    if submission.status not in {"PENDING", "PROCESSING"}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Evidence is no longer awaiting review.")
+    participant = db.get(ChallengeParticipant, submission.participant_id)
+    challenge = db.get(Challenge, submission.challenge_id)
+    if participant is None or challenge is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission context not found.")
+
+    submission.reviewed_at = datetime.utcnow()
+    submission.review_reason = request.note
+    if request.decision == "APPROVE":
+        submission.status = "VERIFIED"
+        participant.status = "COMPLETED"
+        participant.completion_status = "COMPLETED"
+        participant.verification_status = "VERIFIED"
+        participant.completed_at = datetime.utcnow()
+        participant.last_activity_at = datetime.utcnow()
+        db.add(Activity(user_id=submission.user_id, action="COMPLETED_CHALLENGE", challenge_id=challenge.id))
+        if db.scalar(
+            select(UserSkill).where(
+                UserSkill.user_id == submission.user_id,
+                UserSkill.source_challenge_id == challenge.id,
+            )
+        ) is None:
+            db.add(
+                UserSkill(
+                    user_id=submission.user_id,
+                    source_challenge_id=challenge.id,
+                    skill_name=challenge.title,
+                    verification_status="VERIFIED",
+                )
+            )
+        if db.scalar(
+            select(AuraTransaction.id).where(
+                AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
+                AuraTransaction.reference_id == submission.id,
+            )
+        ) is None:
+            recipient = db.get(User, submission.user_id)
+            if recipient is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence owner not found.")
+            amount = calculate_aura(challenge)
+            award_aura(
+                db,
+                recipient,
+                amount,
+                "Approved challenge evidence",
+                reference_type="EVIDENCE_SUBMISSION",
+                reference_id=submission.id,
+            )
+            db.add(Activity(user_id=submission.user_id, action="EARNED_AURA", challenge_id=challenge.id))
+    else:
+        submission.status = "REJECTED"
+        participant.status = "IN_PROGRESS"
+        participant.completion_status = "INCOMPLETE"
+        participant.verification_status = "REJECTED"
+        participant.completed_at = None
+        participant.last_activity_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(submission)
+    return evidence_response(submission, db)
+
+
 @router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_evidence(
     submission_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    submission = get_submission(submission_id, db, current_user)
+    submission = db.get(EvidenceSubmission, submission_id)
+    if submission is None or (submission.user_id != current_user.id and not current_user.is_admin):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
     items = list(db.scalars(select(EvidenceItem).where(EvidenceItem.submission_id == submission.id)).all())
     for item in items:
         if item.storage_key:
@@ -493,95 +599,3 @@ def delete_evidence(
         participant.verification_status = "NOT_SUBMITTED"
     db.delete(submission)
     db.commit()
-
-
-@router.post("/{submission_id}/self-verify", response_model=EvidenceResponse)
-def self_verify_evidence(
-    submission_id: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> EvidenceSubmission:
-    submission = db.scalar(
-        select(EvidenceSubmission).where(
-            EvidenceSubmission.id == submission_id,
-            EvidenceSubmission.user_id == current_user.id,
-        )
-    )
-    if submission is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
-    if submission.status != "PENDING":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Evidence is no longer pending.")
-
-    participant = db.get(ChallengeParticipant, submission.participant_id)
-    if participant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participation not found.")
-    challenge = db.get(Challenge, submission.challenge_id)
-    if challenge is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
-
-    requirements = challenge.requirements or []
-    if not requirements and challenge.target_value is not None:
-        requirements = [{
-            "metric_key": "value", "operator": "AT_LEAST",
-            "value": challenge.target_value,
-        }]
-    logs = list(db.scalars(
-        select(ChallengeProgressLog)
-        .where(ChallengeProgressLog.participant_id == participant.id)
-        .order_by(ChallengeProgressLog.created_at.desc())
-    ).all())
-    def requirement_met(requirement: dict, metrics: dict) -> bool:
-        if requirement["metric_key"] not in metrics:
-            return False
-        actual = metrics[requirement["metric_key"]]
-        expected = requirement["value"]
-        operator = requirement["operator"]
-        if operator == "AT_LEAST":
-            return actual >= expected
-        if operator == "AT_MOST":
-            return actual <= expected
-        if operator == "EXACTLY":
-            return actual == expected
-        return actual is True if expected is True else actual is False
-
-    qualifying_runs = [
-        log for log in logs
-        if all(
-            requirement_met(
-                requirement,
-                log.metrics or ({"value": log.value} if log.value is not None else {}),
-            )
-            for requirement in requirements
-        )
-    ] if requirements else logs
-    if requirements and len(qualifying_runs) < challenge.required_runs:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Progress does not satisfy the challenge requirements.",
-        )
-
-    submission.status = "VERIFIED"
-    submission.reviewed_at = datetime.utcnow()
-    participant.status = "COMPLETED"
-    participant.completion_status = "COMPLETED"
-    participant.verification_status = "VERIFIED"
-    participant.completed_at = datetime.utcnow()
-    participant.last_activity_at = datetime.utcnow()
-    db.add(Activity(user_id=current_user.id, action="COMPLETED_CHALLENGE", challenge_id=challenge.id))
-    if db.scalar(
-        select(UserSkill).where(
-            UserSkill.user_id == current_user.id,
-            UserSkill.source_challenge_id == challenge.id,
-        )
-    ) is None:
-        db.add(
-            UserSkill(
-                user_id=current_user.id,
-                source_challenge_id=challenge.id,
-                skill_name=challenge.title,
-                verification_status="VERIFIED",
-            )
-        )
-    db.commit()
-    db.refresh(submission)
-    return evidence_response(submission, db)

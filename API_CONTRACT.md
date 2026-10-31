@@ -890,25 +890,14 @@ Response `201 Created`:
 ```json
 {
   "id": "submission-id",
-  "challenge_id": "challenge-id",
-  "participant_id": "participant-id",
-  "user_id": "user-id",
-  "status": "PROCESSING",
-  "verification_kind": "VIDEO_UPLOAD",
-  "provider_id": null,
-  "explanation": "The full attempt is visible.",
-  "file_url": "https://private-presigned-url",
-  "file_name": "proof.mp4",
-  "mime_type": "video/mp4",
-  "review_reason": null,
-  "submitted_at": "2026-10-08T12:00:00Z",
-  "reviewed_at": null
+  "status": "PENDING"
 }
 ```
 
 `status` is one of `PENDING`, `PROCESSING`, `VERIFIED`, or `REJECTED`.
-Evidence object URLs are private one-hour presigned URLs and are returned only
-to the uploader or an admin.
+Evidence contents and private object URLs are only available to admins. The
+submitter receives the submission ID and status, and can query its verdict
+without accessing the evidence itself.
 
 For video uploads from clients that enforce a request payload limit (such as
 Vercel serverless functions), use the direct-upload flow:
@@ -941,15 +930,45 @@ Response `200 OK`:
 
 ### `GET /api/v1/evidence/{submission_id}`
 
-Requires authentication by the uploader or an admin. Returns the evidence metadata and a one-hour presigned `video_url`. Evidence is never exposed through a public R2 URL.
+Requires an admin account. Returns the evidence metadata and a one-hour
+presigned `video_url`. Evidence is never exposed through a public R2 URL.
+
+### `POST /api/v1/evidence/{submission_id}/verify`
+
+Requires an admin account. Approves or rejects a pending submission and stores
+an optional note as the review reason. Approval completes the challenge and
+awards aura once for that evidence submission.
+
+Request:
+
+```json
+{
+  "decision": "APPROVE",
+  "note": "The submitted proof meets the challenge requirements."
+}
+```
+
+`decision` must be `APPROVE` or `REJECT`; `note` may be omitted or `null`.
+The response is the reviewed evidence submission. Rejected submissions return
+the participation to `IN_PROGRESS` so the user can submit evidence again.
+
+### `GET /api/v1/evidence/{submission_id}/is-approved`
+
+Requires authentication by the submission owner or an admin. Returns only the
+verdict and reviewer note, not evidence contents.
+
+Response `200 OK`:
+
+```json
+{
+  "is_approved": false,
+  "note": "Please provide clearer proof."
+}
+```
 
 ### `DELETE /api/v1/evidence/{submission_id}`
 
 Requires authentication by the uploader or an admin. Deletes the video from R2 and removes its database records. Returns `204 No Content`.
-
-### `POST /api/v1/evidence/{submission_id}/self-verify`
-
-Requires authentication by the uploader. Verifies the pending submission when the challenge requirements are satisfied.
 
 ### Seeded verification challenges
 
@@ -957,7 +976,7 @@ The seed script creates these stable public challenges:
 
 | Slug | Kind | Key behavior |
 | --- | --- | --- |
-| `daily-reading` | `SELF_REPORTED` | Explanation required; self-confirmation |
+| `daily-reading` | `SELF_REPORTED` | Explanation required; admin review |
 | `one-minute-plank` | `VIDEO_UPLOAD` | MP4/MOV, 50 MiB, 120 seconds, duration at least 60 seconds, review required |
 | `chess-rated-game` | `EXTERNAL_ACCOUNT` | `chess_com`, one rated game, automatic completion |
 
@@ -1026,14 +1045,6 @@ Deleted, suspended, and private users plus draft, private, and otherwise
 non-public challenges never appear.
 
 Returns `404 Not Found` for a participation not owned by the caller and `409 Conflict` when its state cannot accept evidence.
-
-### `POST /api/v1/evidence/{submission_id}/self-verify`
-
-Requires authentication. Verifies the caller's pending evidence submission. This completes the participation and awards a verified skill named after the challenge if it has not already been awarded.
-
-Response `200 OK`: an [Evidence submission](#evidence-submission-object) object with `status` set to `VERIFIED`.
-
-Returns `404 Not Found` for a submission not owned by the caller and `409 Conflict` when the submission is no longer pending.
 
 ## Skills
 

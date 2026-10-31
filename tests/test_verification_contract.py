@@ -10,17 +10,21 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from app.api.evidence import (
+    get_evidence,
+    get_evidence_approval_status,
     get_evidence_submission_status,
     get_owned_participation,
-    self_verify_evidence,
     submit_evidence,
+    verify_evidence,
 )
 from app.models.base import Base
+from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
 from app.models.evidence import EvidenceSubmission
 from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
 from app.models.user import User
+from app.schemas.evidence import EvidenceVerificationRequest
 from app.services.verification_service import challenge_verification, verification_state
 
 
@@ -72,6 +76,10 @@ def challenge(kind, config=None):
 
 def user(identifier="user-1"):
     return SimpleNamespace(id=identifier, is_admin=False)
+
+
+def admin(identifier="admin-1"):
+    return SimpleNamespace(id=identifier, is_admin=True)
 
 
 def video_config():
@@ -190,8 +198,7 @@ def test_connected_external_account_submission_succeeds(monkeypatch):
         db,
     )
     result = asyncio.run(submit_evidence("participant-1", None, None, None, None, db, user()))
-    assert result.verification_kind == "EXTERNAL_ACCOUNT"
-    assert result.provider_id == "chess_com"
+    assert result.id == "submission-id"
     assert result.status == "PENDING"
     assert participant_value.status == "SUBMITTED"
     assert participant_value.completion_status == "NOT_COMPLETED"
@@ -202,7 +209,7 @@ def test_self_reported_submission_still_accepts_text(monkeypatch):
     db = FakeDb()
     evidence_api, participant_value = configure_submission_dependencies(monkeypatch, challenge("SELF_REPORTED"), db)
     result = asyncio.run(submit_evidence("participant-1", "I completed it.", "I read for 30 minutes.", None, None, db, user()))
-    assert result.verification_kind == "SELF_REPORTED"
+    assert result.id == "submission-id"
     assert result.status == "PENDING"
     assert participant_value.status == "SUBMITTED"
     assert participant_value.completion_status == "NOT_COMPLETED"
@@ -246,11 +253,12 @@ def test_evidence_submission_status_checks_user_and_challenge():
     ).has_submitted is False
 
 
-def test_self_verification_completes_participation_and_awards_skill_once():
+def create_review_database():
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     db = Session(engine)
     current_user = User(id="user-1", username="user-1")
+    reviewer = User(id="admin-1", username="admin-1", is_admin=True)
     challenge_value = Challenge(
         id="challenge-1",
         title="Learn Python",
@@ -259,6 +267,7 @@ def test_self_verification_completes_participation_and_awards_skill_once():
         short_description="Learn Python.",
         full_description="Learn Python.",
         creator_id="creator",
+        difficulty_level="MEDIUM",
         requirements=[],
         required_runs=1,
     )
@@ -277,22 +286,85 @@ def test_self_verification_completes_participation_and_awards_skill_once():
         user_id=current_user.id,
         status="PENDING",
     )
-    db.add_all([current_user, challenge_value, participant_value, submission])
+    db.add_all([current_user, reviewer, challenge_value, participant_value, submission])
     db.commit()
+    return db, current_user, reviewer, challenge_value, participant_value, submission
 
-    result = self_verify_evidence(submission.id, db, current_user)
+
+def test_admin_approval_completes_and_awards_aura_once():
+    db, current_user, reviewer, challenge_value, participant_value, submission = create_review_database()
+    with pytest.raises(HTTPException) as error:
+        get_evidence(submission.id, db, current_user)
+    assert error.value.status_code == 403
+
+    result = verify_evidence(
+        submission.id,
+        EvidenceVerificationRequest(decision="APPROVE", note="Looks good."),
+        db,
+        reviewer,
+    )
 
     assert result.status == "VERIFIED"
+    assert result.review_reason == "Looks good."
     assert participant_value.status == "COMPLETED"
     assert participant_value.completion_status == "COMPLETED"
     assert participant_value.verification_status == "VERIFIED"
     assert participant_value.completed_at is not None
+    assert current_user.aura_points == 40
+    assert db.scalar(
+        select(func.count()).select_from(AuraTransaction).where(
+            AuraTransaction.user_id == current_user.id,
+            AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
+            AuraTransaction.reference_id == submission.id,
+        )
+    ) == 1
     assert db.scalar(
         select(func.count()).select_from(UserSkill).where(
             UserSkill.user_id == current_user.id,
             UserSkill.source_challenge_id == challenge_value.id,
         )
     ) == 1
+    assert get_evidence_approval_status(submission.id, db, current_user).is_approved is True
     with pytest.raises(HTTPException) as error:
-        self_verify_evidence(submission.id, db, current_user)
+        verify_evidence(
+            submission.id,
+            EvidenceVerificationRequest(decision="APPROVE"),
+            db,
+            reviewer,
+        )
     assert error.value.status_code == 409
+
+
+def test_rejection_note_is_visible_as_unapproved_status_and_can_retry():
+    db, current_user, reviewer, _, participant_value, submission = create_review_database()
+    result = verify_evidence(
+        submission.id,
+        EvidenceVerificationRequest(decision="REJECT", note="Please provide clearer proof."),
+        db,
+        reviewer,
+    )
+
+    assert result.status == "REJECTED"
+    assert result.review_reason == "Please provide clearer proof."
+    assert participant_value.status == "IN_PROGRESS"
+    assert participant_value.completion_status == "INCOMPLETE"
+    status_result = get_evidence_approval_status(submission.id, db, current_user)
+    assert status_result.is_approved is False
+    assert status_result.note == "Please provide clearer proof."
+    assert current_user.aura_points == 0
+
+
+def test_non_admin_cannot_review_or_view_other_users_evidence():
+    db, current_user, _, _, _, submission = create_review_database()
+    other_user = user("user-2")
+    with pytest.raises(HTTPException) as error:
+        verify_evidence(
+            submission.id,
+            EvidenceVerificationRequest(decision="APPROVE"),
+            db,
+            other_user,
+        )
+    assert error.value.status_code == 403
+    with pytest.raises(HTTPException) as error:
+        get_evidence_approval_status(submission.id, db, other_user)
+    assert error.value.status_code == 404
