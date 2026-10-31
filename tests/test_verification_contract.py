@@ -23,6 +23,8 @@ from app.models.base import Base
 from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
 from app.models.evidence import EvidenceSubmission
+from app.models.follow import UserFollow
+from app.models.invitation import Notification
 from app.models.participation import ChallengeParticipant
 from app.models.skill import UserSkill
 from app.models.user import User
@@ -297,8 +299,23 @@ def create_review_database():
     return db, current_user, reviewer, challenge_value, participant_value, submission
 
 
-def test_admin_approval_completes_and_awards_aura_once():
+def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
     db, current_user, reviewer, challenge_value, participant_value, submission = create_review_database()
+    pushed_notifications = []
+    monkeypatch.setattr(
+        "app.api.evidence.send_notification_push",
+        lambda db, notification: pushed_notifications.append(notification),
+    )
+    followers = [
+        User(id="follower-1", username="follower-1"),
+        User(id="follower-2", username="follower-2"),
+    ]
+    db.add_all(followers)
+    db.add_all(
+        UserFollow(follower_id=follower.id, following_id=current_user.id)
+        for follower in followers
+    )
+    db.commit()
     with pytest.raises(HTTPException) as error:
         get_evidence(submission.id, db, current_user)
     assert error.value.status_code == 403
@@ -335,6 +352,14 @@ def test_admin_approval_completes_and_awards_aura_once():
     ) == 1
     public_profile = get_profile("user-1", db)
     assert [item.id for item in public_profile.completed_challenges] == [challenge_value.id]
+    notifications = list(db.scalars(select(Notification)).all())
+    assert {(item.user_id, item.notification_type) for item in notifications} == {
+        (current_user.id, "EVIDENCE_APPROVED"),
+        ("follower-1", "FOLLOWING_CHALLENGE_COMPLETED"),
+        ("follower-2", "FOLLOWING_CHALLENGE_COMPLETED"),
+    }
+    assert all(item.challenge_id == challenge_value.id for item in notifications)
+    assert len(pushed_notifications) == 3
     assert get_evidence_approval_status(submission.id, db, current_user).is_approved is True
     with pytest.raises(HTTPException) as error:
         verify_evidence(
@@ -346,8 +371,13 @@ def test_admin_approval_completes_and_awards_aura_once():
     assert error.value.status_code == 409
 
 
-def test_rejection_note_is_visible_as_unapproved_status_and_can_retry():
+def test_rejection_note_is_visible_as_unapproved_status_and_can_retry(monkeypatch):
     db, current_user, reviewer, challenge_value, participant_value, submission = create_review_database()
+    pushed_notifications = []
+    monkeypatch.setattr(
+        "app.api.evidence.send_notification_push",
+        lambda db, notification: pushed_notifications.append(notification),
+    )
     result = verify_evidence(
         submission.id,
         EvidenceVerificationRequest(decision="REJECT", note="Please provide clearer proof."),
@@ -365,6 +395,11 @@ def test_rejection_note_is_visible_as_unapproved_status_and_can_retry():
     assert status_result.is_approved is False
     assert status_result.note == "Please provide clearer proof."
     assert current_user.aura_points == 0
+    notifications = list(db.scalars(select(Notification)).all())
+    assert len(notifications) == 1
+    assert notifications[0].user_id == current_user.id
+    assert notifications[0].notification_type == "EVIDENCE_REJECTED"
+    assert pushed_notifications == notifications
 
 
 def test_non_admin_cannot_review_or_view_other_users_evidence():
