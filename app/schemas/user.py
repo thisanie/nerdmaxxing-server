@@ -44,6 +44,10 @@ class UserProfileResponse(BaseModel):
     is_following: bool = False
 
 
+class MyUserProfileResponse(UserProfileResponse):
+    is_admin: bool
+
+
 class UserProfileUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
     bio: str | None = Field(default=None, max_length=500)

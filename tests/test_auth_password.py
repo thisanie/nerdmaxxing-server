@@ -1,10 +1,14 @@
+from types import SimpleNamespace
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+import app.api.users as users_api
 import app.models
 from app.models.base import Base
 from app.models.user import User
 from app.schemas.auth import PasswordStatusResponse
+from app.schemas.user import UserProfileResponse
 from app.services.password_service import (
     authenticate_password_user,
     hash_password,
@@ -79,3 +83,29 @@ def test_password_status_reflects_stored_hash_and_updated_password_hashes():
     user.password_hash = hash_password(new_password)
     assert verify_password(new_password, user.password_hash)
     assert not verify_password(current_password, user.password_hash)
+
+
+def test_self_profile_includes_admin_flag_without_changing_public_profile(monkeypatch):
+    profile = UserProfileResponse(
+        id="user-1",
+        username="ada",
+        name="Ada",
+        bio=None,
+        avatar_url=None,
+        aura_points=0,
+        rank="E",
+        follower_count=0,
+        following_count=0,
+        skills_count=0,
+        completed_challenges_count=0,
+        created_challenges_count=0,
+    )
+    monkeypatch.setattr(users_api, "profile_response", lambda *args: profile)
+
+    result = users_api.get_my_profile(
+        db=None,
+        current_user=SimpleNamespace(id="user-1", is_admin=True),
+    )
+
+    assert result.is_admin is True
+    assert "is_admin" not in profile.model_dump()

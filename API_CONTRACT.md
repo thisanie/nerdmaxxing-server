@@ -369,6 +369,12 @@ Requires authentication. Updates the current user's username. The request, respo
 
 Returns `409 Conflict` when the requested username is unavailable.
 
+### `GET /api/v1/users/me/profile`
+
+Requires authentication. Returns the current user's profile, including the
+boolean `is_admin` flag. This flag is only present on the authenticated
+self-profile response and is not included in public user profiles.
+
 ### `PATCH /api/v1/users/me/profile`
 
 Requires authentication. Accepts `multipart/form-data` with optional `name`, `bio`, and `avatar` fields. The `avatar` field must be an image file and replaces the current profile avatar in blob storage.

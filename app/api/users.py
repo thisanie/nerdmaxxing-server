@@ -21,6 +21,7 @@ from app.schemas.challenge import ChallengeResponse
 from app.schemas.user import (
     AuraTransactionResponse,
     FollowStatusResponse,
+    MyUserProfileResponse,
     UsernameAvailabilityResponse,
     UsernameRequest,
     UsernameResponse,
@@ -226,12 +227,13 @@ def profile_response(
     )
 
 
-@router.get("/me/profile", response_model=UserProfileResponse)
+@router.get("/me/profile", response_model=MyUserProfileResponse)
 def get_my_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> UserProfileResponse:
-    return profile_response(db, current_user, current_user.id)
+) -> MyUserProfileResponse:
+    profile = profile_response(db, current_user, current_user.id)
+    return MyUserProfileResponse(**profile.model_dump(), is_admin=current_user.is_admin)
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -346,21 +348,22 @@ def get_my_stats(
     )
 
 
-@router.patch("/me/profile", response_model=UserProfileResponse)
+@router.patch("/me/profile", response_model=MyUserProfileResponse)
 async def update_my_profile(
     name: str | None = Form(default=None, max_length=100),
     bio: str | None = Form(default=None, max_length=500),
     avatar: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> UserProfileResponse:
+) -> MyUserProfileResponse:
     current_user.display_name = name
     current_user.bio = bio
     if avatar:
         current_user.avatar_url = await upload_blob(avatar, f"users/{current_user.id}/avatars")
     db.commit()
     db.refresh(current_user)
-    return profile_response(db, current_user, current_user.id)
+    profile = profile_response(db, current_user, current_user.id)
+    return MyUserProfileResponse(**profile.model_dump(), is_admin=current_user.is_admin)
 
 
 def list_user_challenges(
