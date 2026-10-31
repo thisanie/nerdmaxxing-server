@@ -960,8 +960,10 @@ Response `200 OK`:
 ### `POST /api/v1/evidence/{submission_id}/verify`
 
 Requires an admin account. Approves or rejects a pending submission and stores
-an optional note as the review reason. Approval completes the challenge and
-awards aura once for that evidence submission.
+an optional note as the review reason. Approval completes the challenge,
+publishes it as `PUBLIC`, and awards aura once for that evidence submission.
+The approved challenge then appears in the user's public completed-challenges
+profile. Rejection does not change the challenge's visibility.
 
 Request:
 

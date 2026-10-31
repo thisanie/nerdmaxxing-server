@@ -559,6 +559,10 @@ def verify_evidence(
     submission.review_reason = request.note
     if request.decision == "APPROVE":
         submission.status = "VERIFIED"
+        challenge.status = "PUBLISHED"
+        challenge.visibility = "PUBLIC"
+        if challenge.published_at is None:
+            challenge.published_at = datetime.utcnow()
         participant.status = "COMPLETED"
         participant.completion_status = "COMPLETED"
         participant.verification_status = "VERIFIED"

@@ -18,6 +18,7 @@ from app.api.evidence import (
     submit_evidence,
     verify_evidence,
 )
+from app.api.users import get_profile
 from app.models.base import Base
 from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
@@ -258,7 +259,11 @@ def create_review_database():
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     db = Session(engine)
-    current_user = User(id="user-1", username="user-1")
+    current_user = User(
+        id="user-1",
+        username="user-1",
+        username_normalized="user-1",
+    )
     reviewer = User(id="admin-1", username="admin-1", is_admin=True)
     challenge_value = Challenge(
         id="challenge-1",
@@ -307,6 +312,9 @@ def test_admin_approval_completes_and_awards_aura_once():
 
     assert result.status == "VERIFIED"
     assert result.review_reason == "Looks good."
+    assert challenge_value.status == "PUBLISHED"
+    assert challenge_value.visibility == "PUBLIC"
+    assert challenge_value.published_at is not None
     assert participant_value.status == "COMPLETED"
     assert participant_value.completion_status == "COMPLETED"
     assert participant_value.verification_status == "VERIFIED"
@@ -325,6 +333,8 @@ def test_admin_approval_completes_and_awards_aura_once():
             UserSkill.source_challenge_id == challenge_value.id,
         )
     ) == 1
+    public_profile = get_profile("user-1", db)
+    assert [item.id for item in public_profile.completed_challenges] == [challenge_value.id]
     assert get_evidence_approval_status(submission.id, db, current_user).is_approved is True
     with pytest.raises(HTTPException) as error:
         verify_evidence(
@@ -337,7 +347,7 @@ def test_admin_approval_completes_and_awards_aura_once():
 
 
 def test_rejection_note_is_visible_as_unapproved_status_and_can_retry():
-    db, current_user, reviewer, _, participant_value, submission = create_review_database()
+    db, current_user, reviewer, challenge_value, participant_value, submission = create_review_database()
     result = verify_evidence(
         submission.id,
         EvidenceVerificationRequest(decision="REJECT", note="Please provide clearer proof."),
@@ -349,6 +359,8 @@ def test_rejection_note_is_visible_as_unapproved_status_and_can_retry():
     assert result.review_reason == "Please provide clearer proof."
     assert participant_value.status == "IN_PROGRESS"
     assert participant_value.completion_status == "INCOMPLETE"
+    assert challenge_value.status == "PRIVATE"
+    assert challenge_value.visibility == "PRIVATE"
     status_result = get_evidence_approval_status(submission.id, db, current_user)
     assert status_result.is_approved is False
     assert status_result.note == "Please provide clearer proof."
