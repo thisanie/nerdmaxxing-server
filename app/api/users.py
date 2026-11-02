@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Reques
 from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -10,6 +10,7 @@ from app.core.dependencies import get_current_user, get_db, limiter
 from app.models.user import User
 from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
+from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.follow import UserFollow
 from app.models.group import Group, GroupMembership
 from app.models.invitation import Notification, PushToken
@@ -38,7 +39,7 @@ from app.services.user_service import (
     is_valid_username,
     normalize_username,
 )
-from app.services.blob_storage import upload_blob
+from app.services.blob_storage import delete_blob, delete_prefix, upload_blob
 from app.services.push_notification_service import send_notification_push
 from app.services.rank_service import rank_for_aura
 
@@ -251,6 +252,42 @@ def delete_my_account(
             select(Group).where(Group.creator_id == current_user.id)
         ).all()
     )
+    owned_challenge_ids = {challenge.id for challenge in owned_challenges}
+    participation_challenge_ids = set(
+        db.scalars(
+            select(ChallengeParticipant.challenge_id).where(
+                ChallengeParticipant.user_id == current_user.id
+            )
+        ).all()
+    )
+    evidence_keys = set(
+        db.scalars(
+            select(EvidenceItem.storage_key)
+            .join(EvidenceSubmission, EvidenceSubmission.id == EvidenceItem.submission_id)
+            .where(
+                EvidenceItem.storage_key.is_not(None),
+                or_(
+                    EvidenceSubmission.user_id == current_user.id,
+                    EvidenceSubmission.challenge_id.in_(owned_challenge_ids),
+                ),
+            )
+        ).all()
+    )
+
+    if settings.r2_endpoint_url and settings.r2_access_key_id and settings.r2_secret_access_key:
+        if settings.r2_bucket:
+            delete_prefix(f"users/{current_user.id}/", settings.r2_bucket)
+        for key in evidence_keys:
+            delete_blob(key, settings.r2_evidence_bucket)
+        evidence_prefixes = {
+            f"challenges/{challenge_id}/users/{current_user.id}/"
+            for challenge_id in participation_challenge_ids
+        }
+        evidence_prefixes.update(
+            f"challenges/{challenge_id}/" for challenge_id in owned_challenge_ids
+        )
+        for prefix in evidence_prefixes:
+            delete_prefix(prefix, settings.r2_evidence_bucket)
 
     for challenge in owned_challenges:
         db.delete(challenge)

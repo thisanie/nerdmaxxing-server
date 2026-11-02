@@ -123,6 +123,30 @@ def delete_blob(key: str, bucket: str) -> None:
         )
 
 
+def delete_prefix(prefix: str, bucket: str) -> None:
+    client = _client(bucket)
+    try:
+        paginator = client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            objects = [{"Key": item["Key"]} for item in page.get("Contents", [])]
+            if not objects:
+                continue
+            response = client.delete_objects(
+                Bucket=bucket,
+                Delete={"Objects": objects, "Quiet": True},
+            )
+            if response.get("Errors"):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Could not delete file from blob storage.",
+                )
+    except (BotoCoreError, ClientError):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not delete file from blob storage.",
+        )
+
+
 def private_blob_url(key: str, bucket: str) -> str:
     try:
         return _client(bucket).generate_presigned_url(
