@@ -15,6 +15,7 @@ from app.models.integration import ExternalAccountConnection
 
 SEED_USERNAME = "nerdmaxxing_seed"
 SEED_USER_ID = "00000000-0000-0000-0000-000000000001"
+PABLO_USER_ID = "pablo"
 SEED_CATEGORIES = [
     ("brain-memory", "Brain & Memory", "🧠"),
     ("technology", "Technology", "💻"),
@@ -35,7 +36,7 @@ CATEGORY_RULES = {
     "brain-memory": ("rubik", "sudoku", "meditate"),
     "knowledge": ("books",),
     "music": ("guitar",),
-    "practical": ("sugar", "save $", "cook"),
+    "practical": ("sugar", "save $", "cook", "fire"),
     "creative": ("juggle",),
 }
 FEATURED_TITLE = "Solve a Rubik's Cube in Under 2 Minutes"
@@ -66,6 +67,7 @@ SEED_EFFORT_RANGES = {
     "Save $1000 in 90 Days": (300, 600),
     "Cook 20 New Recipes": (1200, 2400),
     "Learn 500 Chess Opening Moves": (1200, 2400),
+    "Make Fire From Sticks: Light a Flame Without Matches or a Lighter": (30, 90),
 }
 SEED_METRICS = {
     "Solve a Rubik's Cube in Under 2 Minutes": (120, "SECONDS"),
@@ -89,6 +91,7 @@ SEED_METRICS = {
     "Save $1000 in 90 Days": (1000, "DOLLARS"),
     "Cook 20 New Recipes": (20, "RECIPES"),
     "Learn 500 Chess Opening Moves": (500, "MOVES"),
+    "Make Fire From Sticks: Light a Flame Without Matches or a Lighter": (60, "SECONDS"),
 }
 
 SPECIAL_CHALLENGES = [
@@ -285,6 +288,10 @@ def seed() -> None:
             )
             db.add(owner)
             db.flush()
+
+        pablo = db.get(User, PABLO_USER_ID)
+        if pablo is not None:
+            pablo.is_admin = True
 
         for display_order, (slug, name, icon) in enumerate(SEED_CATEGORIES):
             category = db.scalar(select(Category).where(Category.slug == slug))

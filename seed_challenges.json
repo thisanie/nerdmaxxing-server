@@ -308,6 +308,41 @@
         {"title": "Lichess Opening Explorer", "url": "https://lichess.org/opening", "resource_type": "TOOL", "rationale": "Interactive tool to explore and drill opening lines against real game data."},
         {"title": "r/chess Community", "url": "https://www.reddit.com/r/chess/", "resource_type": "COMMUNITY", "rationale": "Discuss opening theory and get game reviews from other players."}
       ]
+    },
+    {
+      "title": "Make Fire From Sticks: Light a Flame Without Matches or a Lighter",
+      "image_url": "https://cdn.shopify.com/s/files/1/0848/4896/8007/files/make-fire-by-friction.jpg?v=1765490396",
+      "short_description": "Carve your own friction-fire kit from raw wood, coax a glowing ember out of dust, and grow it into a real fire. No matches, no lighter, no shortcuts.",
+      "full_description": "Every human who ever sat by a fire descended from someone who first figured this out. Now it's your turn. Rubbing two sticks together doesn't work, but a carefully carved spindle, a notched hearth board and the right technique will turn wood dust into a glowing ember hot enough to start a fire.\n\nThis is a challenge of patience, precision and a little stubbornness. Expect smoke, blisters and failed attempts before the first ember appears. That first ember is worth it.\n\nTHE CHALLENGE: Using a friction method (bow drill, hand drill or fire plough), produce an ember, transfer it to a tinder bundle, blow it into flame and place it in a fire lay. The flame must keep burning on its own for at least 60 seconds.\n\nRULES: Your kit must be handmade from natural wood (cordage may be paracord, a shoelace or similar). No matches, lighters, ferro rods, flint and steel, magnifying lenses, batteries or chemical accelerators. Tinder must be natural, dry and fibrous, such as bark fibre, dry grass or jute.\n\nSAFETY: This is real fire. Check local fire rules and bans before you start. Work outdoors on bare mineral soil, clear of dry grass, leaves and overhanging branches. Keep a bucket of water and a shovel within reach. Carve away from your body using a sharp knife, and wear sturdy shoes. Never leave the fire unattended. When finished, put it fully out by drowning it with water, stirring the ashes and feeling for heat with the back of your hand. Repeat until everything is cold. Minors should do this only with adult supervision.",
+      "difficulty_level": "ADVANCED",
+      "verification_type": "VIDEO_UPLOAD",
+      "metrics": [
+        {"key": "sustained_flame_duration", "label": "Self-sustaining flame", "kind": "DURATION", "unit": "seconds", "target": 60, "baseline": 0, "direction": "AT_LEAST", "is_primary": true, "format": "INTEGER"},
+        {"key": "friction_ember", "label": "Ember produced by friction", "kind": "BOOLEAN", "unit": "ember", "target": true, "baseline": false, "direction": "BOOLEAN", "is_primary": false, "format": "BOOLEAN"}
+      ],
+      "requirements": [
+        {"metric_key": "friction_ember", "operator": "BOOLEAN", "value": true, "unit": "ember", "label": "Produce a glowing ember using a handmade friction kit (no matches, lighters, ferro rods, flint and steel or lenses)"},
+        {"metric_key": "sustained_flame_duration", "operator": "AT_LEAST", "value": 60, "unit": "seconds", "label": "Grow the ember into a flame that keeps burning on its own in a fire lay for at least 60 seconds"}
+      ],
+      "verification_instructions": "Record one continuous, unedited video with no cuts. Before you begin, show your face, your handmade kit, your tinder bundle, your bucket of water and the empty area around you. Show that no matches, lighters, ferro rods or other ignition tools are present. Hold up a piece of paper with your username and today's date. The attempt starts when you begin spinning the spindle. Failed attempts and restarts are allowed as long as the recording stays continuous. Film a close-up of the ember on the hearth board and of the transfer into the tinder bundle. Then show the flame going into your fire lay and keep filming until it has burned unaided for 60 seconds, with a clock or timer visible or the footage clearly continuous. End the video by extinguishing the fire with the drown, stir, feel method. Videos with cuts, hidden hands or a hidden ignition source will be rejected.",
+      "resources": [
+        {"title": "Make Fire From Sticks: The Complete Guide to Lighting a Flame Without Matches or a Lighter (NerdMaxxing)", "url": "https://nerdmaxxing.com/blog?slug=make-fire-from-sticks-the-complete-guide-to-lighting-a-flame-without-matches-or-a-lighter", "resource_type": "ARTICLE", "rationale": "Our starter guide explains the rules, safety basics and practice plan."},
+        {"title": "How to Start a Fire in a Survival Situation | Basic Instincts | WIRED", "url": "https://www.youtube.com/watch?v=ZPr-a8kht2E", "resource_type": "VIDEO", "rationale": "Demonstrates hand drill and bow drill techniques from scratch."},
+        {"title": "How to Make a Bow Drill Fire (Nature Mentor)", "url": "https://nature-mentor.com/bow-drill/", "resource_type": "ARTICLE", "rationale": "Covers building a beginner bow-drill kit and using it to make fire."},
+        {"title": "Making Fire with a Bow and Drill (Wilderness College)", "url": "https://wildernesscollege.com/bow-and-drill.html", "resource_type": "ARTICLE", "rationale": "Explains wood selection, the coal catcher and ember transfer."},
+        {"title": "Tinder Bundles (Jack Raven Bushcraft)", "url": "https://www.jackravenbushcraft.co.uk/tinder-bundles/", "resource_type": "ARTICLE", "rationale": "Explains how to prepare and safely use a tinder bundle."},
+        {"title": "Bow Drill Troubleshooting Guide (Outdoor Revival)", "url": "https://www.outdoorrevival.com/instant-articles/struggling-friction-firelighting-bow-drill-troubleshooting-guide.html", "resource_type": "ARTICLE", "rationale": "Diagnoses common bow-drill failures."},
+        {"title": "How to Maintain and Extinguish Your Campfire (Smokey Bear / US Forest Service)", "url": "https://smokeybear.com/en/prevention-how-tos/campfire-safety/how-to-maintain-and-extinguish-your-campfire", "resource_type": "ARTICLE", "rationale": "Provides official campfire safety and extinguishing guidance."},
+        {"title": "Beginner Bow Drilling Thread (BushcraftUK Community)", "url": "https://bushcraftuk.com/community/threads/hello-folks-beginner-bow-drilling.167378/", "resource_type": "COMMUNITY", "rationale": "Offers troubleshooting advice from experienced practitioners."},
+        {"title": "Bow Drill Mastery: From Forage to Flame (Udemy)", "url": "https://www.udemy.com/course/bow-drill-mastery-from-forage-to-flame/", "resource_type": "COURSE", "rationale": "Optional structured instruction for building a working kit."}
+      ],
+      "milestones": [
+        {"title": "Build Your Kit", "description": "Carve a spindle, hearth board, bow and bearing block from suitable wood, and fit a cord that does not slip or stretch.", "target_value": 10, "resource_order_indexes": [0, 1, 2, 3, 8]},
+        {"title": "Tame the Tinder", "description": "Prepare a loose, dry tinder bundle and gather graded kindling and fuel before drilling.", "target_value": 20, "resource_order_indexes": [1, 4]},
+        {"title": "Make Smoke", "description": "Get the spindle seated and produce steady smoke and dark, fine dust.", "target_value": 35, "resource_order_indexes": [2, 3, 5]},
+        {"title": "Birth an Ember", "description": "Produce a glowing ember that stays alive in the dust pile and troubleshoot failures.", "target_value": 50, "resource_order_indexes": [5, 7]},
+        {"title": "Light the Fire", "description": "Transfer the ember to the tinder bundle, build the fire lay, record a 60-second flame and extinguish it safely.", "target_value": 60, "resource_order_indexes": [0, 4, 6, 7]}
+      ]
     }
   ]
 }
