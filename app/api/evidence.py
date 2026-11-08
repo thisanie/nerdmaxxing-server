@@ -15,7 +15,9 @@ from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.challenge import Challenge
+from app.models.follow import UserFollow
 from app.models.integration import ExternalAccountConnection
+from app.models.invitation import Notification
 from app.models.participation import ChallengeParticipant
 from app.models.aura import AuraTransaction
 from app.models.skill import UserSkill
@@ -42,6 +44,7 @@ from app.services.blob_storage import (
 from app.services.verification_service import verification_config, verification_kind
 from app.services.chess_com import ChessComError, fetch_rapid_rating
 from app.services.aura_service import award_aura, calculate_aura
+from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -557,6 +560,10 @@ def verify_evidence(
 
     submission.reviewed_at = datetime.utcnow()
     submission.review_reason = request.note
+    owner = db.get(User, submission.user_id)
+    if owner is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence owner not found.")
+    notifications: list[Notification] = []
     if request.decision == "APPROVE":
         submission.status = "VERIFIED"
         challenge.status = "PUBLISHED"
@@ -589,19 +596,50 @@ def verify_evidence(
                 AuraTransaction.reference_id == submission.id,
             )
         ) is None:
-            recipient = db.get(User, submission.user_id)
-            if recipient is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence owner not found.")
             amount = calculate_aura(challenge)
             award_aura(
                 db,
-                recipient,
+                owner,
                 amount,
                 "Approved challenge evidence",
                 reference_type="EVIDENCE_SUBMISSION",
                 reference_id=submission.id,
             )
             db.add(Activity(user_id=submission.user_id, action="EARNED_AURA", challenge_id=challenge.id))
+        notifications.append(
+            Notification(
+                user_id=owner.id,
+                notification_type="EVIDENCE_APPROVED",
+                title="Evidence approved",
+                body=f"Your evidence for {challenge.title} was approved.",
+                actor_id=current_user.id,
+                actor_username=current_user.username,
+                actor_name=current_user.display_name,
+                challenge_id=challenge.id,
+                challenge_slug=challenge.slug,
+                challenge_title=challenge.title,
+            )
+        )
+        follower_ids = db.scalars(
+            select(UserFollow.follower_id).where(UserFollow.following_id == owner.id)
+        ).all()
+        actor_name = owner.username or owner.display_name or "Someone"
+        notifications.extend(
+            Notification(
+                user_id=follower_id,
+                notification_type="FOLLOWING_CHALLENGE_COMPLETED",
+                title="Challenge completed",
+                body=f"{actor_name} completed {challenge.title}.",
+                actor_id=owner.id,
+                actor_username=owner.username,
+                actor_name=owner.display_name,
+                challenge_id=challenge.id,
+                challenge_slug=challenge.slug,
+                challenge_title=challenge.title,
+            )
+            for follower_id in follower_ids
+            if follower_id != owner.id
+        )
     else:
         submission.status = "REJECTED"
         participant.status = "IN_PROGRESS"
@@ -609,9 +647,26 @@ def verify_evidence(
         participant.verification_status = "REJECTED"
         participant.completed_at = None
         participant.last_activity_at = datetime.utcnow()
+        notifications.append(
+            Notification(
+                user_id=owner.id,
+                notification_type="EVIDENCE_REJECTED",
+                title="Evidence rejected",
+                body=f"Your evidence for {challenge.title} was rejected. See the review note for details.",
+                actor_id=current_user.id,
+                actor_username=current_user.username,
+                actor_name=current_user.display_name,
+                challenge_id=challenge.id,
+                challenge_slug=challenge.slug,
+                challenge_title=challenge.title,
+            )
+        )
 
+    db.add_all(notifications)
     db.commit()
     db.refresh(submission)
+    for notification in notifications:
+        send_notification_push(db, notification)
     return evidence_response(submission, db)
 
 

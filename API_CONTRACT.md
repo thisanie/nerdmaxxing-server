@@ -977,6 +977,10 @@ Request:
 `decision` must be `APPROVE` or `REJECT`; `note` may be omitted or `null`.
 The response is the reviewed evidence submission. Rejected submissions return
 the participation to `IN_PROGRESS` so the user can submit evidence again.
+The submitter receives an `EVIDENCE_APPROVED` or `EVIDENCE_REJECTED`
+notification. On approval, each follower of the submitter also receives a
+`FOLLOWING_CHALLENGE_COMPLETED` notification. Notifications are persisted and
+push delivery is attempted when Firebase is configured.
 
 ### `GET /api/v1/evidence/{submission_id}/is-approved`
 
