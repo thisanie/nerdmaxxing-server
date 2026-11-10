@@ -3,7 +3,7 @@ import re
 import uuid
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -36,7 +36,7 @@ CATEGORY_RULES = {
     "brain-memory": ("rubik", "sudoku", "meditate"),
     "knowledge": ("books",),
     "music": ("guitar",),
-    "practical": ("sugar", "save $", "cook", "fire"),
+    "practical": ("sugar", "save $", "cook", "fire", "lock"),
     "creative": ("juggle",),
 }
 FEATURED_TITLE = "Solve a Rubik's Cube in Under 2 Minutes"
@@ -46,7 +46,7 @@ LEGENDARY_TITLES = {
     "Master the Splits",
 }
 SEED_EFFORT_RANGES = {
-    "Solve a Rubik's Cube in Under 2 Minutes": (600, 1800),
+    "Solve a Rubik's Cube in Under 2 Minutes": (20, 60),
     "Achieve 60 WPM Typing Speed": (180, 300),
     "Learn Conversational Spanish": (1200, 2400),
     "Run a 5K": (480, 720),
@@ -68,6 +68,7 @@ SEED_EFFORT_RANGES = {
     "Cook 20 New Recipes": (1200, 2400),
     "Learn 500 Chess Opening Moves": (1200, 2400),
     "Make Fire From Sticks: Light a Flame Without Matches or a Lighter": (30, 90),
+    "Pick a Lock in Under 5 Minutes": (20, 60),
 }
 SEED_METRICS = {
     "Solve a Rubik's Cube in Under 2 Minutes": (120, "SECONDS"),
@@ -92,6 +93,7 @@ SEED_METRICS = {
     "Cook 20 New Recipes": (20, "RECIPES"),
     "Learn 500 Chess Opening Moves": (500, "MOVES"),
     "Make Fire From Sticks: Light a Flame Without Matches or a Lighter": (60, "SECONDS"),
+    "Pick a Lock in Under 5 Minutes": (300, "SECONDS"),
 }
 
 SPECIAL_CHALLENGES = [
@@ -216,6 +218,8 @@ def make_slug(title: str) -> str:
 
 
 def category_slugs_for(title: str) -> list[str]:
+    if title == FEATURED_TITLE:
+        return ["games-strategy"]
     normalized_title = title.lower()
     matches = [
         slug
@@ -227,6 +231,38 @@ def category_slugs_for(title: str) -> list[str]:
 
 def image_url_for(item: dict) -> str:
     return item.get("image_url") or settings.default_challenge_image_url
+
+
+def effort_range_for(item: dict) -> tuple[int, int]:
+    title = item["title"]
+    fallback = SEED_EFFORT_RANGES.get(title)
+    minimum = item.get("estimated_effort_min_minutes")
+    maximum = item.get("estimated_effort_max_minutes")
+    if minimum is None or maximum is None:
+        if fallback is None:
+            raise ValueError(
+                f"Seed challenge '{title}' must define estimated_effort_min_minutes "
+                "and estimated_effort_max_minutes."
+            )
+        minimum, maximum = fallback
+    return minimum, maximum
+
+
+def target_metric_for(item: dict) -> tuple[float, str]:
+    title = item["title"]
+    metrics = item.get("metrics") or []
+    primary_metric = next(
+        (metric for metric in metrics if metric.get("is_primary")),
+        metrics[0] if metrics else None,
+    )
+    if primary_metric is not None and primary_metric.get("target") is not None:
+        return primary_metric["target"], str(primary_metric.get("unit") or "").upper()
+    fallback = SEED_METRICS.get(title)
+    if fallback is None:
+        raise ValueError(
+            f"Seed challenge '{title}' must define a metric with a target and unit."
+        )
+    return fallback
 
 
 def seed_special_challenges(db, owner: User) -> None:
@@ -303,11 +339,18 @@ def seed() -> None:
             for category in db.scalars(select(Category)).all()
         }
 
+        seed_items = load_seed_data()["challenges"]
+        seed_titles = {item["title"] for item in seed_items}
+        for challenge in db.scalars(select(Challenge)).all():
+            if challenge.creator_id != owner.id or challenge.title not in seed_titles:
+                db.delete(challenge)
+        db.flush()
+
         created = 0
         updated = 0
-        for item in load_seed_data()["challenges"]:
-            effort_min, effort_max = SEED_EFFORT_RANGES[item["title"]]
-            target_value, target_unit = SEED_METRICS[item["title"]]
+        for item in seed_items:
+            effort_min, effort_max = effort_range_for(item)
+            target_value, target_unit = target_metric_for(item)
             challenge = db.scalar(
                 select(Challenge).where(
                     Challenge.title == item["title"],
@@ -331,11 +374,11 @@ def seed() -> None:
                     target_value=target_value,
                     target_unit=target_unit,
                     min_accuracy_percent=95 if target_unit == "WPM" else None,
-                    required_runs=item.get("required_runs", 3 if item["title"] == FEATURED_TITLE else 1),
+                    required_runs=item.get("required_runs", 1),
                     verification_instructions=item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements."),
                     metrics=item.get("metrics"),
                     requirements=item.get("requirements"),
-                    estimated_duration_minutes=10080,
+                    estimated_duration_minutes=item.get("estimated_duration_minutes", 10080),
                     featured=item["title"] == FEATURED_TITLE,
                     legendary=item["title"] in LEGENDARY_TITLES,
                     published_at=utcnow(),
@@ -354,17 +397,16 @@ def seed() -> None:
                 challenge.target_value = target_value
                 challenge.target_unit = target_unit
                 challenge.min_accuracy_percent = 95 if target_unit == "WPM" else None
-                challenge.required_runs = item.get("required_runs", 3 if item["title"] == FEATURED_TITLE else 1)
+                challenge.required_runs = item.get("required_runs", 1)
                 challenge.verification_instructions = item.get("verification_instructions", "Submit evidence that demonstrates the target metric and satisfies the challenge requirements.")
                 challenge.metrics = item.get("metrics")
                 challenge.requirements = item.get("requirements")
-                challenge.estimated_duration_minutes = challenge.estimated_duration_minutes or 10080
+                challenge.estimated_duration_minutes = item.get("estimated_duration_minutes", 10080)
                 challenge.featured = item["title"] == FEATURED_TITLE
                 challenge.legendary = item["title"] in LEGENDARY_TITLES
                 challenge.status = "PUBLISHED"
                 challenge.visibility = "PUBLIC"
                 challenge.published_at = utcnow()
-                challenge.resources.clear()
                 updated += 1
 
             challenge.categories = [
@@ -372,31 +414,41 @@ def seed() -> None:
                 for slug in category_slugs_for(item["title"])
             ]
 
-            if not challenge.resources:
-                challenge.resources = [
-                    ChallengeResource(
-                        title=resource["title"],
-                        url=resource["url"],
-                        resource_type=resource["resource_type"],
-                        rationale=resource["rationale"],
-                        order_index=index,
-                    )
-                    for index, resource in enumerate(item["resources"])
-                ]
+            db.execute(
+                delete(ChallengeResource).where(
+                    ChallengeResource.challenge_id == challenge.id
+                )
+            )
+            db.execute(
+                delete(ChallengeMilestone).where(
+                    ChallengeMilestone.challenge_id == challenge.id
+                )
+            )
+            resources = [
+                ChallengeResource(
+                    challenge_id=challenge.id,
+                    title=resource["title"],
+                    url=resource["url"],
+                    resource_type=resource["resource_type"],
+                    rationale=resource["rationale"],
+                    order_index=index,
+                )
+                for index, resource in enumerate(item["resources"])
+            ]
+            db.add_all(resources)
             db.flush()
             resources_by_order = {
-                resource.order_index: resource
-                for resource in challenge.resources
+                resource.order_index: resource for resource in resources
             }
-            challenge.milestones.clear()
             default_milestone = {
                 "title": f"Reach {target_value:g} {target_unit}",
                 "description": "Meet the challenge target metric using the challenge resources.",
                 "target_value": target_value,
                 "resource_order_indexes": list(resources_by_order),
             }
-            challenge.milestones = [
+            milestones = [
                 ChallengeMilestone(
+                    challenge_id=challenge.id,
                     order_index=index,
                     title=milestone["title"],
                     description=milestone["description"],
@@ -415,8 +467,7 @@ def seed() -> None:
                     start=1,
                 )
             ]
-
-        seed_special_challenges(db, owner)
+            db.add_all(milestones)
 
         db.commit()
         print(f"Seeded {created} new challenges and refreshed {updated} existing challenges.")

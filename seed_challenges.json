@@ -2,50 +2,130 @@
   "challenges": [
     {
       "title": "Solve a Rubik's Cube in Under 2 Minutes",
-      "image_url": "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60",
-      "short_description": "Learn to solve a 3x3 Rubik's Cube and build the speed, recognition and turning skills needed to consistently solve it in under 2 minutes.",
-      "full_description": "Learn the 3x3 Rubik's Cube from the ground up, starting with the beginner solving method and progressing toward speedsolving fundamentals. You will learn cube notation, solve the cube layer by layer, develop efficient turning habits, practice timed solves, and introduce beginner CFOP concepts to break through the two-minute barrier. The challenge is complete when you achieve a verified solve under 2 minutes.",
+      "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/0d05380082104bfea781f024d3fe42d4.png",
+      "short_description": "Go from a scrambled 3x3 to solved in under two minutes using a beginner-friendly method.",
+      "full_description": "Learn the beginner method, then drill it until you can solve a scrambled Rubik's Cube in under 120 seconds. You only need a few short move sequences, not heavy memorising, but it takes real practice to get fast. Your solve must be timed on camera from a proper scramble.",
       "difficulty_level": "INTERMEDIATE",
-      "verification_type": "VIDEO_VERIFIED",
+      "estimated_effort_min_minutes": 20,
+      "estimated_effort_max_minutes": 60,
+      "estimated_duration_minutes": 20160,
+      "verification_type": "VIDEO_UPLOAD",
       "metrics": [
-        {"key": "solve_time", "label": "Solve time", "kind": "DURATION", "unit": "seconds", "target": 120, "direction": "AT_MOST", "is_primary": true, "format": "INTEGER"}
+        {
+          "key": "solve_time",
+          "label": "Solve time",
+          "kind": "DURATION",
+          "unit": "seconds",
+          "target": 120,
+          "baseline": 600,
+          "direction": "AT_MOST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
       ],
       "requirements": [
-        {"metric_key": "solve_time", "operator": "AT_MOST", "value": 120, "unit": "seconds", "label": "Complete a full 3x3 solve in under 120 seconds"}
+        {
+          "metric_key": "solve_time",
+          "operator": "AT_MOST",
+          "value": 120,
+          "unit": "seconds",
+          "label": "Solve a scrambled 3x3 Rubik's Cube in 120 seconds or less"
+        }
       ],
-      "verification_instructions": "Record three independent solves. Each solve must begin from a scrambled 3x3 cube and finish with the cube completely solved in under 2 minutes. The complete cube and timer must remain visible throughout each attempt. Use a continuous recording with no cuts or external assistance.",
+      "verification_instructions": "Record one continuous video with no cuts. Show a scramble from csTimer on screen, apply it to your cube, then solve it with a visible timer. Time starts at your first move and stops when the cube is fully solved. Keep your hands and the cube in frame throughout.",
       "resources": [
-        {"title": "Rubik's Cube Move Notation", "url": "https://www.jperm.net/3x3/moves", "resource_type": "ARTICLE", "rationale": "Learn the basic U, D, R, L, F and B notation, prime moves, double turns, cube rotations and other notation needed to follow algorithms.", "required": true},
-        {"title": "How To Solve a 3x3 Rubik's Cube", "url": "https://www.jperm.net/3x3", "resource_type": "INTERACTIVE_GUIDE", "rationale": "The primary beginner tutorial. It teaches the complete solve through the white cross, first layer, second layer, last-layer cross, corners and final orientation.", "required": true},
-        {"title": "Beginner Method Example Solve", "url": "https://www.jperm.net/3x3", "resource_type": "VIDEO", "rationale": "Use the example solve alongside the written beginner method when a step is difficult to understand.", "required": false},
-        {"title": "Rubik's Cube Finger Tricks", "url": "https://www.jperm.net/3x3/fingertricks", "resource_type": "VIDEO", "rationale": "Learn how to execute turns using fingers instead of repeatedly repositioning the whole hand. This improves turning efficiency and reduces unnecessary regrips.", "required": true},
-        {"title": "CFOP Speedsolving Method", "url": "https://www.jperm.net/3x3/cfop", "resource_type": "INTERACTIVE_GUIDE", "rationale": "Introduces Cross, F2L, OLL and PLL and explains how speedsolving differs from the beginner method.", "required": true},
-        {"title": "Intuitive F2L", "url": "https://www.jperm.net/3x3/cfop/f2l", "resource_type": "VIDEO", "rationale": "Learn to solve the first two layers simultaneously instead of completing them layer by layer. This is one of the biggest efficiency improvements over the beginner method.", "required": true},
-        {"title": "2-Look OLL and 2-Look PLL", "url": "https://www.jperm.net/3x3/cfop/ll", "resource_type": "INTERACTIVE_GUIDE", "rationale": "Introduces the beginner-friendly versions of OLL and PLL rather than requiring the learner to memorize all 78 full OLL and PLL algorithms.", "required": true},
-        {"title": "OLL Algorithm Trainer", "url": "https://www.speedcubedb.com/t/3x3/OLL", "resource_type": "INTERACTIVE_TRAINER", "rationale": "Practice recognizing and executing OLL cases interactively instead of repeatedly studying algorithms passively.", "required": false},
-        {"title": "PLL Algorithm Trainer", "url": "https://www.speedcubedb.com/t/3x3/PLL", "resource_type": "INTERACTIVE_TRAINER", "rationale": "Practice PLL recognition and execution through repeated algorithm training.", "required": false},
-        {"title": "CFOP Cross Fundamentals", "url": "https://www.jperm.net/3x3/cfop", "resource_type": "VIDEO", "rationale": "Learn to plan and execute the cross more efficiently, including solving the cross on the bottom and reducing unnecessary moves.", "required": false}
+        {
+          "title": "Solve a Rubik's Cube in Under 2 Minutes: The Complete Beginner's Guide (NerdMaxxing)",
+          "url": "https://nerdmaxxing.com/blog?slug=solve-a-rubik-s-cube-in-under-2-minutes-the-complete-beginner-s-guide",
+          "resource_type": "ARTICLE",
+          "rationale": "Our starter guide with the method overview, a 2-week practice plan and a filming checklist.",
+          "order_index": 0
+        },
+        {
+          "title": "Learn How to Solve a Rubik's Cube in 10 Minutes (J Perm)",
+          "url": "https://www.youtube.com/watch?v=7Ron6MN45LY",
+          "resource_type": "VIDEO",
+          "rationale": "A beginner tutorial that needs no move notation or long algorithms.",
+          "order_index": 1
+        },
+        {
+          "title": "How To Solve The 3x3 Rubik's Cube (jperm.net)",
+          "url": "https://jperm.net/3x3",
+          "resource_type": "ARTICLE",
+          "rationale": "Written, illustrated steps for the same method, so you can follow along at your own pace.",
+          "order_index": 2
+        },
+        {
+          "title": "Beginner Method Example Solve (J Perm)",
+          "url": "https://www.youtube.com/watch?v=DepFQpJ5KqU",
+          "resource_type": "VIDEO",
+          "rationale": "A full solve start to finish, useful when a step or case is unclear.",
+          "order_index": 3
+        },
+        {
+          "title": "Finger Tricks (jperm.net)",
+          "url": "https://jperm.net/3x3/fingertricks",
+          "resource_type": "ARTICLE",
+          "rationale": "Faster, smoother turning is what gets most people from a few minutes to under two.",
+          "order_index": 4
+        },
+        {
+          "title": "csTimer",
+          "url": "https://www.cstimer.net/",
+          "resource_type": "TOOL",
+          "rationale": "Generates scrambles and times your solves, and works from a phone's home screen.",
+          "order_index": 5
+        },
+        {
+          "title": "r/cubers",
+          "url": "https://reddit.com/r/cubers",
+          "resource_type": "COMMUNITY",
+          "rationale": "A large cubing community for questions, solve feedback and motivation.",
+          "order_index": 6
+        }
       ],
       "milestones": [
-        {"title": "Learn the Language of the Cube", "description": "Understand how the cube is structured and learn the notation used to describe moves.", "target_value": 1, "resource_order_indexes": [0]},
-        {"title": "Solve Your First Cube", "description": "Learn the complete beginner method and solve a scrambled cube without following a solver.", "target_value": 1, "resource_order_indexes": [1]},
-        {"title": "Build Consistency", "description": "Turn the beginner method into a repeatable skill instead of something you can only do by following instructions.", "target_value": 10, "resource_order_indexes": [2]},
-        {"title": "Turn Faster", "description": "Replace slow whole-hand movements with efficient finger turns and reduce unnecessary pauses and regrips.", "target_value": 10, "resource_order_indexes": [3]},
-        {"title": "Start Speedsolving", "description": "Move beyond the beginner method and learn the fundamentals of CFOP speedsolving.", "target_value": 1, "resource_order_indexes": [4]},
-        {"title": "Break the 2-Minute Barrier", "description": "Combine efficient solving, faster turning and repeated timed practice until you can consistently solve the cube within two minutes.", "target_value": 120, "resource_order_indexes": [5, 6]}
-      ]
-    },
-    {
-      "title": "Achieve 60 WPM Typing Speed",
-      "image_url": "https://source.unsplash.com/featured/800x600/?keyboard,typing",
-      "short_description": "Reach a typing speed of 60 words per minute.",
-      "full_description": "Practice touch typing daily using structured lessons and speed tests until you can consistently type at 60 WPM with high accuracy.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Touch Typing Fundamentals", "url": "https://www.typing.com/student/lessons", "resource_type": "ARTICLE", "rationale": "Covers proper finger placement and technique for faster typing."},
-        {"title": "Monkeytype - Practice & Track Speed", "url": "https://monkeytype.com/", "resource_type": "TOOL", "rationale": "A minimal, customizable typing test to track WPM progress over time."},
-        {"title": "10 Tips to Improve Typing Speed", "url": "https://example.com/typing-tips", "resource_type": "ARTICLE", "rationale": "Quick practical tips for building muscle memory faster."}
+        {
+          "title": "Solve It Once",
+          "description": "Finish your first solve by following the beginner method.",
+          "target_value": 600,
+          "resource_order_indexes": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "title": "Break 5 Minutes",
+          "description": "Learn the steps by heart and stop checking the guide.",
+          "target_value": 300,
+          "resource_order_indexes": [
+            2,
+            5
+          ]
+        },
+        {
+          "title": "Break 3 Minutes",
+          "description": "Smooth out your turning with finger tricks.",
+          "target_value": 180,
+          "resource_order_indexes": [
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "title": "Break 2 Minutes",
+          "description": "Record your timed solve under 120 seconds.",
+          "target_value": 120,
+          "resource_order_indexes": [
+            0,
+            4,
+            5,
+            6
+          ]
+        }
       ]
     },
     {
@@ -56,23 +136,30 @@
       "difficulty_level": "INTERMEDIATE",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "Spanish for Beginners Course", "url": "https://www.duolingo.com/course/es/en/Learn-Spanish", "resource_type": "COURSE", "rationale": "Structured curriculum for building conversational fluency."},
-        {"title": "500 Most Common Spanish Words", "url": "https://example.com/spanish-vocab-500", "resource_type": "ARTICLE", "rationale": "A high-frequency word list to prioritize practical vocabulary."},
-        {"title": "Tandem Language Exchange App", "url": "https://www.tandem.net/", "resource_type": "TOOL", "rationale": "Connects you with native Spanish speakers for real conversation practice."},
-        {"title": "Spanish Pronunciation Guide", "url": "https://www.youtube.com/watch?v=xvW3dEEjjfU", "resource_type": "VIDEO", "rationale": "Helps you master accent and pronunciation before speaking with natives."}
-      ]
-    },
-    {
-      "title": "Run a 5K",
-      "image_url": "https://source.unsplash.com/featured/800x600/?running,marathon",
-      "short_description": "Complete a 5K run without stopping.",
-      "full_description": "Follow a couch-to-5K training plan, build up your endurance over weeks, and complete a full 5 kilometer run without walking.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Couch to 5K Training Plan", "url": "https://www.nhs.uk/live-well/exercise/couch-to-5k-week-by-week/", "resource_type": "ARTICLE", "rationale": "Provides a structured 8-week plan to build running endurance."},
-        {"title": "Strava - Track Your Runs", "url": "https://www.strava.com/", "resource_type": "TOOL", "rationale": "Used to log and verify your runs with GPS-tracked distance and pace."},
-        {"title": "Running Form Basics", "url": "https://www.youtube.com/watch?v=brFHyOtTwH4", "resource_type": "VIDEO", "rationale": "Reduces injury risk by teaching proper running posture and cadence."}
+        {
+          "title": "Spanish for Beginners Course",
+          "url": "https://www.duolingo.com/course/es/en/Learn-Spanish",
+          "resource_type": "COURSE",
+          "rationale": "Structured curriculum for building conversational fluency."
+        },
+        {
+          "title": "500 Most Common Spanish Words",
+          "url": "https://example.com/spanish-vocab-500",
+          "resource_type": "ARTICLE",
+          "rationale": "A high-frequency word list to prioritize practical vocabulary."
+        },
+        {
+          "title": "Tandem Language Exchange App",
+          "url": "https://www.tandem.net/",
+          "resource_type": "TOOL",
+          "rationale": "Connects you with native Spanish speakers for real conversation practice."
+        },
+        {
+          "title": "Spanish Pronunciation Guide",
+          "url": "https://www.youtube.com/watch?v=xvW3dEEjjfU",
+          "resource_type": "VIDEO",
+          "rationale": "Helps you master accent and pronunciation before speaking with natives."
+        }
       ]
     },
     {
@@ -83,8 +170,18 @@
       "difficulty_level": "INTERMEDIATE",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "Push-Up Progression Guide", "url": "https://example.com/pushup-progression", "resource_type": "ARTICLE", "rationale": "Breaks down a step-by-step strength building plan for push-ups."},
-        {"title": "Perfect Push-Up Form", "url": "https://www.youtube.com/watch?v=IODxDxX7oi4", "resource_type": "VIDEO", "rationale": "Demonstrates correct form to avoid injury and maximize effectiveness."}
+        {
+          "title": "Push-Up Progression Guide",
+          "url": "https://example.com/pushup-progression",
+          "resource_type": "ARTICLE",
+          "rationale": "Breaks down a step-by-step strength building plan for push-ups."
+        },
+        {
+          "title": "Perfect Push-Up Form",
+          "url": "https://www.youtube.com/watch?v=IODxDxX7oi4",
+          "resource_type": "VIDEO",
+          "rationale": "Demonstrates correct form to avoid injury and maximize effectiveness."
+        }
       ]
     },
     {
@@ -95,61 +192,28 @@
       "difficulty_level": "ADVANCED",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "30-Day Flexibility Program", "url": "https://example.com/flexibility-program", "resource_type": "COURSE", "rationale": "Provides a safe, progressive stretching routine to build flexibility."},
-        {"title": "Anatomy of the Splits", "url": "https://example.com/splits-anatomy", "resource_type": "ARTICLE", "rationale": "Explains which muscles to target and how to avoid common injuries."},
-        {"title": "Daily Mobility Community", "url": "https://www.reddit.com/r/flexibility/", "resource_type": "COMMUNITY", "rationale": "Share progress and get form feedback from others working toward splits."}
+        {
+          "title": "30-Day Flexibility Program",
+          "url": "https://example.com/flexibility-program",
+          "resource_type": "COURSE",
+          "rationale": "Provides a safe, progressive stretching routine to build flexibility."
+        },
+        {
+          "title": "Anatomy of the Splits",
+          "url": "https://example.com/splits-anatomy",
+          "resource_type": "ARTICLE",
+          "rationale": "Explains which muscles to target and how to avoid common injuries."
+        },
+        {
+          "title": "Daily Mobility Community",
+          "url": "https://www.reddit.com/r/flexibility/",
+          "resource_type": "COMMUNITY",
+          "rationale": "Share progress and get form feedback from others working toward splits."
+        }
       ]
     },
-    {
-      "title": "Meditate for 30 Days Straight",
-      "image_url": "https://source.unsplash.com/featured/800x600/?meditation,calm",
-      "short_description": "Meditate daily for 30 consecutive days.",
-      "full_description": "Build a consistent meditation habit by practicing mindfulness or guided meditation for at least 10 minutes every day for 30 days.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Beginner's Guide to Meditation", "url": "https://example.com/meditation-guide", "resource_type": "ARTICLE", "rationale": "Explains simple techniques to build a sustainable meditation habit."},
-        {"title": "Headspace App", "url": "https://www.headspace.com/", "resource_type": "TOOL", "rationale": "Guided meditation sessions and streak tracking to stay consistent."},
-        {"title": "The Science of Mindfulness", "url": "https://example.com/mindfulness-science", "resource_type": "ARTICLE", "rationale": "Explains the mental health benefits backed by research."}
-      ]
-    },
-    {
-      "title": "Read 12 Books in a Year",
-      "image_url": "https://source.unsplash.com/featured/800x600/?books,reading",
-      "short_description": "Read one book per month for 12 months.",
-      "full_description": "Build a consistent reading habit by finishing at least one book every month, covering a variety of genres and topics.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "How to Build a Reading Habit", "url": "https://example.com/reading-habit", "resource_type": "ARTICLE", "rationale": "Offers strategies for consistently making time to read."},
-        {"title": "Goodreads - Track Your Books", "url": "https://www.goodreads.com/", "resource_type": "TOOL", "rationale": "Log books read and set/track your annual reading goal."},
-        {"title": "Best Books to Start With", "url": "https://example.com/best-starter-books", "resource_type": "ARTICLE", "rationale": "A curated list to help you pick engaging books across genres."}
-      ]
-    },
-    {
-      "title": "Learn to Juggle 3 Balls",
-      "image_url": "https://source.unsplash.com/featured/800x600/?juggling",
-      "short_description": "Juggle 3 balls continuously for 1 minute.",
-      "full_description": "Practice the basic cascade juggling pattern daily until you can keep 3 balls in the air continuously for a full minute.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "VIDEO_VERIFIED",
-      "resources": [
-        {"title": "Juggling for Beginners", "url": "https://www.youtube.com/watch?v=6dEvsp3AmnE", "resource_type": "VIDEO", "rationale": "Demonstrates the cascade pattern step by step for new jugglers."},
-        {"title": "Common Juggling Mistakes", "url": "https://example.com/juggling-mistakes", "resource_type": "ARTICLE", "rationale": "Helps beginners troubleshoot drops and timing issues."}
-      ]
-    },
-    {
-      "title": "Hold a Plank for 3 Minutes",
-      "image_url": "https://source.unsplash.com/featured/800x600/?plank,core",
-      "short_description": "Hold a forearm plank for 3 consecutive minutes.",
-      "full_description": "Build core strength and endurance through progressive plank training until you can hold proper plank form for 3 full minutes.",
-      "difficulty_level": "INTERMEDIATE",
-      "verification_type": "VIDEO_VERIFIED",
-      "resources": [
-        {"title": "Plank Progression Plan", "url": "https://example.com/plank-progression", "resource_type": "ARTICLE", "rationale": "Provides a structured plan to gradually increase plank hold time."},
-        {"title": "Perfect Plank Form Guide", "url": "https://www.youtube.com/watch?v=pSHjTRCQxIw", "resource_type": "VIDEO", "rationale": "Shows correct alignment to prevent lower back strain."}
-      ]
-    },
+
+    
     {
       "title": "Learn to Play a Song on Guitar",
       "image_url": "https://source.unsplash.com/featured/800x600/?guitar,music",
@@ -158,23 +222,30 @@
       "difficulty_level": "BEGINNER",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "Guitar Basics for Absolute Beginners", "url": "https://www.justinguitar.com/", "resource_type": "COURSE", "rationale": "Covers essential chords and strumming needed to play your first song."},
-        {"title": "Easy Songs for Beginners", "url": "https://example.com/easy-guitar-songs", "resource_type": "ARTICLE", "rationale": "A curated list of simple songs using only 3-4 chords."},
-        {"title": "Chord Chart Reference", "url": "https://example.com/downloads/guitar-chord-chart.pdf", "resource_type": "DOCUMENT", "rationale": "Printable reference for common open chords."},
-        {"title": "r/Guitar Community", "url": "https://www.reddit.com/r/Guitar/", "resource_type": "COMMUNITY", "rationale": "Share progress videos and get feedback from other learners."}
-      ]
-    },
-    {
-      "title": "Complete a 30-Day No-Sugar Challenge",
-      "image_url": "https://source.unsplash.com/featured/800x600/?healthyfood,diet",
-      "short_description": "Avoid added sugar for 30 consecutive days.",
-      "full_description": "Eliminate added sugars from your diet for 30 days, tracking your meals and building healthier eating habits along the way.",
-      "difficulty_level": "INTERMEDIATE",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Guide to Cutting Added Sugar", "url": "https://example.com/no-sugar-guide", "resource_type": "ARTICLE", "rationale": "Explains how to identify and eliminate hidden sugars in your diet."},
-        {"title": "MyFitnessPal - Track Your Meals", "url": "https://www.myfitnesspal.com/", "resource_type": "TOOL", "rationale": "Helps track daily sugar intake and catch hidden sources."},
-        {"title": "Sugar-Free Recipe Ideas", "url": "https://example.com/sugar-free-recipes", "resource_type": "ARTICLE", "rationale": "Practical meal ideas to make the challenge easier to sustain."}
+        {
+          "title": "Guitar Basics for Absolute Beginners",
+          "url": "https://www.justinguitar.com/",
+          "resource_type": "COURSE",
+          "rationale": "Covers essential chords and strumming needed to play your first song."
+        },
+        {
+          "title": "Easy Songs for Beginners",
+          "url": "https://example.com/easy-guitar-songs",
+          "resource_type": "ARTICLE",
+          "rationale": "A curated list of simple songs using only 3-4 chords."
+        },
+        {
+          "title": "Chord Chart Reference",
+          "url": "https://example.com/downloads/guitar-chord-chart.pdf",
+          "resource_type": "DOCUMENT",
+          "rationale": "Printable reference for common open chords."
+        },
+        {
+          "title": "r/Guitar Community",
+          "url": "https://www.reddit.com/r/Guitar/",
+          "resource_type": "COMMUNITY",
+          "rationale": "Share progress videos and get feedback from other learners."
+        }
       ]
     },
     {
@@ -185,9 +256,24 @@
       "difficulty_level": "ADVANCED",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "Beginner Powerlifting Program", "url": "https://example.com/powerlifting-program", "resource_type": "COURSE", "rationale": "Provides a structured strength training program for the big three lifts."},
-        {"title": "Squat, Bench, Deadlift Form Guide", "url": "https://www.youtube.com/watch?v=ultWZbUMPL8", "resource_type": "VIDEO", "rationale": "Covers proper form for the three lifts to maximize strength safely."},
-        {"title": "r/Powerlifting Community", "url": "https://www.reddit.com/r/powerlifting/", "resource_type": "COMMUNITY", "rationale": "Get programming advice and share lift progress with experienced lifters."}
+        {
+          "title": "Beginner Powerlifting Program",
+          "url": "https://example.com/powerlifting-program",
+          "resource_type": "COURSE",
+          "rationale": "Provides a structured strength training program for the big three lifts."
+        },
+        {
+          "title": "Squat, Bench, Deadlift Form Guide",
+          "url": "https://www.youtube.com/watch?v=ultWZbUMPL8",
+          "resource_type": "VIDEO",
+          "rationale": "Covers proper form for the three lifts to maximize strength safely."
+        },
+        {
+          "title": "r/Powerlifting Community",
+          "url": "https://www.reddit.com/r/powerlifting/",
+          "resource_type": "COMMUNITY",
+          "rationale": "Get programming advice and share lift progress with experienced lifters."
+        }
       ]
     },
     {
@@ -198,34 +284,18 @@
       "difficulty_level": "BEGINNER",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "ASL 100 Common Signs", "url": "https://www.youtube.com/watch?v=v1desDduz5M", "resource_type": "VIDEO", "rationale": "Demonstrates the 100 most commonly used signs for beginners."},
-        {"title": "ASL Alphabet Chart", "url": "https://example.com/downloads/asl-alphabet.pdf", "resource_type": "DOCUMENT", "rationale": "Reference chart for fingerspelling, a foundational ASL skill."}
-      ]
-    },
-    {
-      "title": "Complete a 100-Day Coding Streak",
-      "image_url": "https://source.unsplash.com/featured/800x600/?coding,programming",
-      "short_description": "Code every day for 100 consecutive days.",
-      "full_description": "Build a strong programming habit by writing and committing code every single day for 100 days straight, no matter how small.",
-      "difficulty_level": "INTERMEDIATE",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "100 Days of Code Challenge Guide", "url": "https://www.100daysofcode.com/", "resource_type": "ARTICLE", "rationale": "Outlines strategies for maintaining a daily coding streak."},
-        {"title": "GitHub - Track Your Commits", "url": "https://github.com/", "resource_type": "TOOL", "rationale": "Your contribution graph serves as visual proof of your daily streak."},
-        {"title": "freeCodeCamp Curriculum", "url": "https://www.freecodecamp.org/", "resource_type": "COURSE", "rationale": "Provides structured daily lessons and projects to fuel your streak."},
-        {"title": "#100DaysOfCode Community", "url": "https://www.reddit.com/r/100DaysOfCode/", "resource_type": "COMMUNITY", "rationale": "Stay accountable and motivated with others doing the challenge."}
-      ]
-    },
-    {
-      "title": "Swim 1500m Without Stopping",
-      "image_url": "https://source.unsplash.com/featured/800x600/?swimming,pool",
-      "short_description": "Swim 1500 meters continuously.",
-      "full_description": "Build swimming endurance through progressive training until you can complete 1500 meters (a mile swim) without stopping.",
-      "difficulty_level": "INTERMEDIATE",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Swim Endurance Training Plan", "url": "https://example.com/swim-endurance", "resource_type": "ARTICLE", "rationale": "Provides a progressive plan to build up continuous swim distance."},
-        {"title": "Freestyle Technique Breakdown", "url": "https://www.youtube.com/watch?v=5HLW2AI1Ink", "resource_type": "VIDEO", "rationale": "Efficient technique reduces fatigue over longer swim distances."}
+        {
+          "title": "ASL 100 Common Signs",
+          "url": "https://www.youtube.com/watch?v=v1desDduz5M",
+          "resource_type": "VIDEO",
+          "rationale": "Demonstrates the 100 most commonly used signs for beginners."
+        },
+        {
+          "title": "ASL Alphabet Chart",
+          "url": "https://example.com/downloads/asl-alphabet.pdf",
+          "resource_type": "DOCUMENT",
+          "rationale": "Reference chart for fingerspelling, a foundational ASL skill."
+        }
       ]
     },
     {
@@ -236,53 +306,137 @@
       "difficulty_level": "BEGINNER",
       "verification_type": "VIDEO_VERIFIED",
       "resources": [
-        {"title": "Sudoku Solving Strategies", "url": "https://example.com/sudoku-strategies", "resource_type": "ARTICLE", "rationale": "Teaches key techniques to solve Sudoku puzzles quickly."},
-        {"title": "Sudoku.com - Daily Practice", "url": "https://sudoku.com/", "resource_type": "TOOL", "rationale": "Unlimited puzzles with built-in timer to track your improvement."}
+        {
+          "title": "Sudoku Solving Strategies",
+          "url": "https://example.com/sudoku-strategies",
+          "resource_type": "ARTICLE",
+          "rationale": "Teaches key techniques to solve Sudoku puzzles quickly."
+        },
+        {
+          "title": "Sudoku.com - Daily Practice",
+          "url": "https://sudoku.com/",
+          "resource_type": "TOOL",
+          "rationale": "Unlimited puzzles with built-in timer to track your improvement."
+        }
       ]
     },
     {
-      "title": "Do a Handstand for 30 Seconds",
-      "image_url": "https://source.unsplash.com/featured/800x600/?handstand,gymnastics",
-      "short_description": "Build the strength, balance and control to hold a freestanding handstand for 30 seconds.",
-      "full_description": "Learn wrist and shoulder preparation, body alignment, wall handstands, controlled kick-ups, safe exits and freestanding balance. The challenge is complete when you hold a clean freestanding handstand for 30 consecutive seconds without a wall, parallettes or external support.",
-      "difficulty_level": "ADVANCED",
-      "verification_type": "VIDEO_VERIFIED",
-      "metrics": [
-        {"key": "hold_duration", "label": "Freestanding hold", "kind": "DURATION", "unit": "seconds", "target": 30, "direction": "AT_LEAST", "is_primary": true, "format": "INTEGER"}
-      ],
-      "requirements": [
-        {"metric_key": "hold_duration", "operator": "AT_LEAST", "value": 30, "unit": "seconds", "label": "Hold a freestanding handstand for 30 consecutive seconds"}
-      ],
-      "verification_instructions": "Record one continuous, unedited video showing your full body, both hands and the surrounding area. Start recording before the attempt. The attempt starts when both feet leave the ground and ends when a foot touches the ground, the hands move from the floor or external support is used.",
-      "resources": [
-        {"title": "Wrist Strength & Mobility Exercises", "url": "https://www.youtube.com/watch?v=mSZWSQSSEjE", "resource_type": "VIDEO", "rationale": "Prepares the wrists for repeated hand loading before handstand practice."},
-        {"title": "Handstand Warm-Up Routine", "url": "https://www.youtube.com/watch?v=BBbQ1FUpewk", "resource_type": "VIDEO", "rationale": "Covers wrist preparation, shoulder preparation and bail practice."},
-        {"title": "How to Do a Perfect Handstand", "url": "https://gmb.io/handstand/", "resource_type": "ARTICLE", "rationale": "Explains wall work, kick-ups, body alignment and a progressive training structure."},
-        {"title": "Taking Your Handstand Off the Wall", "url": "https://gmb.io/freestanding-handstand/", "resource_type": "ARTICLE", "rationale": "Focuses on finger control, kick-ups, balance and safe exits."},
-        {"title": "Handstand Progression", "url": "https://www.youtube.com/watch?v=d6_lcWtQDxw", "resource_type": "VIDEO", "rationale": "Demonstrates the progression from wall-supported practice toward freestanding holds."},
-        {"title": "Handbalancing Community", "url": "https://www.reddit.com/r/handbalancing/", "resource_type": "COMMUNITY", "rationale": "Provides accountability and a place to request form feedback."}
-      ],
-      "milestones": [
-        {"title": "Prepare Your Body", "description": "Prepare your wrists, shoulders and body for handstand training.", "target_value": 1, "resource_order_indexes": [0, 1]},
-        {"title": "Master the Wall Handstand", "description": "Develop a controlled chest-to-wall handstand and consistent body alignment.", "target_value": 10, "resource_order_indexes": [1, 2]},
-        {"title": "Learn the Kick-Up", "description": "Practice controlled entries and safe exits without losing body awareness.", "target_value": 15, "resource_order_indexes": [1, 4]},
-        {"title": "Find Your Balance", "description": "Accumulate short freestanding holds using finger pressure and shoulder control.", "target_value": 20, "resource_order_indexes": [2, 3, 4]},
-        {"title": "Hold for 30 Seconds", "description": "Complete the final clean freestanding handstand under video verification.", "target_value": 30, "resource_order_indexes": [3, 4, 5]}
-      ]
+  "title": "Do a Handstand for 30 Seconds",
+  "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/7c064fbd679744dbaac9de3aee214c66.jpg",
+  "short_description": "Hold a freestanding handstand for 30 seconds, with no wall or support.",
+  "full_description": "Build the wrist strength, shoulder mobility and balance to hold a freestanding handstand for 30 seconds. You'll progress from wall walk-ups and kick-ups to balancing on your own, and learn to bail out safely first. Expect weeks to months of patient practice.",
+  "difficulty_level": "ADVANCED",
+  "estimated_effort_min_minutes": 15,
+  "estimated_effort_max_minutes": 45,
+  "estimated_duration_minutes": 129600,
+  "verification_type": "VIDEO_UPLOAD",
+  "metrics": [
+    {
+      "key": "hold_duration",
+      "label": "Freestanding hold",
+      "kind": "DURATION",
+      "unit": "seconds",
+      "target": 30,
+      "baseline": 0,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "hold_duration",
+      "operator": "AT_LEAST",
+      "value": 30,
+      "unit": "seconds",
+      "label": "Hold a freestanding handstand for 30 consecutive seconds"
+    }
+  ],
+  "verification_instructions": "Record one continuous video with no cuts, showing your full body, both hands and the floor. The hold starts when both feet leave the ground and ends when a foot touches down, a hand leaves the floor, or you use a wall, parallettes or any other support. The hold must last at least 30 seconds, with a timer visible.",
+  "resources": [
+    {
+      "title": "Do a Handstand for 30 Seconds: The Complete Beginner's Guide (NerdMaxxing)",
+      "url": "https://nerdmaxxing.com/blog?slug=do-a-handstand-for-30-seconds-the-complete-beginner-s-guide",
+      "resource_type": "ARTICLE",
+      "rationale": "Our starter guide with the full progression, safety basics, a 12-week plan and a filming checklist.",
+      "order_index": 0
     },
     {
-      "title": "Save $1000 in 90 Days",
-      "image_url": "https://source.unsplash.com/featured/800x600/?savings,money",
-      "short_description": "Save $1000 within 90 days.",
-      "full_description": "Create and follow a budget, cut unnecessary expenses, and track your progress until you've saved $1000 within 90 days.",
-      "difficulty_level": "BEGINNER",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "90-Day Savings Challenge Plan", "url": "https://example.com/savings-challenge", "resource_type": "ARTICLE", "rationale": "Provides a practical budgeting framework to hit a savings goal."},
-        {"title": "YNAB - Budgeting Tool", "url": "https://www.ynab.com/", "resource_type": "TOOL", "rationale": "Helps allocate every dollar and track savings progress in real time."},
-        {"title": "50 Ways to Cut Monthly Expenses", "url": "https://example.com/cut-expenses", "resource_type": "ARTICLE", "rationale": "Practical, actionable ideas to free up money to save faster."}
-      ]
+      "title": "Wrist Strength & Mobility Exercises",
+      "url": "https://www.youtube.com/watch?v=mSZWSQSSEjE",
+      "resource_type": "VIDEO",
+      "rationale": "A step-by-step wrist warm-up to prepare your wrists for the load of handstand practice.",
+      "order_index": 1
     },
+    {
+      "title": "Handstand Warm-Up Routine: Prepare Your Wrists & Shoulders",
+      "url": "https://www.youtube.com/watch?v=BBbQ1FUpewk",
+      "resource_type": "VIDEO",
+      "rationale": "A short pre-session routine covering wrists, shoulders, leg squeezes and bailing.",
+      "order_index": 2
+    },
+    {
+      "title": "How to Do a Perfect Handstand (GMB Fitness)",
+      "url": "https://gmb.io/handstand/",
+      "resource_type": "ARTICLE",
+      "rationale": "A complete guide with drills, positioning tips, a training plan and an FAQ.",
+      "order_index": 3
+    },
+    {
+      "title": "Taking Your Handstand Off the Wall (Handstand Factory)",
+      "url": "https://gmb.io/freestanding-handstand/",
+      "resource_type": "ARTICLE",
+      "rationale": "Covers chest-to-wall holds, safe bailing, kick-ups and the move to freestanding.",
+      "order_index": 4
+    },
+    {
+      "title": "Handstand Progression for Perfect Freestanding Handstands (GMB Fitness)",
+      "url": "https://www.youtube.com/watch?v=d6_lcWtQDxw",
+      "resource_type": "VIDEO",
+      "rationale": "A one-minute overview of the four steps, from wall walk-ups to freestanding balance.",
+      "order_index": 5
+    },
+    {
+      "title": "Handbalancing Community",
+      "url": "https://www.reddit.com/r/handbalancing/",
+      "resource_type": "COMMUNITY",
+      "rationale": "A place to share videos, ask questions and get form feedback.",
+      "order_index": 6
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Prepare Your Body",
+      "description": "Make a wrist and shoulder warm-up your habit before every session.",
+      "target_value": 1,
+      "resource_order_indexes": [0, 1, 2]
+    },
+    {
+      "title": "Master the Wall Handstand",
+      "description": "Hold a controlled chest-to-wall handstand and learn to bail out safely.",
+      "target_value": 10,
+      "resource_order_indexes": [2, 3]
+    },
+    {
+      "title": "Learn the Kick-Up",
+      "description": "Practise controlled entries and safe exits.",
+      "target_value": 15,
+      "resource_order_indexes": [2, 5]
+    },
+    {
+      "title": "Find Your Balance",
+      "description": "Build short freestanding holds using finger pressure and shoulder control.",
+      "target_value": 20,
+      "resource_order_indexes": [3, 4, 5]
+    },
+    {
+      "title": "Hold for 30 Seconds",
+      "description": "Record a clean 30-second freestanding hold.",
+      "target_value": 30,
+      "resource_order_indexes": [0, 4, 5, 6]
+    }
+  ]
+},
     {
       "title": "Cook 20 New Recipes",
       "image_url": "https://source.unsplash.com/featured/800x600/?cooking,kitchen",
@@ -291,58 +445,775 @@
       "difficulty_level": "BEGINNER",
       "verification_type": "ACCOUNT_VERIFIED",
       "resources": [
-        {"title": "Beginner Cooking Techniques", "url": "https://example.com/cooking-techniques", "resource_type": "ARTICLE", "rationale": "Covers foundational techniques useful across many new recipes."},
-        {"title": "NYT Cooking - Recipe Database", "url": "https://cooking.nytimes.com/", "resource_type": "TOOL", "rationale": "A huge searchable recipe library to source your 20 new dishes from."}
-      ]
-    },
-    {
-      "title": "Learn 500 Chess Opening Moves",
-      "image_url": "https://source.unsplash.com/featured/800x600/?chess,strategy",
-      "short_description": "Memorize and understand 500 chess opening theory moves.",
-      "full_description": "Study major chess openings and their key lines, practicing them in games until you can confidently recognize and play through 500 moves of opening theory.",
-      "difficulty_level": "ADVANCED",
-      "verification_type": "ACCOUNT_VERIFIED",
-      "resources": [
-        {"title": "Chess Opening Theory Fundamentals", "url": "https://www.chess.com/lessons/openings", "resource_type": "COURSE", "rationale": "Covers the most important opening lines and their underlying strategy."},
-        {"title": "Chess Endgame Principles", "url": "https://example.com/endgames", "resource_type": "ARTICLE", "rationale": "Complements opening study with the endgame techniques needed to convert an advantage."},
-        {"title": "Lichess Opening Explorer", "url": "https://lichess.org/opening", "resource_type": "TOOL", "rationale": "Interactive tool to explore and drill opening lines against real game data."},
-        {"title": "r/chess Community", "url": "https://www.reddit.com/r/chess/", "resource_type": "COMMUNITY", "rationale": "Discuss opening theory and get game reviews from other players."}
+        {
+          "title": "Beginner Cooking Techniques",
+          "url": "https://example.com/cooking-techniques",
+          "resource_type": "ARTICLE",
+          "rationale": "Covers foundational techniques useful across many new recipes."
+        },
+        {
+          "title": "NYT Cooking - Recipe Database",
+          "url": "https://cooking.nytimes.com/",
+          "resource_type": "TOOL",
+          "rationale": "A huge searchable recipe library to source your 20 new dishes from."
+        }
       ]
     },
     {
       "title": "Make Fire From Sticks: Light a Flame Without Matches or a Lighter",
-      "image_url": "https://cdn.shopify.com/s/files/1/0848/4896/8007/files/make-fire-by-friction.jpg?v=1765490396",
+      "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/23181ff2d5994455a73d079f06557842.jpg",
       "short_description": "Carve your own friction-fire kit from raw wood, coax a glowing ember out of dust, and grow it into a real fire. No matches, no lighter, no shortcuts.",
-      "full_description": "Every human who ever sat by a fire descended from someone who first figured this out. Now it's your turn. Rubbing two sticks together doesn't work, but a carefully carved spindle, a notched hearth board and the right technique will turn wood dust into a glowing ember hot enough to start a fire.\n\nThis is a challenge of patience, precision and a little stubbornness. Expect smoke, blisters and failed attempts before the first ember appears. That first ember is worth it.\n\nTHE CHALLENGE: Using a friction method (bow drill, hand drill or fire plough), produce an ember, transfer it to a tinder bundle, blow it into flame and place it in a fire lay. The flame must keep burning on its own for at least 60 seconds.\n\nRULES: Your kit must be handmade from natural wood (cordage may be paracord, a shoelace or similar). No matches, lighters, ferro rods, flint and steel, magnifying lenses, batteries or chemical accelerators. Tinder must be natural, dry and fibrous, such as bark fibre, dry grass or jute.\n\nSAFETY: This is real fire. Check local fire rules and bans before you start. Work outdoors on bare mineral soil, clear of dry grass, leaves and overhanging branches. Keep a bucket of water and a shovel within reach. Carve away from your body using a sharp knife, and wear sturdy shoes. Never leave the fire unattended. When finished, put it fully out by drowning it with water, stirring the ashes and feeling for heat with the back of your hand. Repeat until everything is cold. Minors should do this only with adult supervision.",
+      "full_description": "Carve a friction-fire kit from raw wood, spin dust into a glowing ember, and grow it into a flame that burns on its own for 60 seconds. Bow drill, hand drill or fire plough only, with a handmade kit and natural tinder. No matches, lighters or ferro rods. Work outdoors on bare soil with water nearby, follow local fire rules, and put the fire fully out when you're done. Minors need adult supervision.",
       "difficulty_level": "ADVANCED",
       "verification_type": "VIDEO_UPLOAD",
       "metrics": [
-        {"key": "sustained_flame_duration", "label": "Self-sustaining flame", "kind": "DURATION", "unit": "seconds", "target": 60, "baseline": 0, "direction": "AT_LEAST", "is_primary": true, "format": "INTEGER"},
-        {"key": "friction_ember", "label": "Ember produced by friction", "kind": "BOOLEAN", "unit": "ember", "target": true, "baseline": false, "direction": "BOOLEAN", "is_primary": false, "format": "BOOLEAN"}
+        {
+          "key": "sustained_flame_duration",
+          "label": "Self-sustaining flame",
+          "kind": "DURATION",
+          "unit": "seconds",
+          "target": 60,
+          "baseline": 0,
+          "direction": "AT_LEAST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
       ],
       "requirements": [
-        {"metric_key": "friction_ember", "operator": "BOOLEAN", "value": true, "unit": "ember", "label": "Produce a glowing ember using a handmade friction kit (no matches, lighters, ferro rods, flint and steel or lenses)"},
-        {"metric_key": "sustained_flame_duration", "operator": "AT_LEAST", "value": 60, "unit": "seconds", "label": "Grow the ember into a flame that keeps burning on its own in a fire lay for at least 60 seconds"}
+        {
+          "metric_key": "friction_ember",
+          "operator": "BOOLEAN",
+          "value": true,
+          "unit": "ember",
+          "label": "Produce a glowing ember using a handmade friction kit (no matches, lighters, ferro rods, flint and steel or lenses)"
+        },
+        {
+          "metric_key": "sustained_flame_duration",
+          "operator": "AT_LEAST",
+          "value": 60,
+          "unit": "seconds",
+          "label": "Grow the ember into a flame that keeps burning on its own in a fire lay for at least 60 seconds"
+        }
       ],
       "verification_instructions": "Record one continuous, unedited video with no cuts. Before you begin, show your face, your handmade kit, your tinder bundle, your bucket of water and the empty area around you. Show that no matches, lighters, ferro rods or other ignition tools are present. Hold up a piece of paper with your username and today's date. The attempt starts when you begin spinning the spindle. Failed attempts and restarts are allowed as long as the recording stays continuous. Film a close-up of the ember on the hearth board and of the transfer into the tinder bundle. Then show the flame going into your fire lay and keep filming until it has burned unaided for 60 seconds, with a clock or timer visible or the footage clearly continuous. End the video by extinguishing the fire with the drown, stir, feel method. Videos with cuts, hidden hands or a hidden ignition source will be rejected.",
       "resources": [
-        {"title": "Make Fire From Sticks: The Complete Guide to Lighting a Flame Without Matches or a Lighter (NerdMaxxing)", "url": "https://nerdmaxxing.com/blog?slug=make-fire-from-sticks-the-complete-guide-to-lighting-a-flame-without-matches-or-a-lighter", "resource_type": "ARTICLE", "rationale": "Our starter guide explains the rules, safety basics and practice plan."},
-        {"title": "How to Start a Fire in a Survival Situation | Basic Instincts | WIRED", "url": "https://www.youtube.com/watch?v=ZPr-a8kht2E", "resource_type": "VIDEO", "rationale": "Demonstrates hand drill and bow drill techniques from scratch."},
-        {"title": "How to Make a Bow Drill Fire (Nature Mentor)", "url": "https://nature-mentor.com/bow-drill/", "resource_type": "ARTICLE", "rationale": "Covers building a beginner bow-drill kit and using it to make fire."},
-        {"title": "Making Fire with a Bow and Drill (Wilderness College)", "url": "https://wildernesscollege.com/bow-and-drill.html", "resource_type": "ARTICLE", "rationale": "Explains wood selection, the coal catcher and ember transfer."},
-        {"title": "Tinder Bundles (Jack Raven Bushcraft)", "url": "https://www.jackravenbushcraft.co.uk/tinder-bundles/", "resource_type": "ARTICLE", "rationale": "Explains how to prepare and safely use a tinder bundle."},
-        {"title": "Bow Drill Troubleshooting Guide (Outdoor Revival)", "url": "https://www.outdoorrevival.com/instant-articles/struggling-friction-firelighting-bow-drill-troubleshooting-guide.html", "resource_type": "ARTICLE", "rationale": "Diagnoses common bow-drill failures."},
-        {"title": "How to Maintain and Extinguish Your Campfire (Smokey Bear / US Forest Service)", "url": "https://smokeybear.com/en/prevention-how-tos/campfire-safety/how-to-maintain-and-extinguish-your-campfire", "resource_type": "ARTICLE", "rationale": "Provides official campfire safety and extinguishing guidance."},
-        {"title": "Beginner Bow Drilling Thread (BushcraftUK Community)", "url": "https://bushcraftuk.com/community/threads/hello-folks-beginner-bow-drilling.167378/", "resource_type": "COMMUNITY", "rationale": "Offers troubleshooting advice from experienced practitioners."},
-        {"title": "Bow Drill Mastery: From Forage to Flame (Udemy)", "url": "https://www.udemy.com/course/bow-drill-mastery-from-forage-to-flame/", "resource_type": "COURSE", "rationale": "Optional structured instruction for building a working kit."}
+        {
+          "title": "Make Fire From Sticks: The Complete Guide to Lighting a Flame Without Matches or a Lighter (NerdMaxxing)",
+          "url": "https://nerdmaxxing.com/blog?slug=make-fire-from-sticks-the-complete-guide-to-lighting-a-flame-without-matches-or-a-lighter",
+          "resource_type": "ARTICLE",
+          "rationale": "Our starter guide explains the rules, safety basics and practice plan."
+        },
+        {
+          "title": "How to Start a Fire in a Survival Situation | Basic Instincts | WIRED",
+          "url": "https://www.youtube.com/watch?v=ZPr-a8kht2E",
+          "resource_type": "VIDEO",
+          "rationale": "Demonstrates hand drill and bow drill techniques from scratch."
+        },
+        {
+          "title": "How to Make a Bow Drill Fire (Nature Mentor)",
+          "url": "https://nature-mentor.com/bow-drill/",
+          "resource_type": "ARTICLE",
+          "rationale": "Covers building a beginner bow-drill kit and using it to make fire."
+        },
+        {
+          "title": "Making Fire with a Bow and Drill (Wilderness College)",
+          "url": "https://wildernesscollege.com/bow-and-drill.html",
+          "resource_type": "ARTICLE",
+          "rationale": "Explains wood selection, the coal catcher and ember transfer."
+        },
+        {
+          "title": "Tinder Bundles (Jack Raven Bushcraft)",
+          "url": "https://www.jackravenbushcraft.co.uk/tinder-bundles/",
+          "resource_type": "ARTICLE",
+          "rationale": "Explains how to prepare and safely use a tinder bundle."
+        },
+        {
+          "title": "Bow Drill Troubleshooting Guide (Outdoor Revival)",
+          "url": "https://www.outdoorrevival.com/instant-articles/struggling-friction-firelighting-bow-drill-troubleshooting-guide.html",
+          "resource_type": "ARTICLE",
+          "rationale": "Diagnoses common bow-drill failures."
+        },
+        {
+          "title": "How to Maintain and Extinguish Your Campfire (Smokey Bear / US Forest Service)",
+          "url": "https://smokeybear.com/en/prevention-how-tos/campfire-safety/how-to-maintain-and-extinguish-your-campfire",
+          "resource_type": "ARTICLE",
+          "rationale": "Provides official campfire safety and extinguishing guidance."
+        },
+        {
+          "title": "Beginner Bow Drilling Thread (BushcraftUK Community)",
+          "url": "https://bushcraftuk.com/community/threads/hello-folks-beginner-bow-drilling.167378/",
+          "resource_type": "COMMUNITY",
+          "rationale": "Offers troubleshooting advice from experienced practitioners."
+        },
+        {
+          "title": "Bow Drill Mastery: From Forage to Flame (Udemy)",
+          "url": "https://www.udemy.com/course/bow-drill-mastery-from-forage-to-flame/",
+          "resource_type": "COURSE",
+          "rationale": "Optional structured instruction for building a working kit."
+        }
       ],
       "milestones": [
-        {"title": "Build Your Kit", "description": "Carve a spindle, hearth board, bow and bearing block from suitable wood, and fit a cord that does not slip or stretch.", "target_value": 10, "resource_order_indexes": [0, 1, 2, 3, 8]},
-        {"title": "Tame the Tinder", "description": "Prepare a loose, dry tinder bundle and gather graded kindling and fuel before drilling.", "target_value": 20, "resource_order_indexes": [1, 4]},
-        {"title": "Make Smoke", "description": "Get the spindle seated and produce steady smoke and dark, fine dust.", "target_value": 35, "resource_order_indexes": [2, 3, 5]},
-        {"title": "Birth an Ember", "description": "Produce a glowing ember that stays alive in the dust pile and troubleshoot failures.", "target_value": 50, "resource_order_indexes": [5, 7]},
-        {"title": "Light the Fire", "description": "Transfer the ember to the tinder bundle, build the fire lay, record a 60-second flame and extinguish it safely.", "target_value": 60, "resource_order_indexes": [0, 4, 6, 7]}
+        {
+          "title": "Build Your Kit",
+          "description": "Carve a spindle, hearth board, bow and bearing block from suitable wood, and fit a cord that does not slip or stretch.",
+          "target_value": 10,
+          "resource_order_indexes": [
+            0,
+            1,
+            2,
+            3,
+            8
+          ]
+        },
+        {
+          "title": "Tame the Tinder",
+          "description": "Prepare a loose, dry tinder bundle and gather graded kindling and fuel before drilling.",
+          "target_value": 20,
+          "resource_order_indexes": [
+            1,
+            4
+          ]
+        },
+        {
+          "title": "Make Smoke",
+          "description": "Get the spindle seated and produce steady smoke and dark, fine dust.",
+          "target_value": 35,
+          "resource_order_indexes": [
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "title": "Birth an Ember",
+          "description": "Produce a glowing ember that stays alive in the dust pile and troubleshoot failures.",
+          "target_value": 50,
+          "resource_order_indexes": [
+            5,
+            7
+          ]
+        },
+        {
+          "title": "Light the Fire",
+          "description": "Transfer the ember to the tinder bundle, build the fire lay, record a 60-second flame and extinguish it safely.",
+          "target_value": 60,
+          "resource_order_indexes": [
+            0,
+            4,
+            6,
+            7
+          ]
+        }
       ]
+    },
+    {
+      "title": "Pick a Lock in Under 5 Minutes",
+      "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/e508471661f94034bfb23a3dea947a9f.png",
+      "short_description": "Open a padlock without its key, using only a pick and tension wrench, in under five minutes.",
+      "full_description": "Learn how a pin tumbler lock works, then use a tension wrench and pick to open a padlock without its key. Only pick locks you own and don't rely on, and check your local laws on owning lock picks. Your successful attempt must be filmed in one take, from locked to open.",
+      "difficulty_level": "INTERMEDIATE",
+      "estimated_effort_min_minutes": 20,
+      "estimated_effort_max_minutes": 60,
+      "estimated_duration_minutes": 20160,
+      "verification_type": "VIDEO_UPLOAD",
+      "metrics": [
+        {
+          "key": "pick_time",
+          "label": "Time to pick the lock",
+          "kind": "DURATION",
+          "unit": "seconds",
+          "target": 300,
+          "baseline": 1800,
+          "direction": "AT_MOST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
+      ],
+      "requirements": [
+        {
+          "metric_key": "pick_time",
+          "operator": "AT_MOST",
+          "value": 300,
+          "unit": "seconds",
+          "label": "Pick open a locked pin tumbler padlock in 300 seconds or less"
+        }
+      ],
+      "verification_instructions": "Record one continuous video with no cuts. Show the padlock locked (tug the shackle), then your pick and tension wrench. Time starts when the pick enters the lock and stops when the shackle opens, with a timer visible. Use only a pick and tension wrench on a padlock you own: no key, bumping, shimming or cutting.",
+      "resources": [
+        {
+          "title": "Pick a Lock in Under 5 Minutes: The Complete Beginner's Guide to Locksport (NerdMaxxing)",
+          "url": "https://nerdmaxxing.com/blog?slug=pick-a-lock-in-under-5-minutes-the-complete-beginner-s-guide-to-locksport",
+          "resource_type": "ARTICLE",
+          "rationale": "Our starter guide with the ground rules, technique, a 2-week practice plan and a filming checklist.",
+          "order_index": 0
+        },
+        {
+          "title": "A Beginner's Guide to Picking Locks (Sparrows)",
+          "url": "https://www.sparrowslockpicks.com/pages/where-to-begin",
+          "resource_type": "ARTICLE",
+          "rationale": "Covers how a pin tumbler works, how to hold your tools, tension control and your first single pin pick.",
+          "order_index": 1
+        },
+        {
+          "title": "Beginning Pin Tumbler Picking (Lockwiki)",
+          "url": "https://lockwiki.com/index.php/Begin_pin_tumbler",
+          "resource_type": "ARTICLE",
+          "rationale": "Practical exercises for feeling pins and controlling tension, plus advice on practice locks.",
+          "order_index": 2
+        },
+        {
+          "title": "BosnianBill: Beginner Lock Picking Tips",
+          "url": "https://www.youtube.com/watch?v=fI7Lx-73lU0",
+          "resource_type": "VIDEO",
+          "rationale": "A beginner video the Lockpicking101 community recommends for choosing your first practice locks.",
+          "order_index": 3
+        },
+        {
+          "title": "Schuyler Towne's Beginner Lock Picking Series",
+          "url": "https://www.youtube.com/watch?v=VVSL0liiWoc&list=PLF2F1FC3FBFDA27DE",
+          "resource_type": "VIDEO",
+          "rationale": "A 24-video series covering the basics for people who have never picked a lock.",
+          "order_index": 4
+        },
+        {
+          "title": "The Jiggle Test and the Four Fundamental Pin States",
+          "url": "https://www.youtube.com/watch?v=mK8TjuLDoMg",
+          "resource_type": "VIDEO",
+          "rationale": "Teaches you to feel whether a pin is set, so you stop guessing and pick faster.",
+          "order_index": 5
+        },
+        {
+          "title": "Lock Picking 101 Forum",
+          "url": "https://www.lockpicking101.com/",
+          "resource_type": "COMMUNITY",
+          "rationale": "A long-running locksport forum with a beginner section for questions and advice.",
+          "order_index": 6
+        }
+      ],
+      "milestones": [
+        {
+          "title": "Open Your First Lock",
+          "description": "Learn the pins and pick a padlock open, however long it takes.",
+          "target_value": 1800,
+          "resource_order_indexes": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "title": "Under 15 Minutes",
+          "description": "Master light tension and single pin picking.",
+          "target_value": 900,
+          "resource_order_indexes": [
+            2,
+            4
+          ]
+        },
+        {
+          "title": "Under 10 Minutes",
+          "description": "Learn to feel each pin set instead of guessing.",
+          "target_value": 600,
+          "resource_order_indexes": [
+            5,
+            6
+          ]
+        },
+        {
+          "title": "Under 5 Minutes",
+          "description": "Record your timed pick, locked to open.",
+          "target_value": 300,
+          "resource_order_indexes": [
+            0,
+            4,
+            5,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Roll a Coin Across Your Fingers 5 Times in a Row",
+      "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/7d88d28321764c44961ddb3d9bd33984.png",
+      "short_description": "Roll a coin across your knuckles and back, five times in a row without dropping it.",
+      "full_description": "Roll a coin from your index finger to your pinky and back, the classic move of magicians and card players. One trip there and back counts as one roll, and you need five in a row without a drop. It's easy to learn and surprisingly hard to make smooth, so expect a few dropped coins.",
+      "difficulty_level": "BEGINNER",
+      "estimated_effort_min_minutes": 10,
+      "estimated_effort_max_minutes": 30,
+      "estimated_duration_minutes": 10080,
+      "verification_type": "VIDEO_UPLOAD",
+      "metrics": [
+        {
+          "key": "consecutive_rolls",
+          "label": "Rolls in a row",
+          "kind": "COUNT",
+          "unit": "rolls",
+          "target": 5,
+          "baseline": 0,
+          "direction": "AT_LEAST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
+      ],
+      "requirements": [
+        {
+          "metric_key": "consecutive_rolls",
+          "operator": "AT_LEAST",
+          "value": 5,
+          "unit": "rolls",
+          "label": "Roll a coin from index finger to pinky and back 5 times in a row without dropping it"
+        }
+      ],
+      "verification_instructions": "Record one continuous close-up video with no cuts, showing your whole hand and the coin. Roll a normal coin across the back of your fingers from index to pinky and back, five times in a row, using one hand only. The coin must not touch the floor, your other hand or any surface, and no trick coins or sticky aids are allowed.",
+      "resources": [
+        {
+          "title": "Roll a Coin Across Your Fingers 5 Times in a Row: The Complete Beginner's Guide",
+          "url": "https://nerdmaxxing.com/blog?slug=roll-a-coin-across-your-fingers-5-times-in-a-row-the-complete-beginner-s-guide",
+          "resource_type": "ARTICLE",
+          "rationale": "Our starter guide with the technique, a 1-week practice plan and a filming checklist.",
+          "order_index": 0
+        },
+        {
+          "title": "Roll A Coin Across Your Knuckles (GoodTricks)",
+          "url": "https://www.goodtricks.net/coin-roll-knuckle-trick.html",
+          "resource_type": "ARTICLE",
+          "rationale": "Step-by-step photos of every finger transfer, plus tips on coin choice and hand angle.",
+          "order_index": 1
+        },
+        {
+          "title": "How to Roll a Coin Across Your Knuckles (Showoff Show)",
+          "url": "https://www.youtube.com/watch?v=MaD08A6y_ag",
+          "resource_type": "VIDEO",
+          "rationale": "A relaxed video tutorial that walks through the move and common mistakes.",
+          "order_index": 2
+        },
+        {
+          "title": "Coin Roll Tutorial (December Boys)",
+          "url": "https://decemberboys.com.ua/en/tutorials/coin-roll/",
+          "resource_type": "VIDEO",
+          "rationale": "A concise, free magician's tutorial of the move, performed with a half-dollar coin.",
+          "order_index": 3
+        },
+        {
+          "title": "How to Knuckle-Roll a Coin Like Doc Holliday (Instructables)",
+          "url": "https://www.instructables.com/How-to-Knuckle-Roll-a-Coin-Like-Doc-Holliday/",
+          "resource_type": "ARTICLE",
+          "rationale": "Explains choosing the right coin size and how to bring the coin back from your pinky.",
+          "order_index": 4
+        },
+        {
+          "title": "Coin (Knuckle Roll) Help and Tips (TalkMagic)",
+          "url": "https://www.talkmagic.co.uk/sutra57896.php",
+          "resource_type": "COMMUNITY",
+          "rationale": "Magicians share advice on grip and the thumb transfer, and you can ask your own questions.",
+          "order_index": 5
+        }
+      ],
+      "milestones": [
+        {
+          "title": "Roll It Once",
+          "description": "Walk the coin across all four fingers and back to your thumb.",
+          "target_value": 1,
+          "resource_order_indexes": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "title": "Two in a Row",
+          "description": "Keep the coin moving without stopping to reset.",
+          "target_value": 2,
+          "resource_order_indexes": [
+            1,
+            4
+          ]
+        },
+        {
+          "title": "Three in a Row",
+          "description": "Smooth out the return from your pinky back to your thumb.",
+          "target_value": 3,
+          "resource_order_indexes": [
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "title": "Five in a Row",
+          "description": "Record five clean rolls with no drops.",
+          "target_value": 5,
+          "resource_order_indexes": [
+            0,
+            4,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Juggle Three Balls: 50 Catches in a Row",
+      "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/e4a10b493854497ba8a4b194ab69c504.png",
+      "short_description": "Juggle three balls in a steady cascade for 50 catches in a row, without a single drop.",
+      "full_description": "Learn the three-ball cascade, the pattern behind almost every juggling trick. You'll build up from one ball to two to three, then stretch your runs until you hit 50 catches without a drop. Expect lots of dropped balls, so use soft bean bags and a clear space.",
+      "difficulty_level": "INTERMEDIATE",
+      "estimated_effort_min_minutes": 15,
+      "estimated_effort_max_minutes": 45,
+      "estimated_duration_minutes": 30240,
+      "verification_type": "VIDEO_UPLOAD",
+      "metrics": [
+        {
+          "key": "consecutive_catches",
+          "label": "Catches in a row",
+          "kind": "COUNT",
+          "unit": "catches",
+          "target": 50,
+          "baseline": 0,
+          "direction": "AT_LEAST",
+          "is_primary": true,
+          "format": "INTEGER"
+        }
+      ],
+      "requirements": [
+        {
+          "metric_key": "consecutive_catches",
+          "operator": "AT_LEAST",
+          "value": 50,
+          "unit": "catches",
+          "label": "Juggle three balls in a cascade for 50 catches in a row without a drop"
+        }
+      ],
+      "verification_instructions": "Record one continuous video with no cuts, showing you and all three balls in frame. Juggle a three-ball cascade (alternating hands) for 50 catches in a row. The run starts at your first throw and ends if a ball is dropped or touches the floor. Catches will be counted from the video.",
+      "resources": [
+        {
+          "title": "Juggle Three Balls: 50 Catches in a Row, The Complete Beginner's Guide",
+          "url": "https://nerdmaxxing.com/blog?slug=juggle-three-balls-50-catches-in-a-row-the-complete-beginner-s-guide",
+          "resource_type": "ARTICLE",
+          "rationale": "Our starter guide with the step-by-step method, a 3-week practice plan and a filming checklist.",
+          "order_index": 0
+        },
+        {
+          "title": "How to Juggle (WIRED)",
+          "url": "https://www.youtube.com/watch?v=m9NdhxGxzD4",
+          "resource_type": "VIDEO",
+          "rationale": "A pro juggler teaches one ball, two balls, then the three-ball cascade, and fixes the most common mistakes.",
+          "order_index": 1
+        },
+        {
+          "title": "Lesson 1: Three-Ball Cascade (Aalto University)",
+          "url": "https://users.ics.aalto.fi/praiko/juggling/lesson01.html",
+          "resource_type": "ARTICLE",
+          "rationale": "Six short steps, each with an animation, from one ball up to the full cascade.",
+          "order_index": 2
+        },
+        {
+          "title": "How to Juggle a Three Ball Cascade (Instructables)",
+          "url": "https://www.instructables.com/How-to-juggle-a-three-ball-cascade/",
+          "resource_type": "ARTICLE",
+          "rationale": "A written walkthrough from a self-taught juggler, useful as a second explanation.",
+          "order_index": 3
+        },
+        {
+          "title": "Learn the Cascade (Juggling Edge)",
+          "url": "https://twjc.jugglingedge.com/tut001.html",
+          "resource_type": "ARTICLE",
+          "rationale": "Explains the cascade as a sideways figure eight and how to learn it a step at a time.",
+          "order_index": 4
+        },
+        {
+          "title": "IJA Juggling Resources (International Jugglers' Association)",
+          "url": "https://www.juggle.org/resources/",
+          "resource_type": "COMMUNITY",
+          "rationale": "Tutorials plus a list of juggling clubs that meet in cities around the world.",
+          "order_index": 5
+        }
+      ],
+      "milestones": [
+        {
+          "title": "Your First Three",
+          "description": "Throw and catch all three balls once.",
+          "target_value": 3,
+          "resource_order_indexes": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "title": "Keep It Going",
+          "description": "Don't stop after three, and reach 10 catches.",
+          "target_value": 10,
+          "resource_order_indexes": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "title": "Find the Rhythm",
+          "description": "Even out your throw height and reach 25 catches.",
+          "target_value": 25,
+          "resource_order_indexes": [
+            1,
+            5
+          ]
+        },
+        {
+          "title": "Fifty Catches",
+          "description": "Record a 50-catch run with no drops.",
+          "target_value": 50,
+          "resource_order_indexes": [
+            0,
+            1,
+            5
+          ]
+        }
+      ]
+    },
+    {
+  "title": "Hold a Plank for 3 Minutes",
+  "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/6d46b8351ea14f458bdf3753982b8f11.jpg",
+  "short_description": "Hold a forearm plank with good form for 3 minutes straight.",
+  "full_description": "Build your core endurance step by step until you can hold a clean forearm plank for 3 full minutes. Form comes first: if your hips sag or lift, the hold ends. Most people need a couple of months of steady practice.",
+  "difficulty_level": "INTERMEDIATE",
+  "estimated_effort_min_minutes": 10,
+  "estimated_effort_max_minutes": 30,
+  "estimated_duration_minutes": 120960,
+  "verification_type": "VIDEO_UPLOAD",
+  "metrics": [
+    {
+      "key": "hold_duration",
+      "label": "Plank hold",
+      "kind": "DURATION",
+      "unit": "seconds",
+      "target": 180,
+      "baseline": 0,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
     }
+  ],
+  "requirements": [
+    {
+      "metric_key": "hold_duration",
+      "operator": "AT_LEAST",
+      "value": 180,
+      "unit": "seconds",
+      "label": "Hold a forearm plank with good form for 180 consecutive seconds"
+    }
+  ],
+  "verification_instructions": "Record one continuous video from the side with no cuts, showing your full body from head to heels and a visible timer. Hold a forearm plank (forearms and toes only) with a straight line from head to heels for 180 seconds. The hold ends if your knees or any other body part touches the floor, or your hips visibly sag or lift.",
+  "resources": [
+    {
+      "title": "Hold a Plank for 3 Minutes: The Complete Beginner's Guide (NerdMaxxing)",
+      "url": "https://nerdmaxxing.com/blog?slug=hold-a-plank-for-3-minutes-the-complete-beginner-s-guide",
+      "resource_type": "ARTICLE",
+      "rationale": "Our starter guide with form cues, a 12-week plan and a filming checklist.",
+      "order_index": 0
+    },
+    {
+      "title": "Want to strengthen your abs? Try a plank (Mayo Clinic)",
+      "url": "https://www.mayoclinic.org/connected-care/want-to-strengthen-your-abs-try-a-plank/vid-20307379",
+      "resource_type": "VIDEO",
+      "rationale": "Physical therapists show the forearm plank setup, with a knee version for beginners.",
+      "order_index": 1
+    },
+    {
+      "title": "Straight talk on planking (Harvard Health)",
+      "url": "https://www.health.harvard.edu/blog/straight-talk-on-planking-2019111318304",
+      "resource_type": "ARTICLE",
+      "rationale": "Clear form steps, how often to plank, and easier options if forearms or back are an issue.",
+      "order_index": 2
+    },
+    {
+      "title": "How to Do a Plank: Correct Form and Common Mistakes (BodySpec)",
+      "url": "https://www.bodyspec.com/blog/post/how_to_do_a_plank_correct_form_and_common_mistakes",
+      "resource_type": "ARTICLE",
+      "rationale": "NASM-based setup, three common mistakes with fixes, and easier and harder variations.",
+      "order_index": 3
+    },
+    {
+      "title": "4-Week Core Workout Challenge (ACE Fitness)",
+      "url": "https://www.acefitness.org/resources/everyone/blog/6280/4-week-core-workout-challenge/",
+      "resource_type": "ARTICLE",
+      "rationale": "A weekly plank circuit that adds 5 to 10 seconds a week, plus a daily plank option.",
+      "order_index": 4
+    },
+    {
+      "title": "How Long Should You Hold a Plank? (ACTIVE / Men's Health)",
+      "url": "https://www.active.com/fitness/articles/how-long-should-you-hold-your-plank",
+      "resource_type": "ARTICLE",
+      "rationale": "Explains why shorter repeated holds work, so you can train smartly for a long one.",
+      "order_index": 5
+    },
+    {
+      "title": "r/bodyweightfitness Core Progression",
+      "url": "https://www.reddit.com/r/bodyweightfitness/wiki/exercises/core",
+      "resource_type": "COMMUNITY",
+      "rationale": "A community wiki of core progressions, and a place to ask for form feedback.",
+      "order_index": 6
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Learn Perfect Form",
+      "description": "Hold a clean 30-second forearm plank.",
+      "target_value": 30,
+      "resource_order_indexes": [0, 1, 2, 3]
+    },
+    {
+      "title": "Hold One Minute",
+      "description": "Build up with sets and keep your form clean.",
+      "target_value": 60,
+      "resource_order_indexes": [2, 4, 5]
+    },
+    {
+      "title": "Reach 90 Seconds",
+      "description": "Add 5 to 10 seconds a week without losing form.",
+      "target_value": 90,
+      "resource_order_indexes": [4, 5]
+    },
+    {
+      "title": "Hold Two Minutes",
+      "description": "Push through the hardest jump, from one minute to two.",
+      "target_value": 120,
+      "resource_order_indexes": [5, 6]
+    },
+    {
+      "title": "Hold Three Minutes",
+      "description": "Record your 3-minute plank, side view.",
+      "target_value": 180,
+      "resource_order_indexes": [0, 3, 6]
+    }
+  ]
+},
+{
+  "title": "Make Pottery",
+  "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/0b4f58da294a47cda91dc7bf716b539e.jpg",
+  "short_description": "Make a hand-built pinch pot from a ball of clay and finish it.",
+  "full_description": "No wheel, no studio needed. Learn to prepare clay, pinch a bowl with even walls, dry it slowly and finish it. You can use air-dry clay at home, or kiln-fired clay if you can get access to a kiln or a studio. Expect to make a few practice pots before you make one you're proud of.",
+  "difficulty_level": "BEGINNER",
+  "estimated_effort_min_minutes": 30,
+  "estimated_effort_max_minutes": 90,
+  "estimated_duration_minutes": 30240,
+
+  "verification_type": "VIDEO_UPLOAD",
+  "metrics": [
+    {
+      "key": "stages_completed",
+      "label": "Pottery stages completed",
+      "kind": "COUNT",
+      "unit": "stages",
+      "target": 5,
+      "baseline": 0,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "stages_completed",
+      "operator": "AT_LEAST",
+      "value": 5,
+      "unit": "stages",
+      "label": "Make a hand-built pot from a ball of clay, with fairly even walls and a smooth rim, and finish it (fully dry, or fired and glazed)"
+    }
+  ],
+  "verification_instructions": "Record one video of up to 2 minutes. Start by showing your ball of clay in your hands. Speed-ups and cuts are fine for the shaping part. Then show the finished pot: turn it slowly in your hands so we can see the outside, the rim, the inside and the bottom, with your initials or mark carved into the base. The pot must be hand-built (no wheel needed), fully dry or fired, and free of large cracks. Air-dry clay is accepted.",
+  "resources": [
+    {
+      "title": "Make Pottery: The Complete Beginner's Guide to Your First Handmade Pot (NerdMaxxing)",
+      "url": "https://nerdmaxxing.com/blog?slug=make-pottery-the-complete-beginner-s-guide-to-your-first-handmade-pot",
+      "resource_type": "ARTICLE",
+      "rationale": "Our starter guide with a 3-week plan, safety basics and a filming checklist.",
+      "order_index": 0
+    },
+    {
+      "title": "Ceramics video tutorial: How to make a clay pinch pot (V&A)",
+      "url": "https://www.vam.ac.uk/mused/art-design/ceramics-video-tutorial-how-to-make-a-pinch-pot",
+      "resource_type": "VIDEO",
+      "rationale": "A ceramicist walks you through your first pinch pot, start to finish.",
+      "order_index": 1
+    },
+    {
+      "title": "How to Wedge Clay Properly (Ceramic Arts Network)",
+      "url": "https://ceramicartsnetwork.org/daily/article/How-to-Wedge-Clay-Properly",
+      "resource_type": "ARTICLE",
+      "rationale": "Why wedging matters and how to do it without adding air bubbles.",
+      "order_index": 2
+    },
+    {
+      "title": "How to Make a Pinch Pot (The Pottery Wheel)",
+      "url": "https://thepotterywheel.com/how-to-make-a-pinch-pot/",
+      "resource_type": "ARTICLE",
+      "rationale": "Step-by-step pinch pot method, plus a bowl with a foot ring to try next.",
+      "order_index": 3
+    },
+    {
+      "title": "How to Start Making Pottery at Home (Sheffield Pottery)",
+      "url": "https://www.sheffield-pottery.com/blogs/ceramic-arts-blog/how-to-start-making-pottery-at-home-beginner-s-guide-best-tools-to-get-started",
+      "resource_type": "ARTICLE",
+      "rationale": "A simple starter tool list and what beginners usually make first.",
+      "order_index": 4
+    },
+    {
+      "title": "3 Stages of Firing Clay (The Pottery Wheel)",
+      "url": "https://thepotterywheel.com/stages-of-firing-clay/",
+      "resource_type": "ARTICLE",
+      "rationale": "Drying, bisque firing and glaze firing explained, so you know what happens after you shape your pot.",
+      "order_index": 5
+    },
+    {
+      "title": "Keeping Your Ceramics Classroom Clean, Safe, and Mindful: A Practical Guide to Silica Safety (Sheffield Pottery)",
+      "url": "https://www.sheffield-pottery.com/blogs/ceramic-arts-blog/keeping-your-ceramics-classroom-clean-safe-and-mindful-a-practical-guide-to-silica-safety",
+      "resource_type": "ARTICLE",
+      "rationale": "Simple habits (wet cleaning, no sweeping) that keep clay dust out of your lungs.",
+      "order_index": 6
+    },
+    {
+      "title": "r/Pottery Wiki",
+      "url": "https://www.reddit.com/r/Pottery/wiki/index/",
+      "resource_type": "COMMUNITY",
+      "rationale": "A community wiki with beginner advice, kiln and safety links, and a place to ask for feedback on kiln-fired work.",
+      "order_index": 7
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Prep Your Clay and Space",
+      "description": "Get your clay and a few basic tools, wedge the clay and set up a surface you can wet-clean.",
+      "target_value": 1,
+      "resource_order_indexes": [0, 2, 4, 6]
+    },
+    {
+      "title": "Pinch Your First Pot",
+      "description": "Make a practice pinch pot. Squash it and start again as often as you like.",
+      "target_value": 2,
+      "resource_order_indexes": [0, 1, 3]
+    },
+    {
+      "title": "Even Walls and a Smooth Rim",
+      "description": "Make the pot you'll submit, with even walls, a smooth rim and your mark on the base.",
+      "target_value": 3,
+      "resource_order_indexes": [1, 3, 7]
+    },
+    {
+      "title": "Dry It Slowly",
+      "description": "Let the pot dry evenly and fully, then fire and glaze it if you have kiln access.",
+      "target_value": 4,
+      "resource_order_indexes": [0, 5]
+    },
+    {
+      "title": "Film Your Finished Pot",
+      "description": "Record your video: clay ball, shaping, then a slow turn of the finished pot.",
+      "target_value": 5,
+      "resource_order_indexes": [0, 7]
+    }
+  ]
+}
   ]
 }
