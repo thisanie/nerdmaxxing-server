@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.exc import IntegrityError
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone as datetime_timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, union_all
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -14,13 +15,16 @@ from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.follow import UserFollow
 from app.models.group import Group, GroupMembership
 from app.models.invitation import Notification, PushToken
+from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.participation import ChallengeParticipant
+from app.models.progress import ChallengeProgressLog
 from app.models.skill import UserSkill
 from app.models.participation import ChallengeParticipant
 from app.core.time import utcnow
 from app.schemas.challenge import ChallengeResponse
 from app.schemas.user import (
     AuraTransactionResponse,
+    ActivityDayResponse,
     FollowStatusResponse,
     MyUserProfileResponse,
     UsernameAvailabilityResponse,
@@ -347,9 +351,15 @@ def unregister_push_token(
 def get_my_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    timezone_name: str = Query(default="UTC", alias="timezone", min_length=1, max_length=64),
 ) -> UserStatsResponse:
     rank_summary = rank_for_aura(current_user.aura_points)
     now = utcnow()
+    try:
+        user_timezone = ZoneInfo(timezone_name)
+    except (ValueError, ZoneInfoNotFoundError):
+        raise HTTPException(status_code=422, detail="timezone must be a valid IANA timezone.")
+
     if (
         current_user.last_progress_at is not None
         and now - current_user.last_progress_at > timedelta(hours=24)
@@ -373,11 +383,60 @@ def get_my_stats(
             ChallengeParticipant.completion_status == "COMPLETED",
         )
     ) or 0
+    local_today = now.replace(tzinfo=datetime_timezone.utc).astimezone(user_timezone).date()
+    first_day = local_today - timedelta(days=6)
+    start_at = datetime.combine(first_day, time.min, tzinfo=user_timezone)
+    end_at = datetime.combine(local_today + timedelta(days=1), time.min, tzinfo=user_timezone)
+    start_utc = start_at.astimezone(datetime_timezone.utc).replace(tzinfo=None)
+    end_utc = end_at.astimezone(datetime_timezone.utc).replace(tzinfo=None)
+
+    resource_activity = (
+        select(ParticipantResourceCompletion.completed_at.label("activity_at"))
+        .join(
+            ChallengeParticipant,
+            ChallengeParticipant.id == ParticipantResourceCompletion.participant_id,
+        )
+        .where(ChallengeParticipant.user_id == current_user.id)
+    )
+    metric_activity = (
+        select(MetricAttempt.created_at.label("activity_at"))
+        .join(
+            ChallengeParticipant,
+            ChallengeParticipant.id == MetricAttempt.participant_id,
+        )
+        .where(ChallengeParticipant.user_id == current_user.id)
+    )
+    activity_timestamps = union_all(
+        select(ChallengeProgressLog.created_at.label("activity_at")).where(
+            ChallengeProgressLog.user_id == current_user.id
+        ),
+        resource_activity,
+        metric_activity,
+    ).subquery()
+    timestamps = db.scalars(
+        select(activity_timestamps.c.activity_at).where(
+            activity_timestamps.c.activity_at >= start_utc,
+            activity_timestamps.c.activity_at < end_utc,
+        )
+    )
+    active_dates = {
+        timestamp.replace(tzinfo=datetime_timezone.utc).astimezone(user_timezone).date()
+        for timestamp in timestamps
+    }
+    activity_days = [
+        ActivityDayResponse(
+            date=first_day + timedelta(days=offset),
+            active=first_day + timedelta(days=offset) in active_dates,
+        )
+        for offset in range(7)
+    ]
+
     return UserStatsResponse(
         active_challenge_count=active_count,
         completed_challenge_count=completed_count,
         day_streak=current_user.day_streak,
         aura_points=current_user.aura_points,
+        activity_days=activity_days,
         rank=rank_summary.rank,
         rank_progress=rank_summary.progress,
         next_rank=rank_summary.next_rank,
