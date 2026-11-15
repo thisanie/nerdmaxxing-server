@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -25,6 +25,13 @@ class ChallengeRequirement(BaseModel):
     label: str = Field(min_length=1, max_length=200)
 
 
+class ChallengeMilestoneCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=1)
+    target_value: float = Field(ge=0)
+    resource_order_indexes: list[int] = Field(default_factory=list)
+
+
 class ChallengeCreate(BaseModel):
     title: str = Field(min_length=3, max_length=160)
     image_url: AnyHttpUrl | None = None
@@ -37,8 +44,11 @@ class ChallengeCreate(BaseModel):
     estimated_duration_minutes: int | None = Field(default=None, gt=0)
     category_ids: list[str] = Field(default_factory=list, max_length=3)
     verification_type: str = Field(default="SELF_REPORTED", min_length=1, max_length=30)
+    verification_instructions: str | None = None
+    required_runs: int = Field(default=1, ge=1)
     metrics: list[ChallengeMetricDefinition] = Field(default_factory=list, max_length=20)
     requirements: list[ChallengeRequirement] = Field(default_factory=list, max_length=20)
+    milestones: list[ChallengeMilestoneCreate] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def validate_effort_range(self) -> "ChallengeCreate":
@@ -55,6 +65,11 @@ class ChallengeCreate(BaseModel):
             raise ValueError("Only one metric can be primary.")
         if any(requirement.metric_key not in keys for requirement in self.requirements):
             raise ValueError("Requirements must reference a defined metric.")
+        for milestone in self.milestones:
+            if len(set(milestone.resource_order_indexes)) != len(milestone.resource_order_indexes):
+                raise ValueError("Milestone resource indexes must be unique.")
+            if any(index < 0 or index >= len(self.resources) for index in milestone.resource_order_indexes):
+                raise ValueError("Milestone resource indexes must reference defined resources.")
         metric_by_key = {metric.key: metric for metric in self.metrics}
         for requirement in self.requirements:
             metric = metric_by_key[requirement.metric_key]
@@ -70,12 +85,31 @@ class ChallengeCreate(BaseModel):
         return self
 
 
+class AdminChallengeCreate(ChallengeCreate):
+    verification_instructions: str = Field(min_length=1)
+    milestones: list[ChallengeMilestoneCreate] = Field(min_length=1, max_length=20)
+
+
+class DailyChallengeScheduleCreate(BaseModel):
+    daily_date: date
+    bonus_multiplier: float = Field(default=2.0, gt=1, le=5)
+
+
+class DailyChallengeScheduleResponse(BaseModel):
+    daily_date: date
+    starts_at: datetime
+    ends_at: datetime
+    bonus_multiplier: float
+    challenge: "ChallengeResponse"
+
+
 class ChallengeResourceCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     url: AnyHttpUrl | None = None
     resource_type: str = Field(default="LINK", min_length=1, max_length=30)
     rationale: str = Field(min_length=1, max_length=1000)
     order_index: int = Field(default=0, ge=0)
+    required: bool = True
 
 
 class ChallengeResourceResponse(BaseModel):
@@ -119,6 +153,11 @@ class ChallengeResponse(BaseModel):
     published_at: datetime | None
     metrics: list[ChallengeMetricDefinition] = Field(default_factory=list)
     requirements: list[ChallengeRequirement] = Field(default_factory=list)
+    is_daily_challenge: bool = False
+    daily_challenge_date: date | None = None
+    daily_starts_at: datetime | None = None
+    daily_ends_at: datetime | None = None
+    daily_bonus_multiplier: float | None = None
 
     @field_validator("metrics", "requirements", mode="before")
     @classmethod

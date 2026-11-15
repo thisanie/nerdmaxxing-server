@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime
 
 import json
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.dependencies import get_current_user, get_db, get_optional_current_user
 from app.core.config import settings
 from app.models.category import Category
-from app.models.challenge import Challenge, ChallengeResource
+from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource, DailyChallengeAssignment
 from app.models.participation import ChallengeParticipant
 from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.saved_challenge import SavedChallenge
@@ -32,6 +33,7 @@ from app.schemas.challenge import (
 from app.services.discovery_service import _responses
 from app.services.blob_storage import upload_blob
 from app.services.verification_service import challenge_verification, verification_state
+from app.services.challenge_visibility import public_challenge_conditions
 
 
 router = APIRouter(prefix="/api/v1/challenges", tags=["Challenges"])
@@ -39,11 +41,7 @@ router = APIRouter(prefix="/api/v1/challenges", tags=["Challenges"])
 
 def _get_public_challenge_for_save(slug: str, db: Session) -> Challenge:
     challenge = db.scalar(
-        select(Challenge).where(
-            Challenge.slug == slug,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
-        )
+        select(Challenge).where(Challenge.slug == slug, *public_challenge_conditions())
     )
     if challenge is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
@@ -119,7 +117,7 @@ def list_public_challenges(
 ) -> list[ChallengeResponse]:
     statement = (
         select(Challenge)
-        .where(Challenge.status == "PUBLISHED", Challenge.visibility == "PUBLIC")
+        .where(*public_challenge_conditions())
         .options(selectinload(Challenge.categories), selectinload(Challenge.resources))
     )
     if category:
@@ -140,6 +138,27 @@ def list_public_challenges(
         .limit(limit)
     )
     return _responses(list(db.scalars(statement).all()), db)
+
+
+@router.get("/daily", response_model=ChallengeResponse | None)
+def get_daily_challenge(db: Session = Depends(get_db)) -> ChallengeResponse | None:
+    now = datetime.utcnow()
+    assignment = db.scalar(
+        select(DailyChallengeAssignment).where(
+            DailyChallengeAssignment.starts_at <= now,
+            DailyChallengeAssignment.ends_at > now,
+        )
+    )
+    if assignment is None:
+        return None
+    challenge = db.scalar(
+        select(Challenge)
+        .where(Challenge.id == assignment.challenge_id, *public_challenge_conditions())
+        .options(selectinload(Challenge.categories), selectinload(Challenge.resources))
+    )
+    if challenge is None:
+        return None
+    return _responses([challenge], db)[0]
 
 
 @router.get("/private", response_model=list[ChallengeResponse])
@@ -167,11 +186,7 @@ def list_private_challenges(
 @router.get("/{slug}", response_model=ChallengeResponse)
 def get_public_challenge(slug: str, db: Session = Depends(get_db)) -> ChallengeResponse:
     challenge = db.scalar(
-        select(Challenge).where(
-            Challenge.slug == slug,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
-        )
+        select(Challenge).where(Challenge.slug == slug, *public_challenge_conditions())
     )
     if challenge is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
@@ -202,7 +217,7 @@ async def create_private_challenge(
     if len(uploaded_resources) > len(challenge_payload.resources):
         raise HTTPException(status_code=422, detail="Too many resource files were uploaded.")
     challenge = Challenge(
-        **challenge_payload.model_dump(exclude={"image_url", "category_ids", "resources"}),
+        **challenge_payload.model_dump(exclude={"image_url", "category_ids", "resources", "milestones"}),
         image_url=image_url,
         slug=make_slug(challenge_payload.title),
         creator_id=current_user.id,
@@ -229,12 +244,29 @@ async def create_private_challenge(
             status_code=422,
             detail="Each resource needs a URL or a matching resource file.",
         )
+    db.add(challenge)
+    db.flush()
+    challenge.milestones = [
+        ChallengeMilestone(
+            order_index=index,
+            title=milestone.title,
+            description=milestone.description,
+            target_value=milestone.target_value,
+            resources=[
+                {
+                    "resource_id": challenge.resources[resource_index].id,
+                    "required": challenge_payload.resources[resource_index].required,
+                }
+                for resource_index in milestone.resource_order_indexes
+            ],
+        )
+        for index, milestone in enumerate(challenge_payload.milestones, start=1)
+    ]
     if challenge_payload.category_ids:
         categories = list(db.scalars(select(Category).where(Category.id.in_(challenge_payload.category_ids))).all())
         if len(categories) != len(set(challenge_payload.category_ids)):
             raise HTTPException(status_code=422, detail="One or more categories do not exist.")
         challenge.categories = categories
-    db.add(challenge)
     db.commit()
     db.refresh(challenge)
     return _responses([challenge], db)[0]
@@ -248,7 +280,7 @@ def get_public_challenge_detail(
 ) -> ChallengeDetailResponse:
     challenge = db.scalar(
         select(Challenge)
-        .where(Challenge.slug == slug, Challenge.status == "PUBLISHED", Challenge.visibility == "PUBLIC")
+        .where(Challenge.slug == slug, *public_challenge_conditions())
         .options(selectinload(Challenge.resources), selectinload(Challenge.categories), selectinload(Challenge.milestones))
     )
     if challenge is None:

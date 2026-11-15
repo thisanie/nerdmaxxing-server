@@ -25,6 +25,7 @@ from app.schemas.discussion import (
     ReportCreate,
 )
 from app.services.push_notification_service import send_notification_push
+from app.services.challenge_visibility import public_challenge_conditions
 
 
 router = APIRouter(prefix="/api/v1", tags=["Discussions"])
@@ -49,11 +50,7 @@ def _decode_cursor(value: str | None) -> tuple[datetime, str] | None:
 
 def _public_challenge(slug: str, db: Session) -> Challenge:
     challenge = db.scalar(
-        select(Challenge).where(
-            Challenge.slug == slug,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
-        )
+        select(Challenge).where(Challenge.slug == slug, *public_challenge_conditions())
     )
     if challenge is None:
         raise HTTPException(status_code=404, detail="Challenge not found.")
@@ -78,8 +75,7 @@ def _public_discussion(discussion_id: str, db: Session) -> Discussion:
         .join(Challenge, Challenge.id == Discussion.challenge_id)
         .where(
             Discussion.id == discussion_id,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
+            *public_challenge_conditions(),
         )
     )
     if discussion is None or discussion.is_deleted:

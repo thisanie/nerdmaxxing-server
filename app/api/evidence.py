@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.evidence import EvidenceItem, EvidenceSubmission
-from app.models.challenge import Challenge
+from app.models.challenge import Challenge, DailyChallengeAssignment
 from app.models.follow import UserFollow
 from app.models.integration import ExternalAccountConnection
 from app.models.invitation import Notification
@@ -597,11 +597,22 @@ def verify_evidence(
             )
         ) is None:
             amount = calculate_aura(challenge)
+            daily_assignment = db.scalar(
+                select(DailyChallengeAssignment).where(
+                    DailyChallengeAssignment.challenge_id == challenge.id,
+                    DailyChallengeAssignment.starts_at <= submission.submitted_at,
+                    DailyChallengeAssignment.ends_at > submission.submitted_at,
+                )
+            )
+            reason = "Approved challenge evidence"
+            if daily_assignment is not None:
+                amount = round(amount * daily_assignment.bonus_multiplier)
+                reason = "Approved daily challenge evidence"
             award_aura(
                 db,
                 owner,
                 amount,
-                "Approved challenge evidence",
+                reason,
                 reference_type="EVIDENCE_SUBMISSION",
                 reference_id=submission.id,
             )
