@@ -25,6 +25,7 @@ from app.schemas.challenge import ChallengeResponse
 from app.schemas.user import (
     AuraTransactionResponse,
     ActivityDayResponse,
+    AuraDayResponse,
     FollowStatusResponse,
     MyUserProfileResponse,
     UsernameAvailabilityResponse,
@@ -362,7 +363,7 @@ def get_my_stats(
 
     if (
         current_user.last_progress_at is not None
-        and now - current_user.last_progress_at > timedelta(hours=24)
+        and (now.date() - current_user.last_progress_at.date()).days > 1
     ):
         current_user.day_streak = 0
         db.commit()
@@ -431,12 +432,32 @@ def get_my_stats(
         for offset in range(7)
     ]
 
+    aura_rows = db.execute(
+        select(AuraTransaction.created_at, AuraTransaction.amount).where(
+            AuraTransaction.user_id == current_user.id,
+            AuraTransaction.created_at >= start_utc,
+            AuraTransaction.created_at < end_utc,
+        )
+    )
+    aura_totals: dict = {}
+    for created_at, amount in aura_rows:
+        local_date = created_at.replace(tzinfo=datetime_timezone.utc).astimezone(user_timezone).date()
+        aura_totals[local_date] = aura_totals.get(local_date, 0) + amount
+    aura_by_day = [
+        AuraDayResponse(
+            date=first_day + timedelta(days=offset),
+            aura_points=aura_totals.get(first_day + timedelta(days=offset), 0),
+        )
+        for offset in range(7)
+    ]
+
     return UserStatsResponse(
         active_challenge_count=active_count,
         completed_challenge_count=completed_count,
         day_streak=current_user.day_streak,
         aura_points=current_user.aura_points,
         activity_days=activity_days,
+        aura_by_day=aura_by_day,
         rank=rank_summary.rank,
         rank_progress=rank_summary.progress,
         next_rank=rank_summary.next_rank,

@@ -9,10 +9,14 @@ from app.models.user import User
 
 def record_progress_activity(user: User, now: datetime | None = None) -> None:
     now = now or utcnow()
-    if user.last_progress_at is None or now - user.last_progress_at > timedelta(hours=24):
+    if user.last_progress_at is None:
         user.day_streak = 1
-    elif now.date() != user.last_progress_at.date():
-        user.day_streak += 1
+    else:
+        gap_days = (now.date() - user.last_progress_at.date()).days
+        if gap_days == 1:
+            user.day_streak += 1
+        elif gap_days > 1 or user.day_streak < 1:
+            user.day_streak = 1
     user.last_progress_at = now
 
 

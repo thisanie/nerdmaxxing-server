@@ -72,12 +72,18 @@ class ActivityDayResponse(BaseModel):
     active: bool
 
 
+class AuraDayResponse(BaseModel):
+    date: date
+    aura_points: int
+
+
 class UserStatsResponse(BaseModel):
     active_challenge_count: int
     completed_challenge_count: int
     day_streak: int
     aura_points: int
     activity_days: list[ActivityDayResponse]
+    aura_by_day: list[AuraDayResponse]
     rank: str
     rank_progress: int
     next_rank: str | None
