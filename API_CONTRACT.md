@@ -221,12 +221,23 @@ Requires authentication. The existing activity fields are preserved and rank fie
   "completed_challenge_count": 16,
   "day_streak": 9,
   "aura_points": 860,
+  "activity_days": [
+    { "date": "2026-11-04", "active": false },
+    { "date": "2026-11-05", "active": true },
+    { "date": "2026-11-06", "active": false },
+    { "date": "2026-11-07", "active": true },
+    { "date": "2026-11-08", "active": false },
+    { "date": "2026-11-09", "active": true },
+    { "date": "2026-11-10", "active": true }
+  ],
   "rank": "B",
   "rank_progress": 72,
   "next_rank": "A",
   "aura_to_next_rank": 140
 }
 ```
+
+The `timezone` query parameter accepts an IANA timezone (for example, `America/Los_Angeles`) and determines the seven calendar dates returned. It defaults to `UTC` for existing clients. Activity is derived from the same progress, resource-completion, and metric records that update streaks; no separate activity history is stored.
 
 Ranks are based on lifetime aura and use these centralized thresholds: `E` 0-99, `D` 100-249, `C` 250-499, `B` 500-999, `A` 1000-1999, and `S` 2000+. New users start at `E`. `rank_progress` is the percentage through the current interval. `S` always returns `rank_progress: 100`, `next_rank: null`, and `aura_to_next_rank: 0`.
 
@@ -842,7 +853,7 @@ The response includes the attempt ID, metric, value, unit, timestamp, and `meets
 
 ### `GET /api/v1/users/me/stats`
 
-Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, and `aura_points`.
+Requires authentication. Returns the current user's activity summary: `active_challenge_count`, `completed_challenge_count`, `day_streak`, `aura_points`, and `activity_days` for the latest seven local dates. Pass the IANA `timezone` query parameter to use the user's local calendar; it defaults to `UTC`.
 
 ## External Linking
 ### Chess.com account linking

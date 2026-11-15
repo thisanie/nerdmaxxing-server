@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -67,11 +67,23 @@ class FollowStatusResponse(BaseModel):
     is_following: bool
 
 
+class ActivityDayResponse(BaseModel):
+    date: date
+    active: bool
+
+
+class AuraDayResponse(BaseModel):
+    date: date
+    aura_points: int
+
+
 class UserStatsResponse(BaseModel):
     active_challenge_count: int
     completed_challenge_count: int
     day_streak: int
     aura_points: int
+    activity_days: list[ActivityDayResponse]
+    aura_by_day: list[AuraDayResponse]
     rank: str
     rank_progress: int
     next_rank: str | None
