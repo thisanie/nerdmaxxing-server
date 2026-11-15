@@ -8,20 +8,21 @@ from app.core.config import settings
 from app.models.activity import Activity
 from app.models.category import Category
 from app.models.challenge import Challenge
+from app.models.challenge import DailyChallengeAssignment
 from app.models.participation import ChallengeParticipant
 from app.models.saved_challenge import SavedChallenge
 from app.models.user import User
 from app.schemas.challenge import CategoryResponse, ChallengeResponse
 from app.schemas.discover import RecentActivityResponse, TopNerdResponse
 from app.services.aura_service import calculate_aura
+from app.services.challenge_visibility import public_challenge_conditions
 
-PUBLIC_CHALLENGE = (Challenge.status == "PUBLISHED", Challenge.visibility == "PUBLIC")
 PUBLIC_USER = (User.is_deleted.is_(False), User.is_suspended.is_(False), User.is_private.is_(False))
 VALID_ACTIVITY_ACTIONS = ("JOINED_CHALLENGE", "COMPLETED_CHALLENGE", "STARTED_CHALLENGE", "EARNED_AURA", "REACHED_STREAK")
 
 
 def _public_query():
-    return select(Challenge).where(*PUBLIC_CHALLENGE).options(
+    return select(Challenge).where(*public_challenge_conditions()).options(
         selectinload(Challenge.categories), selectinload(Challenge.resources)
     )
 
@@ -45,12 +46,31 @@ def _responses(challenges: list[Challenge], db: Session) -> list[ChallengeRespon
     completion_counts = dict(db.execute(select(ChallengeParticipant.challenge_id, func.count()).where(
         ChallengeParticipant.challenge_id.in_(ids), ChallengeParticipant.completion_status == "COMPLETED"
     ).group_by(ChallengeParticipant.challenge_id)).all())
-    return [_challenge_response(challenge, enrollment_counts.get(challenge.id, 0), completion_counts.get(challenge.id, 0)) for challenge in challenges]
+    responses = [
+        _challenge_response(challenge, enrollment_counts.get(challenge.id, 0), completion_counts.get(challenge.id, 0))
+        for challenge in challenges
+    ]
+    now = datetime.utcnow()
+    daily_assignment = db.scalar(
+        select(DailyChallengeAssignment).where(
+            DailyChallengeAssignment.starts_at <= now,
+            DailyChallengeAssignment.ends_at > now,
+        )
+    )
+    if daily_assignment is not None:
+        for response in responses:
+            if response.id == daily_assignment.challenge_id:
+                response.is_daily_challenge = True
+                response.daily_challenge_date = daily_assignment.daily_date
+                response.daily_starts_at = daily_assignment.starts_at.replace(tzinfo=timezone.utc)
+                response.daily_ends_at = daily_assignment.ends_at.replace(tzinfo=timezone.utc)
+                response.daily_bonus_multiplier = daily_assignment.bonus_multiplier
+    return responses
 
 
 def get_categories(db: Session) -> list[CategoryResponse]:
     rows = db.execute(select(Category, func.count(distinct(Challenge.id)).label("challenge_count"))
-        .join(Category.challenges).where(*PUBLIC_CHALLENGE, Category.is_active.is_(True))
+        .join(Category.challenges).where(*public_challenge_conditions(), Category.is_active.is_(True))
         .group_by(Category.id).order_by(Category.display_order, Category.name)).all()
     return [CategoryResponse.model_validate(category).model_copy(update={"challenge_count": count}) for category, count in rows]
 
@@ -131,14 +151,14 @@ def get_top_nerds(db: Session, limit: int = 10) -> list[TopNerdResponse]:
     monday = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     rows = db.execute(select(User, func.count(ChallengeParticipant.id), func.max(ChallengeParticipant.completed_at))
         .join(ChallengeParticipant, ChallengeParticipant.user_id == User.id).join(Challenge, Challenge.id == ChallengeParticipant.challenge_id)
-        .where(*PUBLIC_USER, *PUBLIC_CHALLENGE, ChallengeParticipant.completion_status == "COMPLETED", ChallengeParticipant.completed_at >= monday)
+        .where(*PUBLIC_USER, *public_challenge_conditions(), ChallengeParticipant.completion_status == "COMPLETED", ChallengeParticipant.completed_at >= monday)
         .group_by(User.id).order_by(func.count(ChallengeParticipant.id).desc(), func.max(ChallengeParticipant.completed_at).desc(), User.id).limit(limit)).all()
     return [TopNerdResponse(rank=index, user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, completed_count=count, day_streak=user.day_streak) for index, (user, count, _) in enumerate(rows, 1)]
 
 
 def get_recent_activity(db: Session, limit: int = 10) -> list[RecentActivityResponse]:
     rows = db.execute(select(Activity, User, Challenge).join(User, User.id == Activity.user_id).outerjoin(Challenge, Challenge.id == Activity.challenge_id)
-        .where(*PUBLIC_USER, Activity.action.in_(VALID_ACTIVITY_ACTIONS), or_(Activity.challenge_id.is_(None), and_(*PUBLIC_CHALLENGE)))
+        .where(*PUBLIC_USER, Activity.action.in_(VALID_ACTIVITY_ACTIONS), or_(Activity.challenge_id.is_(None), and_(*public_challenge_conditions())))
         .order_by(Activity.created_at.desc(), Activity.id.desc()).limit(limit)).all()
     return [RecentActivityResponse(id=activity.id, user_id=user.id, username=user.username, display_name=user.display_name, avatar_url=user.avatar_url, action=activity.action, challenge_id=challenge.id if challenge else None, challenge_title=challenge.title if challenge else None, challenge_slug=challenge.slug if challenge else None, created_at=activity.created_at.replace(tzinfo=timezone.utc)) for activity, user, challenge in rows]
 
@@ -160,7 +180,7 @@ def search_discover(db: Session, query: str, result_type: str, limit: int, offse
         )
         .select_from(Challenge)
         .join(Challenge.categories, isouter=True)
-        .where(*PUBLIC_CHALLENGE, match)
+        .where(*public_challenge_conditions(), match)
         .distinct()
         .subquery()
     )

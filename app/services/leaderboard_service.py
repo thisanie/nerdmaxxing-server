@@ -13,9 +13,9 @@ from app.schemas.leaderboard import (
     LeaderboardViewerResponse,
 )
 from app.services.rank_service import RANK_THRESHOLDS
+from app.services.challenge_visibility import public_challenge_conditions
 
 
-PUBLIC_CHALLENGE = (Challenge.status == "PUBLISHED", Challenge.visibility == "PUBLIC")
 PUBLIC_USER = (User.is_deleted.is_(False), User.is_suspended.is_(False), User.is_private.is_(False))
 
 
@@ -38,7 +38,7 @@ def _player_rank_expression():
 def _ranking_query(db: Session, period: str, metric: str, player_rank: str | None, now: datetime):
     start = period_start(period, now)
     aura_filters = [AuraTransaction.created_at >= start] if start else []
-    completion_filters = [*PUBLIC_CHALLENGE, ChallengeParticipant.completion_status == "COMPLETED"]
+    completion_filters = [*public_challenge_conditions(), ChallengeParticipant.completion_status == "COMPLETED"]
     if start:
         completion_filters.append(ChallengeParticipant.completed_at >= start)
 
@@ -69,7 +69,7 @@ def _ranking_query(db: Session, period: str, metric: str, player_rank: str | Non
             func.count(ChallengeParticipant.id).label("lifetime_completed"),
         )
         .join(Challenge, Challenge.id == ChallengeParticipant.challenge_id)
-        .where(*PUBLIC_CHALLENGE, ChallengeParticipant.completion_status == "COMPLETED")
+        .where(*public_challenge_conditions(), ChallengeParticipant.completion_status == "COMPLETED")
         .group_by(ChallengeParticipant.user_id)
         .subquery()
     )

@@ -533,9 +533,13 @@ Unauthenticated requests return `401`, non-members or non-invitees return `403`,
 
 ### `GET /api/v1/challenges?limit={limit}&offset={offset}`
 
-Lists public, published challenges, newest first. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
+Lists public challenges whose publication time has arrived, newest first. The active daily challenge is included and marked in its [Challenge](#challenge-object) object. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
 
 Response `200 OK`: an array of [Challenge](#challenge-object) objects.
+
+### `GET /api/v1/challenges/daily`
+
+Returns the challenge active in the current 24-hour window, which starts at 5:00 AM IST. Returns `null` when no daily challenge is active. The response is a [Challenge](#challenge-object) object with daily metadata.
 
 ### `GET /api/v1/challenges/private?limit={limit}&offset={offset}`
 
@@ -673,6 +677,27 @@ Rules:
 - Each resource `title` is 1-160 characters and `rationale` is 1-1000 characters.
 - `estimated_effort_min_minutes` and `estimated_effort_max_minutes`, when provided, must be at least 1; minimum cannot exceed maximum.
 - `aura_points` is calculated by the backend from difficulty and estimated effort; challenge creators do not provide it.
+
+### `POST /api/v1/admin/challenges`
+
+Requires an authenticated admin. Creates a private challenge draft for admin review and testing. The JSON body uses the challenge fields from `POST /api/v1/challenges`, and must include `verification_instructions` and at least one milestone. Each milestone contains a `title`, `description`, `target_value`, and `resource_order_indexes` referencing resources in the request. Resources may include a `required` boolean, defaulting to `true`.
+
+Response `201 Created`: a [Challenge](#challenge-object) object with `status` and `visibility` set to `PRIVATE`.
+
+### `POST /api/v1/admin/challenges/{challenge_id}/daily`
+
+Requires an authenticated admin. Assigns a private challenge to one IST calendar date. Only one challenge can be assigned per date. The challenge becomes public at 5:00 AM IST on that date and remains publicly available afterward; approved evidence submitted during the 24-hour bonus window receives the configured aura multiplier.
+
+Request:
+
+```json
+{
+  "daily_date": "2026-11-16",
+  "bonus_multiplier": 2
+}
+```
+
+`bonus_multiplier` defaults to `2` and must be greater than 1 and no greater than 5. The response contains the scheduled date, UTC start/end timestamps, multiplier, and challenge object. Returns `409 Conflict` if that date already has a daily challenge or the selected challenge is not private.
 
 ## Challenge Invitations
 
@@ -1127,7 +1152,12 @@ Response `200 OK`: an array of [User skill](#user-skill-object) objects.
   "verification_type": "SELF_REPORTED",
   "created_at": "2026-09-05T12:00:00Z",
   "updated_at": "2026-09-05T12:00:00Z",
-  "published_at": "2026-09-05T12:00:00Z"
+  "published_at": "2026-09-05T12:00:00Z",
+  "is_daily_challenge": false,
+  "daily_challenge_date": null,
+  "daily_starts_at": null,
+  "daily_ends_at": null,
+  "daily_bonus_multiplier": null
 }
 ```
 

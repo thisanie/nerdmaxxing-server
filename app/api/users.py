@@ -39,6 +39,7 @@ from app.schemas.user import (
 from app.schemas.invitation import PushTokenCreate, PushTokenResponse
 from app.schemas.group import GroupResponse
 from app.services.discovery_service import _responses
+from app.services.challenge_visibility import public_challenge_conditions
 from app.services.user_service import (
     is_username_available,
     is_valid_username,
@@ -152,10 +153,7 @@ def profile_response(
     ]
     completed_statement = select(Challenge).join(ChallengeParticipant).where(*completed_conditions)
     if public_only:
-        completed_statement = completed_statement.where(
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
-        )
+        completed_statement = completed_statement.where(*public_challenge_conditions())
     completed_challenges = db.scalars(
         completed_statement
         .options(selectinload(Challenge.categories), selectinload(Challenge.resources))
@@ -168,7 +166,7 @@ def profile_response(
         .where(
             Challenge.creator_id == user.id,
             *(
-                [Challenge.status == "PUBLISHED", Challenge.visibility == "PUBLIC"]
+                list(public_challenge_conditions())
                 if public_only
                 else []
             ),

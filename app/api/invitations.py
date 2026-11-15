@@ -37,6 +37,7 @@ from app.schemas.group import (
 )
 from app.api.groups import group_message_response
 from app.services.push_notification_service import send_notification_push
+from app.services.challenge_visibility import public_challenge_conditions
 
 
 router = APIRouter(prefix="/api/v1", tags=["Invitations"])
@@ -51,11 +52,7 @@ def token_hash(token: str) -> str:
 
 def get_joinable_challenge(db: Session, slug: str) -> Challenge:
     challenge = db.scalar(
-        select(Challenge).where(
-            Challenge.slug == slug,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
-        )
+        select(Challenge).where(Challenge.slug == slug, *public_challenge_conditions())
     )
     if challenge is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
@@ -596,8 +593,7 @@ def get_joinable_challenge_by_id(db: Session, challenge_id: str) -> Challenge:
     challenge = db.scalar(
         select(Challenge).where(
             Challenge.id == challenge_id,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
+            *public_challenge_conditions(),
         )
     )
     if challenge is None:

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user, get_db
 from app.models.challenge import Challenge, ChallengeResource
 from app.models.challenge import ChallengeMilestone
+from app.services.challenge_visibility import public_challenge_conditions
 from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.participation import ChallengeParticipant
 from app.models.user import User
@@ -118,8 +119,7 @@ def accept_challenge(
     challenge = db.scalar(
         select(Challenge).where(
             Challenge.slug == slug,
-            Challenge.status == "PUBLISHED",
-            Challenge.visibility == "PUBLIC",
+            *public_challenge_conditions(),
         )
     )
     if challenge is None:
