@@ -1,6 +1,6 @@
 import asyncio
 from io import BytesIO
-from datetime import datetime, timedelta
+from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -21,7 +21,7 @@ from app.api.evidence import (
 from app.api.users import get_profile
 from app.models.base import Base
 from app.models.aura import AuraTransaction
-from app.models.challenge import Challenge, DailyChallengeAssignment
+from app.models.challenge import Challenge
 from app.models.evidence import EvidenceSubmission
 from app.models.follow import UserFollow
 from app.models.invitation import Notification
@@ -369,37 +369,6 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
             reviewer,
         )
     assert error.value.status_code == 409
-
-
-def test_daily_challenge_awards_multiplier_for_in_window_submission():
-    db, current_user, reviewer, challenge_value, _, submission = create_review_database()
-    submission.submitted_at = datetime.utcnow()
-    assignment = DailyChallengeAssignment(
-        challenge_id=challenge_value.id,
-        daily_date=submission.submitted_at.date(),
-        starts_at=submission.submitted_at - timedelta(hours=12),
-        ends_at=submission.submitted_at + timedelta(hours=12),
-        bonus_multiplier=2,
-    )
-    db.add(assignment)
-    db.commit()
-
-    verify_evidence(
-        submission.id,
-        EvidenceVerificationRequest(decision="APPROVE"),
-        db,
-        reviewer,
-    )
-
-    assert current_user.aura_points == 80
-    transaction = db.scalar(
-        select(AuraTransaction).where(
-            AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
-            AuraTransaction.reference_id == submission.id,
-        )
-    )
-    assert transaction.amount == 80
-    assert transaction.reason == "Approved daily challenge evidence"
 
 
 def test_rejection_note_is_visible_as_unapproved_status_and_can_retry(monkeypatch):

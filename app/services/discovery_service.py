@@ -8,7 +8,6 @@ from app.core.config import settings
 from app.models.activity import Activity
 from app.models.category import Category
 from app.models.challenge import Challenge
-from app.models.challenge import DailyChallengeAssignment
 from app.models.participation import ChallengeParticipant
 from app.models.saved_challenge import SavedChallenge
 from app.models.user import User
@@ -46,26 +45,10 @@ def _responses(challenges: list[Challenge], db: Session) -> list[ChallengeRespon
     completion_counts = dict(db.execute(select(ChallengeParticipant.challenge_id, func.count()).where(
         ChallengeParticipant.challenge_id.in_(ids), ChallengeParticipant.completion_status == "COMPLETED"
     ).group_by(ChallengeParticipant.challenge_id)).all())
-    responses = [
+    return [
         _challenge_response(challenge, enrollment_counts.get(challenge.id, 0), completion_counts.get(challenge.id, 0))
         for challenge in challenges
     ]
-    now = datetime.utcnow()
-    daily_assignment = db.scalar(
-        select(DailyChallengeAssignment).where(
-            DailyChallengeAssignment.starts_at <= now,
-            DailyChallengeAssignment.ends_at > now,
-        )
-    )
-    if daily_assignment is not None:
-        for response in responses:
-            if response.id == daily_assignment.challenge_id:
-                response.is_daily_challenge = True
-                response.daily_challenge_date = daily_assignment.daily_date
-                response.daily_starts_at = daily_assignment.starts_at.replace(tzinfo=timezone.utc)
-                response.daily_ends_at = daily_assignment.ends_at.replace(tzinfo=timezone.utc)
-                response.daily_bonus_multiplier = daily_assignment.bonus_multiplier
-    return responses
 
 
 def get_categories(db: Session) -> list[CategoryResponse]:

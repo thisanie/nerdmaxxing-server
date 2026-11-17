@@ -350,21 +350,15 @@ def unregister_push_token(
 def get_my_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    timezone_name: str = Query(default="UTC", alias="timezone", min_length=1, max_length=64),
+    timezone_name: str | None = Query(default=None, alias="timezone", min_length=1, max_length=64),
 ) -> UserStatsResponse:
     rank_summary = rank_for_aura(current_user.aura_points)
     now = utcnow()
+    timezone_name = timezone_name or current_user.timezone_name
     try:
         user_timezone = ZoneInfo(timezone_name)
     except (ValueError, ZoneInfoNotFoundError):
         raise HTTPException(status_code=422, detail="timezone must be a valid IANA timezone.")
-
-    if (
-        current_user.last_progress_at is not None
-        and (now.date() - current_user.last_progress_at.date()).days > 1
-    ):
-        current_user.day_streak = 0
-        db.commit()
 
     active_count = db.scalar(
         select(func.count())
@@ -383,6 +377,12 @@ def get_my_stats(
         )
     ) or 0
     local_today = now.replace(tzinfo=datetime_timezone.utc).astimezone(user_timezone).date()
+    if (
+        current_user.last_daily_quest_date is None
+        or (local_today - current_user.last_daily_quest_date).days > 1
+    ) and current_user.day_streak != 0:
+        current_user.day_streak = 0
+        db.commit()
     first_day = local_today - timedelta(days=6)
     start_at = datetime.combine(first_day, time.min, tzinfo=user_timezone)
     end_at = datetime.combine(local_today + timedelta(days=1), time.min, tzinfo=user_timezone)

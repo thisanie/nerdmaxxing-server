@@ -533,13 +533,9 @@ Unauthenticated requests return `401`, non-members or non-invitees return `403`,
 
 ### `GET /api/v1/challenges?limit={limit}&offset={offset}`
 
-Lists public challenges whose publication time has arrived, newest first. The active daily challenge is included and marked in its [Challenge](#challenge-object) object. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
+Lists public Major Challenges, newest first. `limit` defaults to `20` and must be 1-100. `offset` defaults to `0` and must be non-negative.
 
 Response `200 OK`: an array of [Challenge](#challenge-object) objects.
-
-### `GET /api/v1/challenges/daily`
-
-Returns the challenge active in the current 24-hour window, which starts at 5:00 AM IST. Returns `null` when no daily challenge is active. The response is a [Challenge](#challenge-object) object with daily metadata.
 
 ### `GET /api/v1/challenges/private?limit={limit}&offset={offset}`
 
@@ -684,20 +680,63 @@ Requires an authenticated admin. Creates a private challenge draft for admin rev
 
 Response `201 Created`: a [Challenge](#challenge-object) object with `status` and `visibility` set to `PRIVATE`.
 
-### `POST /api/v1/admin/challenges/{challenge_id}/daily`
+## Daily Quests
 
-Requires an authenticated admin. Assigns a private challenge to one IST calendar date. Only one challenge can be assigned per date. The challenge becomes public at 5:00 AM IST on that date and remains publicly available afterward; approved evidence submitted during the 24-hour bonus window receives the configured aura multiplier.
+Daily Quests are short standalone activities, separate from Major Challenges. One quest is assigned to each local calendar date. Users resolve “today” using their saved IANA timezone; each attempt expires at that user's next local midnight.
+
+### `POST /api/v1/admin/daily-quests`
+
+Requires an authenticated admin. Creates a private draft. Fields include title, descriptions/instructions, category (`KNOWLEDGE`, `PHYSICAL`, `CREATIVE`, `PRACTICAL`, or `MENTAL`), estimated minutes (5-15), verification type (`QUIZ`, `IMAGE`, or `VIDEO`), optional article URL, optional related Major Challenge, and Aura reward (1-10, default 2).
+
+For `QUIZ`, provide `questions`; each contains `prompt`, 2-6 `options`, and `correct_option_index`. Quiz questions are required for `QUIZ` and rejected for media quests. Correct answers are returned only by admin endpoints.
+
+### `GET /api/v1/admin/daily-quests`
+
+Requires an authenticated admin. Lists draft and published quests, including quiz answer keys for author review.
+
+### `POST /api/v1/admin/daily-quests/{quest_id}/schedule`
+
+Requires an authenticated admin. Publishes a draft for one local calendar date. Only one quest may be scheduled per date.
 
 Request:
 
 ```json
-{
-  "daily_date": "2026-11-16",
-  "bonus_multiplier": 2
-}
+{ "local_date": "2026-11-17" }
 ```
 
-`bonus_multiplier` defaults to `2` and must be greater than 1 and no greater than 5. The response contains the scheduled date, UTC start/end timestamps, multiplier, and challenge object. Returns `409 Conflict` if that date already has a daily challenge or the selected challenge is not private.
+### `GET /api/v1/daily-quests/today?timezone={iana_timezone}`
+
+Requires authentication. Returns today's quest, local date, UTC expiry, and current attempt state. The timezone is optional and defaults to the user's saved timezone (`UTC` initially). Quiz responses omit correct answers.
+
+### `POST /api/v1/daily-quests/today/start?timezone={iana_timezone}`
+
+Requires authentication. Creates or returns the user's single attempt for the local date and saves the supplied timezone preference.
+
+### `POST /api/v1/daily-quests/today/quiz?timezone={iana_timezone}`
+
+Requires authentication. Request body: `{ "answers": [0, 1] }`, with one selected option index per question. A score of at least 80% completes the quest. A failing score allows one retry before the attempt becomes `FAILED`. A successful completion awards the configured Aura once and updates the daily streak.
+
+### `POST /api/v1/daily-quests/today/evidence?timezone={iana_timezone}`
+
+Requires authentication. Accepts multipart form data with a `file` field. Images are limited to 10 MiB; videos are limited to 50 MiB. Evidence is stored in the private evidence bucket and enters `PENDING_REVIEW`; upload alone does not award Aura or streak credit.
+
+### `GET /api/v1/admin/daily-quests/attempts/{attempt_id}/evidence-url`
+
+Requires an authenticated admin. Returns a short-lived URL for the private submission.
+
+### `GET /api/v1/admin/daily-quests/attempts?status=PENDING_REVIEW`
+
+Requires an authenticated admin. Lists attempts in the requested status, defaulting to `PENDING_REVIEW`, with a maximum of 100 results.
+
+### `GET /api/v1/admin/daily-quests/attempts/{attempt_id}`
+
+Requires an authenticated admin. Returns attempt details without exposing the private evidence URL; request the evidence URL separately when reviewing.
+
+### `POST /api/v1/admin/daily-quests/attempts/{attempt_id}/review`
+
+Requires an authenticated admin. Approves or rejects a pending image/video submission. Approval awards Aura once and records completion for the attempt's local date; rejection does not award Aura or streak credit. Request body: `{ "decision": "APPROVE", "note": "..." }` or `{ "decision": "REJECT", "note": "..." }`.
+
+Major Challenge progress does not advance the daily streak. The streak changes only when a Daily Quest is successfully completed.
 
 ## Challenge Invitations
 

@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -33,6 +33,9 @@ class User(Base):
     is_private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     aura_points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     day_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    timezone_name: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
+    last_daily_quest_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_daily_quest_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_progress_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

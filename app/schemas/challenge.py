@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -90,19 +90,6 @@ class AdminChallengeCreate(ChallengeCreate):
     milestones: list[ChallengeMilestoneCreate] = Field(min_length=1, max_length=20)
 
 
-class DailyChallengeScheduleCreate(BaseModel):
-    daily_date: date
-    bonus_multiplier: float = Field(default=2.0, gt=1, le=5)
-
-
-class DailyChallengeScheduleResponse(BaseModel):
-    daily_date: date
-    starts_at: datetime
-    ends_at: datetime
-    bonus_multiplier: float
-    challenge: "ChallengeResponse"
-
-
 class ChallengeResourceCreate(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     url: AnyHttpUrl | None = None
@@ -153,12 +140,6 @@ class ChallengeResponse(BaseModel):
     published_at: datetime | None
     metrics: list[ChallengeMetricDefinition] = Field(default_factory=list)
     requirements: list[ChallengeRequirement] = Field(default_factory=list)
-    is_daily_challenge: bool = False
-    daily_challenge_date: date | None = None
-    daily_starts_at: datetime | None = None
-    daily_ends_at: datetime | None = None
-    daily_bonus_multiplier: float | None = None
-
     @field_validator("metrics", "requirements", mode="before")
     @classmethod
     def normalize_metric_configuration(cls, value):

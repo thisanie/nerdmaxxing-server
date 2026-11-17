@@ -61,7 +61,7 @@ def test_period_metrics_rank_filter_and_public_privacy():
     challenge = public_challenge("public-challenge")
     private_challenge = public_challenge("private-challenge")
     private_challenge.visibility = "PRIVATE"
-    active = User(id="active", username="active", aura_points=500, day_streak=4, last_progress_at=now)
+    active = User(id="active", username="active", aura_points=500, day_streak=4, last_daily_quest_at=now)
     zero = User(id="zero", username="zero")
     deleted = User(id="deleted", username="deleted", is_deleted=True, aura_points=900)
     db.add_all([challenge, private_challenge, active, zero, deleted])

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.dependencies import get_current_user, get_db, get_optional_current_user
 from app.core.config import settings
 from app.models.category import Category
-from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource, DailyChallengeAssignment
+from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
 from app.models.participation import ChallengeParticipant
 from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.saved_challenge import SavedChallenge
@@ -138,27 +138,6 @@ def list_public_challenges(
         .limit(limit)
     )
     return _responses(list(db.scalars(statement).all()), db)
-
-
-@router.get("/daily", response_model=ChallengeResponse | None)
-def get_daily_challenge(db: Session = Depends(get_db)) -> ChallengeResponse | None:
-    now = datetime.utcnow()
-    assignment = db.scalar(
-        select(DailyChallengeAssignment).where(
-            DailyChallengeAssignment.starts_at <= now,
-            DailyChallengeAssignment.ends_at > now,
-        )
-    )
-    if assignment is None:
-        return None
-    challenge = db.scalar(
-        select(Challenge)
-        .where(Challenge.id == assignment.challenge_id, *public_challenge_conditions())
-        .options(selectinload(Challenge.categories), selectinload(Challenge.resources))
-    )
-    if challenge is None:
-        return None
-    return _responses([challenge], db)[0]
 
 
 @router.get("/private", response_model=list[ChallengeResponse])

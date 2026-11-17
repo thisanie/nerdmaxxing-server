@@ -1,29 +1,23 @@
 import re
 import uuid
-from datetime import datetime, time, timedelta, timezone
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.category import Category
-from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource, DailyChallengeAssignment
+from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
 from app.models.user import User
 from app.schemas.challenge import (
     AdminChallengeCreate,
     ChallengeResponse,
-    DailyChallengeScheduleCreate,
-    DailyChallengeScheduleResponse,
 )
 from app.services.discovery_service import _responses
 
 
 router = APIRouter(prefix="/api/v1/admin/challenges", tags=["Admin Challenges"])
-IST = ZoneInfo("Asia/Kolkata")
 
 
 def _require_admin(user: User) -> None:
@@ -97,61 +91,3 @@ def create_admin_challenge(
     db.commit()
     db.refresh(challenge)
     return _responses([challenge], db)[0]
-
-
-@router.post(
-    "/{challenge_id}/daily",
-    response_model=DailyChallengeScheduleResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def schedule_daily_challenge(
-    challenge_id: str,
-    payload: DailyChallengeScheduleCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> DailyChallengeScheduleResponse:
-    _require_admin(current_user)
-    challenge = db.get(Challenge, challenge_id)
-    if challenge is None:
-        raise HTTPException(status_code=404, detail="Challenge not found.")
-    if challenge.status != "PRIVATE" or challenge.visibility != "PRIVATE":
-        raise HTTPException(status_code=409, detail="Only a private challenge can be scheduled.")
-
-    now_ist = datetime.now(IST)
-    if payload.daily_date < now_ist.date():
-        raise HTTPException(status_code=422, detail="Daily challenge date cannot be in the past.")
-    starts_at = datetime.combine(payload.daily_date, time(5), IST)
-    ends_at = starts_at + timedelta(hours=24)
-    starts_at_utc = starts_at.astimezone(timezone.utc).replace(tzinfo=None)
-    ends_at_utc = ends_at.astimezone(timezone.utc).replace(tzinfo=None)
-    if db.scalar(
-        select(DailyChallengeAssignment.id).where(
-            DailyChallengeAssignment.daily_date == payload.daily_date
-        )
-    ) is not None:
-        raise HTTPException(status_code=409, detail="A daily challenge is already scheduled for that date.")
-
-    assignment = DailyChallengeAssignment(
-        challenge_id=challenge.id,
-        daily_date=payload.daily_date,
-        starts_at=starts_at_utc,
-        ends_at=ends_at_utc,
-        bonus_multiplier=payload.bonus_multiplier,
-    )
-    challenge.status = "PUBLISHED"
-    challenge.visibility = "PUBLIC"
-    challenge.published_at = starts_at_utc
-    db.add(assignment)
-    try:
-        db.commit()
-    except IntegrityError as error:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="A daily challenge is already scheduled for that date.") from error
-    db.refresh(challenge)
-    return DailyChallengeScheduleResponse(
-        daily_date=assignment.daily_date,
-        starts_at=assignment.starts_at.replace(tzinfo=timezone.utc),
-        ends_at=assignment.ends_at.replace(tzinfo=timezone.utc),
-        bonus_multiplier=assignment.bonus_multiplier,
-        challenge=_responses([challenge], db)[0],
-    )

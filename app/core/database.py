@@ -65,6 +65,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "is_suspended": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "is_admin": "BOOLEAN NOT NULL DEFAULT FALSE",
                         "is_private": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "timezone_name": "VARCHAR(64) NOT NULL DEFAULT 'UTC'",
+                        "last_daily_quest_date": "DATE",
+                        "last_daily_quest_at": timestamp_type,
                 }
                 for name, definition in user_additions.items():
                         if user_columns and name not in user_columns:

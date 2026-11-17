@@ -1,7 +1,7 @@
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Table, Text, Column, JSON, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Table, Text, Column, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -104,22 +104,3 @@ class ChallengeMilestone(Base):
     resources: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
 
     challenge: Mapped[Challenge] = relationship(back_populates="milestones")
-
-
-class DailyChallengeAssignment(Base):
-    __tablename__ = "daily_challenge_assignments"
-    __table_args__ = (
-        UniqueConstraint("daily_date"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    challenge_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    daily_date: Mapped[date] = mapped_column(Date, nullable=False)
-    starts_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    ends_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    bonus_multiplier: Mapped[float] = mapped_column(Float, nullable=False, default=2.0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
-    challenge: Mapped[Challenge] = relationship()
