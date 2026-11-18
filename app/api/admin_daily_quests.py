@@ -20,7 +20,9 @@ from app.schemas.daily_quest import (
     DailyQuestScheduleResponse,
 )
 from app.services.daily_quest_service import complete_quest
+from app.services.daily_quest_notification_service import create_approval_notification
 from app.services.blob_storage import private_blob_url
+from app.services.push_notification_service import send_notification_push
 
 
 router = APIRouter(prefix="/api/v1/admin/daily-quests", tags=["Admin Daily Quests"])
@@ -210,7 +212,10 @@ def review_daily_quest_evidence(
 ) -> DailyQuestReviewResponse:
     _require_admin(current_user)
     attempt = db.scalar(
-        select(DailyQuestAttempt).where(DailyQuestAttempt.id == attempt_id).with_for_update()
+        select(DailyQuestAttempt)
+        .where(DailyQuestAttempt.id == attempt_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if attempt is None:
         raise HTTPException(status_code=404, detail="Daily Quest attempt not found.")
@@ -225,11 +230,15 @@ def review_daily_quest_evidence(
     attempt.reviewed_at = datetime.utcnow()
     attempt.review_note = payload.note
     aura_awarded = 0
+    approval_notification = None
     if payload.decision == "APPROVE":
         aura_awarded = complete_quest(db, user, attempt, quest)
+        approval_notification = create_approval_notification(db, attempt, quest.title)
     else:
         attempt.status = "REJECTED"
     db.commit()
+    if approval_notification is not None:
+        send_notification_push(db, approval_notification)
     return DailyQuestReviewResponse(
         attempt_id=attempt.id,
         status=attempt.status,

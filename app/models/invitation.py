@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -74,6 +74,7 @@ class GroupChallengeInvitationResponse(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
+    __table_args__ = (UniqueConstraint("dedupe_key", name="uq_notifications_dedupe_key"),)
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -100,6 +101,11 @@ class Notification(Base):
     challenge_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
     group_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     group_message_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    daily_quest_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    daily_quest_local_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    daily_quest_attempt_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    deep_link: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    dedupe_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
     is_read: Mapped[bool] = mapped_column(nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

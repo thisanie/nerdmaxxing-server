@@ -117,9 +117,29 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "group_id": "VARCHAR(36)",
                         "group_message_id": "VARCHAR(36)",
                         "challenge_title": "VARCHAR(160)",
+                        "daily_quest_id": "VARCHAR(36)",
+                        "daily_quest_local_date": "DATE",
+                        "daily_quest_attempt_id": "VARCHAR(36)",
+                        "deep_link": "VARCHAR(2048)",
+                        "dedupe_key": "VARCHAR(300)",
                 }.items():
                         if notification_columns and name not in notification_columns:
                                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
+                if notification_columns:
+                        connection.execute(text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_dedupe_key "
+                                "ON notifications (dedupe_key)"
+                        ))
+
+                inspector = inspect(connection)
+                daily_attempt_columns = {column["name"] for column in inspector.get_columns("daily_quest_attempts")}
+                for name, definition in {
+                        "aura_awarded": "INTEGER NOT NULL DEFAULT 0",
+                        "day_streak_at_completion": "INTEGER",
+                }.items():
+                        if daily_attempt_columns and name not in daily_attempt_columns:
+                                connection.execute(text(f"ALTER TABLE daily_quest_attempts ADD COLUMN {name} {definition}"))
 
                 if (
                         connection.dialect.name != "sqlite"

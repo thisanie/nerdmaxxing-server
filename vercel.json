@@ -19,5 +19,11 @@
       "src": "/(.*)",
       "dest": "app/main.py"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/v1/daily-quests/internal/notifications/run",
+      "schedule": "*/15 * * * *"
+    }
   ]
 }

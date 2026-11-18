@@ -81,6 +81,8 @@ class DailyQuestAttempt(Base):
     quiz_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     quiz_score_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
     quiz_answers: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
+    aura_awarded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    day_streak_at_completion: Mapped[int | None] = mapped_column(Integer, nullable=True)
     evidence_storage_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     evidence_content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -90,3 +92,27 @@ class DailyQuestAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     quest: Mapped[DailyQuest] = relationship()
+
+
+class DailyQuestQuizSession(Base):
+    __tablename__ = "daily_quest_quiz_sessions"
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "attempt_number", name="uq_daily_quest_quiz_session_attempt_number"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    attempt_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("daily_quest_attempts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    current_question_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    answers: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
+    question_deadline_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    last_question_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_timed_out: Mapped[bool] = mapped_column(nullable=False, default=False)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    attempt: Mapped[DailyQuestAttempt] = relationship()

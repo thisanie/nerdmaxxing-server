@@ -682,13 +682,13 @@ Response `201 Created`: a [Challenge](#challenge-object) object with `status` an
 
 ## Daily Quests
 
-Daily Quests are short standalone activities, separate from Major Challenges. One quest is assigned to each local calendar date. Users resolve “today” using their saved IANA timezone; each attempt expires at that user's next local midnight.
+Daily Quests are short standalone activities, separate from Major Challenges. The user resolves “today” in an IANA timezone, defaulting to the saved user timezone (`UTC` initially). An attempt stores its local date and timezone at creation and expires at midnight in that saved timezone, including DST transitions. Quiz scoring, rewards, streak updates, and completion state are authoritative on the backend.
 
 ### `POST /api/v1/admin/daily-quests`
 
 Requires an authenticated admin. Creates a private draft. Fields include title, descriptions/instructions, category (`KNOWLEDGE`, `PHYSICAL`, `CREATIVE`, `PRACTICAL`, or `MENTAL`), estimated minutes (5-15), verification type (`QUIZ`, `IMAGE`, or `VIDEO`), optional article URL, optional related Major Challenge, and Aura reward (1-10, default 2).
 
-For `QUIZ`, provide `questions`; each contains `prompt`, 2-6 `options`, and `correct_option_index`. Quiz questions are required for `QUIZ` and rejected for media quests. Correct answers are returned only by admin endpoints.
+For `QUIZ`, provide `questions`; each contains `prompt`, 2-6 `options`, and `correct_option_index`. Quiz questions are required for `QUIZ` and rejected for media quests. Correct answers are returned only by admin endpoints. User-facing quest responses never contain answer keys.
 
 ### `GET /api/v1/admin/daily-quests`
 
@@ -696,7 +696,7 @@ Requires an authenticated admin. Lists draft and published quests, including qui
 
 ### `POST /api/v1/admin/daily-quests/{quest_id}/schedule`
 
-Requires an authenticated admin. Publishes a draft for one local calendar date. Only one quest may be scheduled per date.
+Requires an authenticated admin. Publishes a draft for one calendar date. Only one quest may be scheduled per date.
 
 Request:
 
@@ -706,19 +706,93 @@ Request:
 
 ### `GET /api/v1/daily-quests/today?timezone={iana_timezone}`
 
-Requires authentication. Returns today's quest, local date, UTC expiry, and current attempt state. The timezone is optional and defaults to the user's saved timezone (`UTC` initially). Quiz responses omit correct answers.
+Requires authentication. Returns today's quest, local date, UTC expiry, and current attempt state. The timezone is optional and defaults to the user's saved timezone (`UTC` initially). Invalid IANA timezones return `422`. For a quiz quest, `quest.questions` is empty until a server-timed session issues the current question. When configured, `quest.related_major_challenge` contains `{id, slug, title, deep_link}`. Existing attempts retain their saved timezone and expiry.
 
 ### `POST /api/v1/daily-quests/today/start?timezone={iana_timezone}`
 
-Requires authentication. Creates or returns the user's single attempt for the local date and saves the supplied timezone preference.
+Requires authentication. Creates or returns the user's single attempt for the local date and saves the supplied timezone preference for newly created attempts.
 
-### `POST /api/v1/daily-quests/today/quiz?timezone={iana_timezone}`
+### `POST /api/v1/daily-quests/today/quiz/session?timezone={iana_timezone}`
 
-Requires authentication. Request body: `{ "answers": [0, 1] }`, with one selected option index per question. A score of at least 80% completes the quest. A failing score allows one retry before the attempt becomes `FAILED`. A successful completion awards the configured Aura once and updates the daily streak.
+Requires authentication. Starts a quiz session or returns its currently active question (idempotent reconnect). The server starts a new question deadline when issuing each question. `DAILY_QUEST_QUESTION_SECONDS` defaults to 30. The response omits correct answers:
+
+```json
+{
+  "session_id": "quiz-session-id",
+  "attempt_id": "attempt-id",
+  "attempt_number": 1,
+  "question": {
+    "id": "question-id",
+    "order_index": 0,
+    "prompt": "Question text",
+    "options": ["A", "B"]
+  },
+  "question_index": 0,
+  "question_number": 1,
+  "total_questions": 5,
+  "seconds_per_question": 30,
+  "answer_deadline_at": "2026-11-18T12:00:30Z",
+  "timed_out": false,
+  "result": null
+}
+```
+
+### `POST /api/v1/daily-quests/today/quiz/sessions/{session_id}/answer`
+
+Requires authentication by the attempt owner. Send one answer at a time:
+
+```json
+{ "question_index": 0, "answer_option_index": 1 }
+```
+
+Send `answer_option_index: null` to explicitly skip. Answers received at or after the server deadline are ignored and recorded as incorrect; the response advances to the next question. The client cannot request or submit a future question before the server issues it. The final response has `question: null` and a trusted `result` containing score, pass/fail, attempts remaining, Aura awarded, updated streak, completion status/date, and related Major Challenge details when configured. Replaying the same answer index returns the current persisted response without scoring or rewarding again; stale/out-of-order indexes return `409`.
+
+A score of at least 80% completes the quest. Users have two scored sessions total: an initial attempt and one retry. The retry becomes available after a failed first session; a second failure sets status `FAILED`. An active session is resumed rather than consuming another retry. If the attempt's saved local-day deadline passes, it becomes `EXPIRED`; further answers and new sessions return `410 Gone`, and no completion reward is granted.
+
+Final result example:
+
+```json
+{
+  "attempt_id": "attempt-id",
+  "status": "COMPLETED",
+  "score_percent": 80,
+  "passed": true,
+  "quiz_attempt_count": 1,
+  "quiz_attempts_remaining": 0,
+  "aura_awarded": 2,
+  "day_streak": 5,
+  "completion_status": "COMPLETED",
+  "completion_date": "2026-11-18",
+  "related_major_challenge": null
+}
+```
+
+The legacy `POST /api/v1/daily-quests/today/quiz?timezone={iana_timezone}` route remains for compatibility but returns `409 Conflict` and directs clients to the sequential session flow. An all-at-once answer array cannot prove per-question timing.
 
 ### `POST /api/v1/daily-quests/today/evidence?timezone={iana_timezone}`
 
-Requires authentication. Accepts multipart form data with a `file` field. Images are limited to 10 MiB; videos are limited to 50 MiB. Evidence is stored in the private evidence bucket and enters `PENDING_REVIEW`; upload alone does not award Aura or streak credit.
+Requires authentication. Accepts multipart form data with a `file` field. Images are limited to 10 MiB; videos are limited to 50 MiB. Evidence is stored in the private evidence bucket and enters `PENDING_REVIEW`; upload alone does not award Aura or streak credit. Duplicate submissions are rejected, and the private evidence URL is never included in user responses or notifications.
+
+### `GET /api/v1/daily-quests/attempts/{attempt_id}/result`
+
+Requires authentication. Only the attempt owner may fetch the result; foreign and unknown IDs both return `404`. Returns historical attempt state without relying on the current `/today` quest:
+
+```json
+{
+  "attempt_id": "attempt-id",
+  "status": "COMPLETED",
+  "completion_status": "COMPLETED",
+  "completion_date": "2026-11-18",
+  "completed_at": "2026-11-18T12:00:30Z",
+  "aura_awarded": 2,
+  "day_streak": 5,
+  "timezone": "America/Los_Angeles",
+  "score_percent": null,
+  "related_major_challenge": null
+}
+```
+
+Completion date, saved IANA timezone, awarded Aura, and streak-at-completion are persisted against the attempt. The reward reference is uniquely constrained in the database.
 
 ### `GET /api/v1/admin/daily-quests/attempts/{attempt_id}/evidence-url`
 
@@ -734,7 +808,29 @@ Requires an authenticated admin. Returns attempt details without exposing the pr
 
 ### `POST /api/v1/admin/daily-quests/attempts/{attempt_id}/review`
 
-Requires an authenticated admin. Approves or rejects a pending image/video submission. Approval awards Aura once and records completion for the attempt's local date; rejection does not award Aura or streak credit. Request body: `{ "decision": "APPROVE", "note": "..." }` or `{ "decision": "REJECT", "note": "..." }`.
+Requires an authenticated admin. Approves or rejects a pending image/video submission. Approval awards Aura and streak credit once, persists the attempt result, then creates an in-app notification and best-effort FCM push. Rejection does not award or notify. A repeated review returns `409`. Request body: `{ "decision": "APPROVE", "note": "..." }` or `{ "decision": "REJECT", "note": "..." }`.
+
+### Daily Quest notifications
+
+The in-app notification list and FCM `data` payload include the same stable routing fields. A live notification payload is:
+
+```json
+{
+  "notification_type": "DAILY_QUEST_LIVE",
+  "daily_quest_id": "quest-id",
+  "daily_quest_local_date": "2026-11-18",
+  "daily_quest_attempt_id": "",
+  "deep_link": "nerdmaxxing://daily-quest/2026-11-18"
+}
+```
+
+An approval notification uses `notification_type: DAILY_QUEST_APPROVED`, the same quest/date fields, `daily_quest_attempt_id: "attempt-id"`, and `deep_link: nerdmaxxing://daily-quest/result/attempt-id`. Payloads never include private evidence URLs. A unique dedupe key prevents duplicate live notifications per user/quest/local date and duplicate approval notifications per attempt.
+
+Live notifications are evaluated per user's saved IANA timezone at `DAILY_QUEST_NOTIFICATION_TIME` (24-hour `HH:MM`, default `09:00`). Python `ZoneInfo` applies current daylight-saving rules. A periodic run after the configured local time sends a late-published quest as soon as it is available that day; it does not send for an earlier local date. Users whose attempt is already `COMPLETED` are skipped.
+
+### Scheduler and deployment
+
+`GET /api/v1/daily-quests/internal/notifications/run` requires `Authorization: Bearer <CRON_SECRET>` and returns `{ "notifications_created": 0 }`. `vercel.json` runs it every 15 minutes. Configure `CRON_SECRET`, `DAILY_QUEST_NOTIFICATION_TIME` (optional, defaults to `09:00`), and `DAILY_QUEST_QUESTION_SECONDS` (optional, defaults to `30`). Configure `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` for push delivery; persisted in-app notifications still work without Firebase. Application startup creates the quiz session table and applies additive columns/indexes to existing databases.
 
 Major Challenge progress does not advance the daily streak. The streak changes only when a Daily Quest is successfully completed.
 

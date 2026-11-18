@@ -3,7 +3,7 @@ from app.models.user import User
 from app.models.identity import Identity
 from app.models.session import Session
 from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
-from app.models.daily_quest import DailyQuest, DailyQuestAttempt, DailyQuestQuestion, DailyQuestSchedule
+from app.models.daily_quest import DailyQuest, DailyQuestAttempt, DailyQuestQuestion, DailyQuestQuizSession, DailyQuestSchedule
 from app.models.category import Category
 from app.models.participation import ChallengeParticipant
 from app.models.evidence import EvidenceSubmission, EvidenceItem
@@ -36,6 +36,7 @@ __all__ = [
         "DailyQuest",
         "DailyQuestAttempt",
         "DailyQuestQuestion",
+        "DailyQuestQuizSession",
         "DailyQuestSchedule",
         "Category",
         "ChallengeParticipant",

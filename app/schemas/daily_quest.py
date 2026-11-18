@@ -81,6 +81,13 @@ class DailyQuestQuestionResponse(BaseModel):
     options: list[str]
 
 
+class DailyQuestRelatedChallenge(BaseModel):
+    id: str
+    slug: str
+    title: str
+    deep_link: str
+
+
 class DailyQuestResponse(BaseModel):
     id: str
     title: str
@@ -93,6 +100,7 @@ class DailyQuestResponse(BaseModel):
     related_challenge_id: str | None
     aura_reward: int
     questions: list[DailyQuestQuestionResponse] = Field(default_factory=list)
+    related_major_challenge: DailyQuestRelatedChallenge | None = None
 
 
 class DailyQuestTodayResponse(BaseModel):
@@ -111,6 +119,11 @@ class DailyQuestQuizSubmit(BaseModel):
     answers: list[int] = Field(min_length=1, max_length=20)
 
 
+class DailyQuestQuizAnswerSubmit(BaseModel):
+    question_index: int = Field(ge=0)
+    answer_option_index: int | None = Field(default=None, ge=0)
+
+
 class DailyQuestQuizResult(BaseModel):
     attempt_id: str
     status: str
@@ -120,6 +133,36 @@ class DailyQuestQuizResult(BaseModel):
     quiz_attempts_remaining: int
     aura_awarded: int = 0
     day_streak: int
+    completion_status: str
+    completion_date: date | None = None
+    related_major_challenge: DailyQuestRelatedChallenge | None = None
+
+
+class DailyQuestQuizSessionResponse(BaseModel):
+    session_id: str
+    attempt_id: str
+    attempt_number: int
+    question: DailyQuestQuestionResponse | None
+    question_index: int | None
+    question_number: int | None
+    total_questions: int
+    seconds_per_question: int
+    answer_deadline_at: datetime | None
+    timed_out: bool = False
+    result: DailyQuestQuizResult | None = None
+
+
+class DailyQuestAttemptResult(BaseModel):
+    attempt_id: str
+    status: str
+    completion_status: str
+    completion_date: date | None = None
+    completed_at: datetime | None = None
+    aura_awarded: int = 0
+    day_streak: int
+    timezone: str
+    score_percent: float | None = None
+    related_major_challenge: DailyQuestRelatedChallenge | None = None
 
 
 class DailyQuestEvidenceResponse(BaseModel):

@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     default_challenge_image_key: str = "defaults/challenge-cover.webp"
     app_base_url: str = "http://localhost:3000"
 
+    daily_quest_question_seconds: int = Field(default=30, ge=1, le=300)
+    daily_quest_notification_time: str = "09:00"
+    cron_secret: str | None = None
+
     firebase_project_id: str | None = None
     firebase_client_email: str | None = None
     firebase_private_key: str | None = None
