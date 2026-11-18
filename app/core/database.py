@@ -141,6 +141,19 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         if daily_attempt_columns and name not in daily_attempt_columns:
                                 connection.execute(text(f"ALTER TABLE daily_quest_attempts ADD COLUMN {name} {definition}"))
 
+                inspector = inspect(connection)
+                quiz_session_columns = {
+                        column["name"] for column in inspector.get_columns("daily_quest_quiz_sessions")
+                }
+                for name, definition in {
+                        "last_question_index": "INTEGER",
+                        "last_timed_out": "BOOLEAN NOT NULL DEFAULT FALSE",
+                }.items():
+                        if quiz_session_columns and name not in quiz_session_columns:
+                                connection.execute(
+                                        text(f"ALTER TABLE daily_quest_quiz_sessions ADD COLUMN {name} {definition}")
+                                )
+
                 if (
                         connection.dialect.name != "sqlite"
                         and notification_columns

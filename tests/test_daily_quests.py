@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException, UploadFile
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import Session
 from starlette.datastructures import Headers
 
@@ -24,6 +24,7 @@ from app.api.daily_quests import (
     submit_today_quiz_answer,
 )
 from app.api.invitations import list_my_notifications
+from app.core.database import ensure_local_schema
 from app.core.time import utcnow
 from app.models.aura import AuraTransaction
 from app.models.base import Base
@@ -47,6 +48,20 @@ def make_db() -> Session:
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     return Session(engine)
+
+
+def test_legacy_quiz_session_schema_adds_timeout_state_columns():
+    db = make_db()
+    engine = db.get_bind()
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE daily_quest_quiz_sessions DROP COLUMN last_question_index"))
+        connection.execute(text("ALTER TABLE daily_quest_quiz_sessions DROP COLUMN last_timed_out"))
+
+    ensure_local_schema(engine)
+
+    columns = {column["name"] for column in inspect(engine).get_columns("daily_quest_quiz_sessions")}
+    assert "last_question_index" in columns
+    assert "last_timed_out" in columns
 
 
 def make_users(db: Session) -> tuple[User, User]:
