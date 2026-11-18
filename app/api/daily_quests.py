@@ -3,12 +3,9 @@ import hmac
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-import hmac
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
-from app.models.aura import AuraTransaction
-from app.models.challenge import Challenge
 from app.models.daily_quest import DailyQuest, DailyQuestAttempt
 from app.models.challenge import Challenge
 from app.models.aura import AuraTransaction

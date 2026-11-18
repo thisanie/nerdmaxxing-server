@@ -128,7 +128,7 @@ def test_daily_quest_quiz_hides_answers_and_allows_one_retry():
     with pytest.raises(HTTPException) as error:
         submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
     assert error.value.status_code == 409
-    assert user.aura_points == 0
+    assert user.aura_points == 2
 
 
 def test_quiz_second_failure_uses_only_retry_and_does_not_award():

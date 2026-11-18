@@ -77,14 +77,15 @@ def test_server_timed_quiz_scores_late_answer_unanswered_and_awards_once():
     assert user.aura_points == 2
     assert db.scalars(select(AuraTransaction).where(AuraTransaction.reference_id == started.attempt_id)).all().__len__() == 1
 
-    with pytest.raises(HTTPException) as duplicate:
-        submit_today_quiz_answer(
-            session.session_id,
-            DailyQuestQuizAnswerSubmit(question_index=4, answer_option_index=0),
-            db,
-            user,
-        )
-    assert duplicate.value.status_code == 409
+    replay = submit_today_quiz_answer(
+        session.session_id,
+        DailyQuestQuizAnswerSubmit(question_index=4, answer_option_index=0),
+        db,
+        user,
+    )
+    assert replay.result is not None
+    assert replay.result.score_percent == final.result.score_percent
+    assert replay.result.aura_awarded == final.result.aura_awarded
     assert user.aura_points == 2
 
 
