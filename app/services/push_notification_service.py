@@ -84,6 +84,10 @@ def send_notification_push(db: Session, notification: Notification) -> None:
                 "challenge_title": notification.challenge_title or "",
                 "group_id": notification.group_id or "",
                 "group_message_id": notification.group_message_id or "",
+                "daily_quest_id": notification.daily_quest_id or "",
+                "daily_quest_local_date": notification.daily_quest_local_date.isoformat() if notification.daily_quest_local_date else "",
+                "daily_quest_attempt_id": notification.daily_quest_attempt_id or "",
+                "deep_link": notification.deep_link or "",
             },
         )
         try:

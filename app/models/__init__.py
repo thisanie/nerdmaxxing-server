@@ -1,9 +1,14 @@
-
 from app.models.user import User
 from app.models.identity import Identity
 from app.models.session import Session
 from app.models.challenge import Challenge, ChallengeMilestone, ChallengeResource
-from app.models.daily_quest import DailyQuest, DailyQuestAttempt, DailyQuestQuestion, DailyQuestSchedule
+from app.models.daily_quest import (
+    DailyQuest,
+    DailyQuestAttempt,
+    DailyQuestQuestion,
+    DailyQuestQuizSession,
+    DailyQuestSchedule,
+)
 from app.models.category import Category
 from app.models.participation import ChallengeParticipant
 from app.models.evidence import EvidenceSubmission, EvidenceItem
@@ -13,11 +18,11 @@ from app.models.aura import AuraTransaction
 from app.models.group import Group, GroupMembership, GroupMessage
 from app.models.progress import ChallengeProgressLog
 from app.models.invitation import (
-        ChallengeInvitation,
-        GroupChallengeInvitation,
-        GroupChallengeInvitationResponse,
-        Notification,
-        PushToken,
+    ChallengeInvitation,
+    GroupChallengeInvitation,
+    GroupChallengeInvitationResponse,
+    Notification,
+    PushToken,
 )
 from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 from app.models.saved_challenge import SavedChallenge
@@ -27,39 +32,40 @@ from app.models.integration import ExternalAccountConnection, ExternalAccountVer
 
 
 __all__ = [
-        "User",
-        "Identity",
-        "Session",
-        "Challenge",
-        "ChallengeResource",
-        "ChallengeMilestone",
-        "DailyQuest",
-        "DailyQuestAttempt",
-        "DailyQuestQuestion",
-        "DailyQuestSchedule",
-        "Category",
-        "ChallengeParticipant",
-        "EvidenceSubmission",
-        "EvidenceItem",
-        "UserSkill",
-        "UserFollow",
-        "AuraTransaction",
-        "Group",
-        "GroupMembership",
-        "GroupMessage",
-        "ChallengeProgressLog",
-        "ChallengeInvitation",
-        "GroupChallengeInvitation",
-        "GroupChallengeInvitationResponse",
-        "Notification",
-        "PushToken",
-        "ParticipantResourceCompletion",
-        "MetricAttempt",
-        "SavedChallenge",
-        "Discussion",
-        "DiscussionReply",
-        "DiscussionReport",
-        "Activity",
-        "ExternalAccountConnection",
-        "ExternalAccountVerificationChallenge",
-        ]
+    "User",
+    "Identity",
+    "Session",
+    "Challenge",
+    "ChallengeResource",
+    "ChallengeMilestone",
+    "DailyQuest",
+    "DailyQuestAttempt",
+    "DailyQuestQuestion",
+    "DailyQuestSchedule",
+    "DailyQuestQuizSession",
+    "Category",
+    "ChallengeParticipant",
+    "EvidenceSubmission",
+    "EvidenceItem",
+    "UserSkill",
+    "UserFollow",
+    "AuraTransaction",
+    "Group",
+    "GroupMembership",
+    "GroupMessage",
+    "ChallengeProgressLog",
+    "ChallengeInvitation",
+    "GroupChallengeInvitation",
+    "GroupChallengeInvitationResponse",
+    "Notification",
+    "PushToken",
+    "ParticipantResourceCompletion",
+    "MetricAttempt",
+    "SavedChallenge",
+    "Discussion",
+    "DiscussionReply",
+    "DiscussionReport",
+    "Activity",
+    "ExternalAccountConnection",
+    "ExternalAccountVerificationChallenge",
+]

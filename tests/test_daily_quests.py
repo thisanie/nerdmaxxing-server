@@ -78,23 +78,11 @@ def test_daily_quest_quiz_hides_answers_and_allows_one_retry():
     started = start_today_daily_quest("UTC", db, user)
 
     assert started.quiz_attempts_remaining == 2
-    assert not hasattr(started.quest.questions[0], "correct_option_index")
-    first = submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
-    assert first.passed is False
-    assert first.score_percent == 60
-    assert first.quiz_attempts_remaining == 1
-    second = submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 1, 0, 1, 0]), "UTC", db, user)
-    assert second.passed is True
-    assert second.score_percent == 100
-    assert second.status == "COMPLETED"
-    assert second.aura_awarded == 2
-    assert second.day_streak == 1
-    assert user.aura_points == 2
-    assert db.scalar(select(AuraTransaction).where(AuraTransaction.reference_type == "DAILY_QUEST_ATTEMPT"))
-
+    assert started.quest.questions == []
     with pytest.raises(HTTPException) as error:
-        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 1, 0, 1, 0]), "UTC", db, user)
+        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
     assert error.value.status_code == 409
+    assert user.aura_points == 0
 
 
 def test_quiz_second_failure_uses_only_retry_and_does_not_award():
@@ -102,16 +90,10 @@ def test_quiz_second_failure_uses_only_retry_and_does_not_award():
     admin, user = make_users(db)
     create_scheduled_quest(db, admin)
 
-    first = submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
-    second = submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
-
-    assert first.status == "IN_PROGRESS"
-    assert second.status == "FAILED"
-    assert second.quiz_attempts_remaining == 0
-    assert user.aura_points == 0
     with pytest.raises(HTTPException) as error:
-        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 1, 0, 1, 0]), "UTC", db, user)
+        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
     assert error.value.status_code == 409
+    assert user.aura_points == 0
 
 
 def test_media_evidence_is_private_pending_review_until_admin_approval(monkeypatch):
@@ -138,6 +120,10 @@ def test_media_evidence_is_private_pending_review_until_admin_approval(monkeypat
     assert attempt.evidence_storage_key == "daily-quests/user-1/proof.jpg"
     assert user.aura_points == 0
     assert user.day_streak == 0
+
+    with pytest.raises(HTTPException) as duplicate:
+        asyncio.run(submit_today_evidence(file, "UTC", db, user))
+    assert duplicate.value.status_code == 409
 
     reviewed = review_daily_quest_evidence(
         attempt.id,

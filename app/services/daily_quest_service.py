@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.aura import AuraTransaction
 from app.models.daily_quest import DailyQuest, DailyQuestAttempt, DailyQuestSchedule
+from app.models.challenge import Challenge
 from app.models.user import User
 from app.schemas.daily_quest import (
     DailyQuestQuestionResponse,
     DailyQuestResponse,
     DailyQuestTodayResponse,
+    DailyQuestRelatedChallenge,
 )
 from app.services.aura_service import award_aura
 
@@ -42,8 +44,25 @@ def get_scheduled_quest(db: Session, local_date: date) -> DailyQuest | None:
             DailyQuestSchedule.local_date == local_date,
             DailyQuest.status == "PUBLISHED",
         )
-        .options(selectinload(DailyQuest.questions))
+        .options(selectinload(DailyQuest.questions), selectinload(DailyQuest.related_challenge))
     )
+
+
+def attempt_expires_at(attempt: DailyQuestAttempt) -> datetime:
+    try:
+        user_timezone = ZoneInfo(attempt.timezone_name)
+    except (ValueError, ZoneInfoNotFoundError) as error:
+        raise HTTPException(status_code=422, detail="The attempt timezone is not a valid IANA timezone.") from error
+    local_midnight = datetime.combine(attempt.local_date + timedelta(days=1), time.min, tzinfo=user_timezone)
+    return local_midnight.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def ensure_attempt_not_expired(db: Session, attempt: DailyQuestAttempt) -> None:
+    if utc_now().replace(tzinfo=None) >= attempt_expires_at(attempt):
+        if attempt.status == "IN_PROGRESS":
+            attempt.status = "EXPIRED"
+            db.flush()
+        raise HTTPException(status_code=410, detail="The Daily Quest window has expired.")
 
 
 def public_quest_response(quest: DailyQuest) -> DailyQuestResponse:
@@ -58,6 +77,16 @@ def public_quest_response(quest: DailyQuest) -> DailyQuestResponse:
         resource_url=quest.resource_url,
         related_challenge_id=quest.related_challenge_id,
         aura_reward=quest.aura_reward,
+        related_major_challenge=(
+            DailyQuestRelatedChallenge(
+                id=quest.related_challenge.id,
+                slug=quest.related_challenge.slug,
+                title=quest.related_challenge.title,
+                deep_link=f"nerdmaxxing://challenge/{quest.related_challenge.slug}",
+            )
+            if getattr(quest, "related_challenge", None) is not None
+            else None
+        ),
         questions=[
             DailyQuestQuestionResponse(
                 id=question.id,
@@ -66,7 +95,7 @@ def public_quest_response(quest: DailyQuest) -> DailyQuestResponse:
                 options=question.options,
             )
             for question in quest.questions
-        ],
+        ] if quest.verification_type != "QUIZ" else [],
     )
 
 
@@ -107,6 +136,8 @@ def today_response(
         db.flush()
     if attempt is not None and attempt.quest_id != quest.id:
         raise HTTPException(status_code=409, detail="A different quest attempt already exists for your local date.")
+    if attempt is not None and attempt.timezone_name != timezone_name:
+        raise HTTPException(status_code=409, detail="This local-date attempt uses a different saved timezone.")
 
     remaining = (
         max(0, 2 - attempt.quiz_attempt_count)
@@ -162,6 +193,8 @@ def complete_quest(db: Session, user: User, attempt: DailyQuestAttempt, quest: D
         user.last_daily_quest_date = latest_date
         user.day_streak = streak
         user.last_daily_quest_at = now
+    attempt.aura_awarded = quest.aura_reward if existing_reward is not None else quest.aura_reward
+    attempt.day_streak_at_completion = user.day_streak
     return quest.aura_reward if existing_reward is None else 0
 
 
@@ -172,34 +205,8 @@ def submit_quiz_answers(
     quest: DailyQuest,
     answers: list[int],
 ) -> tuple[float, bool, int]:
-    if quest.verification_type != "QUIZ":
-        raise HTTPException(status_code=409, detail="This Daily Quest is not quiz-verified.")
-    if attempt.status != "IN_PROGRESS":
-        raise HTTPException(status_code=409, detail="This quest attempt is no longer active.")
-    _, expires_at, _ = local_day_window(attempt.timezone_name)
-    if utc_now().replace(tzinfo=None) >= expires_at:
-        attempt.status = "EXPIRED"
-        raise HTTPException(status_code=410, detail="The Daily Quest window has expired.")
-    questions = quest.questions
-    if len(answers) != len(questions):
-        raise HTTPException(status_code=422, detail="Submit one answer for every quiz question.")
-    if any(answer < 0 or answer >= len(question.options) for answer, question in zip(answers, questions)):
-        raise HTTPException(status_code=422, detail="An answer index is outside the available options.")
-    if attempt.quiz_attempt_count >= 2:
-        raise HTTPException(status_code=409, detail="No quiz attempts remain for today.")
-
-    correct = sum(
-        answer == question.correct_option_index
-        for answer, question in zip(answers, questions)
+    """Deprecated: retained only for callers that need an explicit migration error."""
+    raise HTTPException(
+        status_code=409,
+        detail="Bulk quiz scoring is disabled; use the server-timed quiz session flow.",
     )
-    score = round(correct * 100 / len(questions), 2)
-    attempt.quiz_attempt_count += 1
-    attempt.quiz_score_percent = score
-    attempt.quiz_answers = answers
-    passed = score >= 80
-    aura_awarded = 0
-    if passed:
-        aura_awarded = complete_quest(db, user, attempt, quest)
-    elif attempt.quiz_attempt_count >= 2:
-        attempt.status = "FAILED"
-    return score, passed, aura_awarded

@@ -1,24 +1,33 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status, Header
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+import hmac
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db
 from app.models.daily_quest import DailyQuest, DailyQuestAttempt
+from app.models.challenge import Challenge
+from app.models.aura import AuraTransaction
 from app.models.user import User
 from app.schemas.daily_quest import (
     DailyQuestEvidenceResponse,
     DailyQuestQuizResult,
     DailyQuestQuizSubmit,
     DailyQuestTodayResponse,
+    DailyQuestQuizAnswerSubmit,
+    DailyQuestQuizSessionResponse,
+    DailyQuestAttemptResult,
+    DailyQuestRelatedChallenge,
 )
 from app.services.blob_storage import VIDEO_CONTENT_TYPES, upload_blob
 from app.services.daily_quest_service import (
     get_scheduled_quest,
     local_day_window,
-    submit_quiz_answers,
     today_response,
+    ensure_attempt_not_expired,
 )
+from app.services.daily_quest_quiz_service import answer_quiz_question, start_quiz_session
+from app.services.daily_quest_notification_service import send_due_daily_quest_notifications
 
 
 router = APIRouter(prefix="/api/v1/daily-quests", tags=["Daily Quests"])
@@ -46,6 +55,8 @@ def _get_attempt_for_today(
     quest = get_scheduled_quest(db, local_date)
     if attempt is None or quest is None:
         raise HTTPException(status_code=404, detail="Daily Quest attempt not found.")
+    if attempt.timezone_name != timezone_name or attempt.local_date != local_date:
+        raise HTTPException(status_code=409, detail="The attempt belongs to a different local date or saved timezone.")
     return attempt, quest
 
 
@@ -78,23 +89,98 @@ def submit_today_quiz(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DailyQuestQuizResult:
+    raise HTTPException(
+        status_code=409,
+        detail="Bulk quiz submission is not timer-secure. Start /today/quiz/session and submit each timed answer.",
+    )
+
+
+@router.post("/today/quiz/session", response_model=DailyQuestQuizSessionResponse)
+def start_today_quiz_session(
+    timezone_name: str | None = Query(default=None, alias="timezone", min_length=1, max_length=64),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DailyQuestQuizSessionResponse:
     selected_timezone = _timezone_for_user(timezone_name, current_user)
     attempt, quest = _get_attempt_for_today(db, current_user, selected_timezone)
-    score, passed, aura_awarded = submit_quiz_answers(
-        db, current_user, attempt, quest, payload.answers
-    )
+    response = start_quiz_session(db, current_user, attempt, quest)
     current_user.timezone_name = selected_timezone
     db.commit()
-    return DailyQuestQuizResult(
+    return response
+
+
+@router.post("/today/quiz/sessions/{session_id}/answer", response_model=DailyQuestQuizSessionResponse)
+def submit_today_quiz_answer(
+    session_id: str,
+    payload: DailyQuestQuizAnswerSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DailyQuestQuizSessionResponse:
+    response = answer_quiz_question(
+        db,
+        current_user,
+        session_id,
+        payload.question_index,
+        payload.answer_option_index,
+    )
+    db.commit()
+    return response
+
+
+@router.get("/attempts/{attempt_id}/result", response_model=DailyQuestAttemptResult)
+def get_daily_quest_attempt_result(
+    attempt_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DailyQuestAttemptResult:
+    attempt = db.scalar(
+        select(DailyQuestAttempt).where(
+            DailyQuestAttempt.id == attempt_id,
+            DailyQuestAttempt.user_id == current_user.id,
+        )
+    )
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Daily Quest attempt result not found.")
+    quest = db.get(DailyQuest, attempt.quest_id)
+    aura_awarded = attempt.aura_awarded or (db.scalar(
+        select(AuraTransaction.amount).where(
+            AuraTransaction.reference_type == "DAILY_QUEST_ATTEMPT",
+            AuraTransaction.reference_id == attempt.id,
+        )
+    ) if attempt.status == "COMPLETED" else 0) or 0
+    challenge = db.get(Challenge, quest.related_challenge_id) if quest and quest.related_challenge_id else None
+    related = None
+    if challenge is not None:
+        related = DailyQuestRelatedChallenge(
+            id=challenge.id,
+            slug=challenge.slug,
+            title=challenge.title,
+            deep_link=f"nerdmaxxing://challenge/{challenge.slug}",
+        )
+    return DailyQuestAttemptResult(
         attempt_id=attempt.id,
         status=attempt.status,
-        score_percent=score,
-        passed=passed,
-        quiz_attempt_count=attempt.quiz_attempt_count,
-        quiz_attempts_remaining=max(0, 2 - attempt.quiz_attempt_count),
+        completion_status="COMPLETED" if attempt.status == "COMPLETED" else attempt.status,
+        completion_date=attempt.local_date if attempt.status == "COMPLETED" else None,
+        completed_at=attempt.completed_at,
         aura_awarded=aura_awarded,
-        day_streak=current_user.day_streak,
+        day_streak=attempt.day_streak_at_completion if attempt.day_streak_at_completion is not None else current_user.day_streak,
+        timezone=attempt.timezone_name,
+        score_percent=attempt.quiz_score_percent,
+        related_major_challenge=related,
     )
+
+
+@router.get("/internal/notifications/run")
+def run_daily_quest_notifications(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict[str, int]:
+    if not settings.cron_secret or authorization is None or not hmac.compare_digest(
+        authorization, f"Bearer {settings.cron_secret}"
+    ):
+        raise HTTPException(status_code=401, detail="Invalid scheduler credentials.")
+    return {"notifications_created": send_due_daily_quest_notifications(db)}
 
 
 @router.post("/today/evidence", response_model=DailyQuestEvidenceResponse, status_code=status.HTTP_201_CREATED)
@@ -110,6 +196,7 @@ async def submit_today_evidence(
         raise HTTPException(status_code=409, detail="This Daily Quest is not media-verified.")
     if attempt.status != "IN_PROGRESS" or attempt.evidence_storage_key is not None:
         raise HTTPException(status_code=409, detail="This quest attempt cannot accept another submission.")
+    ensure_attempt_not_expired(db, attempt)
 
     content_type = file.content_type or ""
     if quest.verification_type == "IMAGE":

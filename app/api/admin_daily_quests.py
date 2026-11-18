@@ -20,6 +20,8 @@ from app.schemas.daily_quest import (
     DailyQuestScheduleResponse,
 )
 from app.services.daily_quest_service import complete_quest
+from app.services.daily_quest_notification_service import create_approval_notification
+from app.services.push_notification_service import send_notification_push
 from app.services.blob_storage import private_blob_url
 
 
@@ -225,11 +227,15 @@ def review_daily_quest_evidence(
     attempt.reviewed_at = datetime.utcnow()
     attempt.review_note = payload.note
     aura_awarded = 0
+    approval_notification = None
     if payload.decision == "APPROVE":
         aura_awarded = complete_quest(db, user, attempt, quest)
+        approval_notification = create_approval_notification(db, attempt, quest.title)
     else:
         attempt.status = "REJECTED"
     db.commit()
+    if approval_notification is not None:
+        send_notification_push(db, approval_notification)
     return DailyQuestReviewResponse(
         attempt_id=attempt.id,
         status=attempt.status,

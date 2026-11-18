@@ -117,9 +117,20 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "group_id": "VARCHAR(36)",
                         "group_message_id": "VARCHAR(36)",
                         "challenge_title": "VARCHAR(160)",
+                        "daily_quest_id": "VARCHAR(36)",
+                        "daily_quest_local_date": "DATE",
+                        "daily_quest_attempt_id": "VARCHAR(36)",
+                        "deep_link": "VARCHAR(2048)",
+                        "dedupe_key": "VARCHAR(300)",
                 }.items():
                         if notification_columns and name not in notification_columns:
                                 connection.execute(text(f"ALTER TABLE notifications ADD COLUMN {name} {definition}"))
+
+                if notification_columns:
+                        connection.execute(text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_dedupe_key "
+                                "ON notifications (dedupe_key)"
+                        ))
 
                 if (
                         connection.dialect.name != "sqlite"
@@ -130,6 +141,21 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                                 "ALTER TABLE notifications ADD CONSTRAINT "
                                 "notifications_group_invitation_id_fkey FOREIGN KEY "
                                 "(group_invitation_id) REFERENCES group_challenge_invitations(id) ON DELETE CASCADE"
+                        ))
+
+                inspector = inspect(connection)
+                daily_attempt_columns = {column["name"] for column in inspector.get_columns("daily_quest_attempts")}
+                for name, definition in {
+                        "aura_awarded": "INTEGER NOT NULL DEFAULT 0",
+                        "day_streak_at_completion": "INTEGER",
+                }.items():
+                        if daily_attempt_columns and name not in daily_attempt_columns:
+                                connection.execute(text(f"ALTER TABLE daily_quest_attempts ADD COLUMN {name} {definition}"))
+
+                if connection.dialect.has_table(connection, "aura_transactions"):
+                        connection.execute(text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS uq_aura_transactions_reference "
+                                "ON aura_transactions (reference_type, reference_id)"
                         ))
 
                 inspector = inspect(connection)
@@ -176,9 +202,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "refreshed_at": timestamp_type,
                 }.items():
                         if integration_columns and name not in integration_columns:
-                                connection.execute(text(
-                                        f"ALTER TABLE external_account_connections ADD COLUMN {name} {definition}"
-                                ))
+                                connection.execute(text(f"ALTER TABLE external_account_connections ADD COLUMN {name} {definition}"))
                 if integration_columns:
                         connection.execute(text(
                                 "CREATE UNIQUE INDEX IF NOT EXISTS "

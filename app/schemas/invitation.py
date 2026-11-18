@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -61,6 +61,10 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     challenge_title: str | None = None
+    daily_quest_id: str | None = None
+    daily_quest_local_date: date | None = None
+    daily_quest_attempt_id: str | None = None
+    deep_link: str | None = None
 
 
 class PushTokenCreate(BaseModel):
