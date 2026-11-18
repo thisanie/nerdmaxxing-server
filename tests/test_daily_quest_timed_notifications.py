@@ -16,16 +16,17 @@ from app.models.daily_quest import DailyQuestAttempt, DailyQuestQuizSession, Dai
 from app.models.invitation import Notification
 from app.models.challenge import Challenge
 from app.schemas.daily_quest import DailyQuestQuizAnswerSubmit, DailyQuestReviewRequest, DailyQuestScheduleCreate
+from app.services.daily_quest_service import local_day_window
 from app.services.daily_quest_notification_service import send_due_daily_quest_notifications
 from app.services.daily_quest_quiz_service import start_quiz_session
 from tests.test_daily_quests import make_db, make_users, quest_payload
 
 
-def scheduled_today(db, admin):
+def scheduled_today(db, admin, timezone_name: str = "UTC"):
     quest = create_daily_quest(quest_payload(), db, admin)
     schedule_daily_quest(
         quest.id,
-        DailyQuestScheduleCreate(local_date=date.today()),
+        DailyQuestScheduleCreate(local_date=local_day_window(timezone_name)[0]),
         db,
         admin,
     )
@@ -72,7 +73,7 @@ def test_server_timed_quiz_scores_late_answer_unanswered_and_awards_once():
     assert final.result.status == "COMPLETED"
     assert final.result.aura_awarded == 2
     assert final.result.completion_status == "COMPLETED"
-    assert final.result.completion_date == date.today()
+    assert final.result.completion_date == local_day_window("UTC")[0]
     assert db.get(DailyQuestAttempt, started.attempt_id).quiz_answers[0] == -1
     assert user.aura_points == 2
     assert db.scalars(select(AuraTransaction).where(AuraTransaction.reference_id == started.attempt_id)).all().__len__() == 1
@@ -114,7 +115,7 @@ def test_single_retry_limit_and_duplicate_session_are_server_controlled():
 def test_attempt_expiry_uses_saved_local_date_and_timezone(monkeypatch):
     db = make_db()
     admin, user = make_users(db)
-    quest_response = scheduled_today(db, admin)
+    quest_response = scheduled_today(db, admin, "America/Los_Angeles")
     started = start_today_daily_quest("America/Los_Angeles", db, user)
     attempt = db.get(DailyQuestAttempt, started.attempt_id)
     attempt.local_date = date(2026, 11, 1)
@@ -193,12 +194,13 @@ def test_media_result_is_owner_authorized_and_review_notification_does_not_leak_
     db.commit()
     payload = quest_payload("IMAGE").model_copy(update={"related_challenge_id": challenge.id})
     quest = create_daily_quest(payload, db, admin)
-    schedule = schedule_daily_quest(quest.id, DailyQuestScheduleCreate(local_date=date.today()), db, admin)
+    local_date = local_day_window("UTC")[0]
+    schedule = schedule_daily_quest(quest.id, DailyQuestScheduleCreate(local_date=local_date), db, admin)
     attempt = DailyQuestAttempt(
         quest_id=quest.id,
         user_id=user.id,
         schedule_id=schedule.id,
-        local_date=date.today(),
+        local_date=local_date,
         timezone_name="UTC",
         status="PENDING_REVIEW",
         evidence_storage_key="private/evidence.jpg",
@@ -211,7 +213,7 @@ def test_media_result_is_owner_authorized_and_review_notification_does_not_leak_
     reviewed = review_daily_quest_evidence(attempt.id, DailyQuestReviewRequest(decision="APPROVE"), db, admin)
     assert reviewed.aura_awarded == 2
     result = get_daily_quest_attempt_result(attempt.id, db, user)
-    assert result.completion_date == date.today()
+    assert result.completion_date == local_day_window("UTC")[0]
     assert result.aura_awarded == 2
     assert result.day_streak == 1
     assert result.related_major_challenge.slug == "learn-engines"
@@ -238,8 +240,9 @@ def test_rejected_media_does_not_award_or_notify(monkeypatch):
     db = make_db()
     admin, user = make_users(db)
     quest = create_daily_quest(quest_payload("IMAGE"), db, admin)
-    schedule = schedule_daily_quest(quest.id, DailyQuestScheduleCreate(local_date=date.today()), db, admin)
-    attempt = DailyQuestAttempt(quest_id=quest.id, user_id=user.id, schedule_id=schedule.id, local_date=date.today(), timezone_name="UTC", status="PENDING_REVIEW")
+    local_date = local_day_window("UTC")[0]
+    schedule = schedule_daily_quest(quest.id, DailyQuestScheduleCreate(local_date=local_date), db, admin)
+    attempt = DailyQuestAttempt(quest_id=quest.id, user_id=user.id, schedule_id=schedule.id, local_date=local_date, timezone_name="UTC", status="PENDING_REVIEW")
     db.add(attempt)
     db.commit()
     sent = []
