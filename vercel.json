@@ -23,7 +23,7 @@
   "crons": [
     {
       "path": "/api/v1/daily-quests/internal/notifications/run",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 21 * * *"
     }
   ]
 }
