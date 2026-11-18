@@ -686,7 +686,7 @@ Daily Quests are short standalone activities, separate from Major Challenges. Th
 
 ### `POST /api/v1/admin/daily-quests`
 
-Requires an authenticated admin. Creates a private draft. Fields include title, descriptions/instructions, category (`KNOWLEDGE`, `PHYSICAL`, `CREATIVE`, `PRACTICAL`, or `MENTAL`), estimated minutes (5-15), verification type (`QUIZ`, `IMAGE`, or `VIDEO`), optional article URL, optional related Major Challenge, and Aura reward (1-10, default 2).
+Requires an authenticated admin. Creates a private draft. Fields include title, descriptions/instructions, category (`KNOWLEDGE`, `PHYSICAL`, `CREATIVE`, `PRACTICAL`, or `MENTAL`), estimated minutes (5-15), verification type (`QUIZ`, `IMAGE`, or `VIDEO`), optional resource URL, optional `related_challenge_id`, and Aura reward (1-10, default 2).
 
 For `QUIZ`, provide `questions`; each contains `prompt`, 2-6 `options`, and `correct_option_index`. Quiz questions are required for `QUIZ` and rejected for media quests. Correct answers are returned only by admin endpoints. User-facing quest responses never contain answer keys.
 
@@ -697,8 +697,6 @@ Requires an authenticated admin. Lists draft and published quests, including qui
 ### `POST /api/v1/admin/daily-quests/{quest_id}/schedule`
 
 Requires an authenticated admin. Publishes a draft for one calendar date. Only one quest may be scheduled per date.
-
-Request:
 
 ```json
 { "local_date": "2026-11-17" }
@@ -796,7 +794,7 @@ Completion date, saved IANA timezone, awarded Aura, and streak-at-completion are
 
 ### `GET /api/v1/admin/daily-quests/attempts/{attempt_id}/evidence-url`
 
-Requires an authenticated admin. Returns a short-lived URL for the private submission.
+Requires an authenticated admin. Returns a short-lived URL for the private submission. This URL is never included in notifications or user result payloads.
 
 ### `GET /api/v1/admin/daily-quests/attempts?status=PENDING_REVIEW`
 
@@ -804,7 +802,7 @@ Requires an authenticated admin. Lists attempts in the requested status, default
 
 ### `GET /api/v1/admin/daily-quests/attempts/{attempt_id}`
 
-Requires an authenticated admin. Returns attempt details without exposing the private evidence URL; request the evidence URL separately when reviewing.
+Requires an authenticated admin. Returns attempt details without exposing the private evidence URL.
 
 ### `POST /api/v1/admin/daily-quests/attempts/{attempt_id}/review`
 

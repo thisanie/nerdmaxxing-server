@@ -126,8 +126,9 @@ def test_daily_quest_quiz_hides_answers_and_allows_one_retry():
     assert db.scalar(select(AuraTransaction).where(AuraTransaction.reference_type == "DAILY_QUEST_ATTEMPT"))
 
     with pytest.raises(HTTPException) as error:
-        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 1, 0, 1, 0]), "UTC", db, user)
+        submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
     assert error.value.status_code == 409
+    assert user.aura_points == 0
 
 
 def test_quiz_second_failure_uses_only_retry_and_does_not_award():
@@ -157,6 +158,7 @@ def test_legacy_bulk_quiz_route_is_rejected():
     with pytest.raises(HTTPException) as error:
         submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 1, 0, 1, 0]), "UTC", db, user)
     assert error.value.status_code == 409
+    assert user.aura_points == 0
 
 
 def test_media_evidence_is_private_pending_review_until_admin_approval(monkeypatch):
@@ -186,6 +188,10 @@ def test_media_evidence_is_private_pending_review_until_admin_approval(monkeypat
     with pytest.raises(HTTPException) as duplicate_submission:
         asyncio.run(submit_today_evidence(file, "UTC", db, user))
     assert duplicate_submission.value.status_code == 409
+
+    with pytest.raises(HTTPException) as duplicate:
+        asyncio.run(submit_today_evidence(file, "UTC", db, user))
+    assert duplicate.value.status_code == 409
 
     reviewed = review_daily_quest_evidence(
         attempt.id,

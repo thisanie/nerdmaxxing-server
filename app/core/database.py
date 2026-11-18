@@ -153,6 +153,21 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         ))
 
                 inspector = inspect(connection)
+                daily_attempt_columns = {column["name"] for column in inspector.get_columns("daily_quest_attempts")}
+                for name, definition in {
+                        "aura_awarded": "INTEGER NOT NULL DEFAULT 0",
+                        "day_streak_at_completion": "INTEGER",
+                }.items():
+                        if daily_attempt_columns and name not in daily_attempt_columns:
+                                connection.execute(text(f"ALTER TABLE daily_quest_attempts ADD COLUMN {name} {definition}"))
+
+                if connection.dialect.has_table(connection, "aura_transactions"):
+                        connection.execute(text(
+                                "CREATE UNIQUE INDEX IF NOT EXISTS uq_aura_transactions_reference "
+                                "ON aura_transactions (reference_type, reference_id)"
+                        ))
+
+                inspector = inspect(connection)
                 evidence_columns = {column["name"] for column in inspector.get_columns("evidence_items")}
                 for name, definition in {
                         "storage_key": "TEXT",
@@ -196,9 +211,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "refreshed_at": timestamp_type,
                 }.items():
                         if integration_columns and name not in integration_columns:
-                                connection.execute(text(
-                                        f"ALTER TABLE external_account_connections ADD COLUMN {name} {definition}"
-                                ))
+                                connection.execute(text(f"ALTER TABLE external_account_connections ADD COLUMN {name} {definition}"))
                 if integration_columns:
                         connection.execute(text(
                                 "CREATE UNIQUE INDEX IF NOT EXISTS "

@@ -1,4 +1,3 @@
-
 from app.models.user import User
 from app.models.identity import Identity
 from app.models.session import Session
@@ -13,11 +12,11 @@ from app.models.aura import AuraTransaction
 from app.models.group import Group, GroupMembership, GroupMessage
 from app.models.progress import ChallengeProgressLog
 from app.models.invitation import (
-        ChallengeInvitation,
-        GroupChallengeInvitation,
-        GroupChallengeInvitationResponse,
-        Notification,
-        PushToken,
+    ChallengeInvitation,
+    GroupChallengeInvitation,
+    GroupChallengeInvitationResponse,
+    Notification,
+    PushToken,
 )
 from app.models.milestone import ParticipantResourceCompletion, MetricAttempt
 from app.models.saved_challenge import SavedChallenge

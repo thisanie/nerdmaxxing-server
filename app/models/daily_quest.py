@@ -1,10 +1,14 @@
 import uuid
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.challenge import Challenge
 
 
 class DailyQuest(Base):
@@ -29,6 +33,7 @@ class DailyQuest(Base):
     questions: Mapped[list["DailyQuestQuestion"]] = relationship(
         back_populates="quest", cascade="all, delete-orphan", order_by="DailyQuestQuestion.order_index"
     )
+    related_challenge: Mapped["Challenge | None"] = relationship()
 
 
 class DailyQuestQuestion(Base):

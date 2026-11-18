@@ -14,6 +14,7 @@ from app.schemas.daily_quest import (
     DailyQuestRelatedChallenge,
     DailyQuestResponse,
     DailyQuestTodayResponse,
+    DailyQuestRelatedChallenge,
 )
 from app.services.aura_service import award_aura
 
@@ -44,7 +45,7 @@ def get_scheduled_quest(db: Session, local_date: date) -> DailyQuest | None:
             DailyQuestSchedule.local_date == local_date,
             DailyQuest.status == "PUBLISHED",
         )
-        .options(selectinload(DailyQuest.questions))
+        .options(selectinload(DailyQuest.questions), selectinload(DailyQuest.related_challenge))
     )
 
 
@@ -154,6 +155,8 @@ def today_response(
         db.flush()
     if attempt is not None and attempt.quest_id != quest.id:
         raise HTTPException(status_code=409, detail="A different quest attempt already exists for your local date.")
+    if attempt is not None and attempt.timezone_name != timezone_name:
+        raise HTTPException(status_code=409, detail="This local-date attempt uses a different saved timezone.")
 
     if attempt is not None:
         expires_at = attempt_expires_at(attempt)
