@@ -11,6 +11,7 @@ from app.core.dependencies import get_current_user, get_db, limiter
 from app.models.user import User
 from app.models.aura import AuraTransaction
 from app.models.challenge import Challenge
+from app.models.daily_quest import DailyQuestAttempt
 from app.models.evidence import EvidenceItem, EvidenceSubmission
 from app.models.follow import UserFollow
 from app.models.group import Group, GroupMembership
@@ -405,12 +406,17 @@ def get_my_stats(
         )
         .where(ChallengeParticipant.user_id == current_user.id)
     )
+    daily_quest_activity = select(DailyQuestAttempt.completed_at.label("activity_at")).where(
+        DailyQuestAttempt.user_id == current_user.id,
+        DailyQuestAttempt.completed_at.is_not(None),
+    )
     activity_timestamps = union_all(
         select(ChallengeProgressLog.created_at.label("activity_at")).where(
             ChallengeProgressLog.user_id == current_user.id
         ),
         resource_activity,
         metric_activity,
+        daily_quest_activity,
     ).subquery()
     timestamps = db.scalars(
         select(activity_timestamps.c.activity_at).where(

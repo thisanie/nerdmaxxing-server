@@ -7,6 +7,7 @@ import app.models
 import app.api.users as users_api
 from app.models.base import Base
 from app.models.challenge import Challenge, ChallengeMilestone
+from app.models.daily_quest import DailyQuestAttempt
 from app.models.milestone import MetricAttempt, ParticipantResourceCompletion
 from app.models.participation import ChallengeParticipant
 from app.models.progress import ChallengeProgressLog
@@ -85,6 +86,16 @@ def test_stats_activity_days_use_local_dates_and_all_streak_activity_sources(mon
                 meets_target=True,
                 created_at=datetime(2026, 11, 10, 12, 0),
             ),
+            DailyQuestAttempt(
+                id="daily-quest-attempt-1",
+                quest_id="quest-1",
+                user_id=user.id,
+                schedule_id="schedule-1",
+                local_date=datetime(2026, 11, 6).date(),
+                timezone_name="UTC",
+                status="COMPLETED",
+                completed_at=datetime(2026, 11, 7, 7, 30),
+            ),
         ]
     )
     db.commit()
@@ -98,7 +109,7 @@ def test_stats_activity_days_use_local_dates_and_all_streak_activity_sources(mon
     assert [(day.date.isoformat(), day.active) for day in stats.activity_days] == [
         ("2026-11-04", True),
         ("2026-11-05", True),
-        ("2026-11-06", False),
+        ("2026-11-06", True),
         ("2026-11-07", False),
         ("2026-11-08", True),
         ("2026-11-09", False),
