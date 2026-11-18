@@ -148,6 +148,7 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                 for name, definition in {
                         "last_question_index": "INTEGER",
                         "last_timed_out": "BOOLEAN NOT NULL DEFAULT FALSE",
+                        "result": "JSON",
                 }.items():
                         if quiz_session_columns and name not in quiz_session_columns:
                                 connection.execute(

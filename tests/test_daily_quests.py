@@ -56,12 +56,14 @@ def test_legacy_quiz_session_schema_adds_timeout_state_columns():
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE daily_quest_quiz_sessions DROP COLUMN last_question_index"))
         connection.execute(text("ALTER TABLE daily_quest_quiz_sessions DROP COLUMN last_timed_out"))
+        connection.execute(text("ALTER TABLE daily_quest_quiz_sessions DROP COLUMN result"))
 
     ensure_local_schema(engine)
 
     columns = {column["name"] for column in inspect(engine).get_columns("daily_quest_quiz_sessions")}
     assert "last_question_index" in columns
     assert "last_timed_out" in columns
+    assert "result" in columns
 
 
 def make_users(db: Session) -> tuple[User, User]:
