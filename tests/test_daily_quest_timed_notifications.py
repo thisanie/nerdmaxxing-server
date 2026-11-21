@@ -13,7 +13,7 @@ from app.api.daily_quests import (
 )
 from app.models.aura import AuraTransaction
 from app.models.daily_quest import DailyQuestAttempt, DailyQuestQuizSession, DailyQuestSchedule
-from app.models.invitation import Notification
+from app.models.invitation import Notification, PushToken
 from app.models.challenge import Challenge
 from app.schemas.daily_quest import DailyQuestQuizAnswerSubmit, DailyQuestReviewRequest, DailyQuestScheduleCreate
 from app.services.daily_quest_service import local_day_window
@@ -88,6 +88,47 @@ def test_server_timed_quiz_scores_late_answer_unanswered_and_awards_once():
     assert replay.result.score_percent == final.result.score_percent
     assert replay.result.aura_awarded == final.result.aura_awarded
     assert user.aura_points == 2
+
+
+def test_approval_push_targets_active_token_with_daily_quest_routing(monkeypatch):
+    db = make_db()
+    _, user = make_users(db)
+    token = PushToken(
+        user_id=user.id,
+        token="device-token",
+        platform="android",
+        is_active=True,
+    )
+    notification = Notification(
+        user_id=user.id,
+        notification_type="DAILY_QUEST_APPROVED",
+        title="Daily Quest approved",
+        body="Your submission was approved.",
+        daily_quest_id="quest-1",
+        daily_quest_local_date=date(2026, 11, 20),
+        daily_quest_attempt_id="attempt-1",
+        deep_link="nerdmaxxing://daily-quest/result/attempt-1",
+    )
+    db.add_all([token, notification])
+    db.commit()
+    sent = []
+    monkeypatch.setattr("app.services.push_notification_service._get_firebase_app", lambda: object())
+    monkeypatch.setattr(
+        "app.services.push_notification_service.messaging.send",
+        lambda message: sent.append(message) or "fcm-message-1",
+    )
+
+    from app.services.push_notification_service import send_notification_push
+
+    send_notification_push(db, notification)
+
+    assert len(sent) == 1
+    assert sent[0].token == "device-token"
+    assert sent[0].data["notification_type"] == "DAILY_QUEST_APPROVED"
+    assert sent[0].data["daily_quest_id"] == "quest-1"
+    assert sent[0].data["daily_quest_local_date"] == "2026-11-20"
+    assert sent[0].data["daily_quest_attempt_id"] == "attempt-1"
+    assert sent[0].data["deep_link"] == "nerdmaxxing://daily-quest/result/attempt-1"
 
 
 def test_single_retry_limit_and_duplicate_session_are_server_controlled():

@@ -12,7 +12,7 @@ from app.schemas.auth import (
    TokenPair,
 )
 from app.services.google_auth import verify_google_id_token
-from app.services.user_service import get_or_create_google_user
+from app.services.user_service import find_google_user, get_or_create_google_user
 from app.services.session_service import create_session, revoke_refresh_token, rotate_refresh_token
 from app.services.password_service import (
    authenticate_password_user,
@@ -79,6 +79,46 @@ def google_auth(request: Request, payload: GoogleAuthRequest, db:Session = Depen
       is_new_user=is_new_user,
       display_name= user.display_name,
       avatar_url= user.avatar_url
+   )
+
+
+@router.post("/google/login-only", response_model=GoogleAuthResponse)
+@limiter.limit(settings.google_auth_rate_limit)
+def google_login_only(request: Request, payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+   try:
+      google_user = verify_google_id_token(payload.id_token)
+   except ValueError:
+      raise HTTPException(
+              status_code=401,
+              detail="Invalid Google ID token"
+              )
+
+   if google_user.get("email_verified") is not True:
+      raise HTTPException(
+              status_code=401,
+              detail="Google account email must be verified"
+              )
+
+   user = find_google_user(db, google_user_id=google_user["sub"])
+   if user is None:
+      raise HTTPException(
+         status_code=status.HTTP_404_NOT_FOUND,
+         detail="No account is linked to this Google account.",
+      )
+
+   session, refresh_token = create_session(db=db, user_id=user.id)
+   access_token = create_access_token(user_id=user.id, session_id=session.id)
+
+   return GoogleAuthResponse(
+      access_token=access_token,
+      refresh_token=refresh_token,
+      user_id=user.id,
+      username=user.username,
+      needs_username=user.username is None,
+      needs_password=user.username is not None and user.password_hash is None,
+      is_new_user=False,
+      display_name=user.display_name,
+      avatar_url=user.avatar_url,
    )
 
 

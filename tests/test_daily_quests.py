@@ -94,9 +94,19 @@ def quest_payload(verification_type: str = "QUIZ") -> DailyQuestCreate:
     )
 
 
-def create_scheduled_quest(db: Session, admin: User, verification_type: str = "QUIZ"):
+def create_scheduled_quest(
+    db: Session,
+    admin: User,
+    verification_type: str = "QUIZ",
+    timezone_name: str = "UTC",
+):
     quest = create_daily_quest(quest_payload(verification_type), db, admin)
-    schedule_daily_quest(quest.id, DailyQuestScheduleCreate(local_date=local_day_window("UTC")[0]), db, admin)
+    schedule_daily_quest(
+        quest.id,
+        DailyQuestScheduleCreate(local_date=local_day_window(timezone_name)[0]),
+        db,
+        admin,
+    )
     return quest
 
 
@@ -308,7 +318,7 @@ def test_timed_quiz_marks_late_answers_wrong_and_replays_final_result_once():
 def test_attempt_expires_at_saved_local_midnight(monkeypatch):
     db = make_db()
     admin, user = make_users(db)
-    create_scheduled_quest(db, admin)
+    create_scheduled_quest(db, admin, timezone_name="America/Los_Angeles")
     started = start_today_quiz_session("America/Los_Angeles", db, user)
     attempt = db.get(DailyQuestAttempt, started.attempt_id)
     expires_at = datetime.combine(attempt.local_date + timedelta(days=1), time.min, tzinfo=ZoneInfo(attempt.timezone_name))

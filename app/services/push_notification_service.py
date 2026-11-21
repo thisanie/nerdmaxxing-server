@@ -52,6 +52,10 @@ def send_notification_push(db: Session, notification: Notification) -> None:
         logger.exception("Firebase push notifications are not configured correctly")
         return
     if firebase_app is None:
+        logger.warning(
+            "Skipping push notification %s: Firebase is not configured",
+            notification.id,
+        )
         return
 
     tokens = list(
@@ -62,6 +66,14 @@ def send_notification_push(db: Session, notification: Notification) -> None:
             )
         ).all()
     )
+    if not tokens:
+        logger.warning(
+            "Skipping push notification %s: user %s has no active device tokens",
+            notification.id,
+            notification.user_id,
+        )
+        return
+
     for push_token in tokens:
         message = messaging.Message(
             token=push_token.token,
@@ -95,9 +107,20 @@ def send_notification_push(db: Session, notification: Notification) -> None:
             },
         )
         try:
-            messaging.send(message)
+            message_id = messaging.send(message)
+            logger.info(
+                "Push notification %s accepted by FCM for user %s (message %s)",
+                notification.id,
+                notification.user_id,
+                message_id,
+            )
         except (messaging.UnregisteredError, InvalidArgumentError):
             push_token.is_active = False
             db.commit()
+            logger.warning(
+                "Deactivated invalid push token for notification %s and user %s",
+                notification.id,
+                notification.user_id,
+            )
         except Exception:
             logger.exception("Failed to send push notification %s", notification.id)

@@ -25,6 +25,18 @@ def is_username_available(db: Session, *, username: str) -> bool:
     return db.scalar(statement) is None
 
 
+def find_google_user(db: Session, *, google_user_id: str) -> User | None:
+    statement = (
+        select(User)
+        .join(Identity, Identity.user_id == User.id)
+        .where(
+            Identity.provider == "google",
+            Identity.provider_user_id == google_user_id,
+        )
+    )
+    return db.scalar(statement)
+
+
 def get_or_create_google_user(
         db: Session,
         *,
