@@ -1214,6 +1214,55 @@
       "resource_order_indexes": [0, 7]
     }
   ]
+},
+{
+  "title": "Fold an Origami Crane",
+  "image_url": "https://pub-a2856655d1b247a696d16744a412d1e3.r2.dev/images/ffe5ad303fa243438f95afd071aa7397.jpg",
+  "short_description": "Turn a simple square sheet of paper into a traditional origami crane using nothing but your hands and careful folds.",
+  "full_description": "Learn the art of origami by folding a traditional crane from a single square sheet of paper. Follow a sequence of precise folds to transform a flat sheet into a recognizable crane with wings, a neck and a tail. No scissors, glue or special tools are needed—just patience, attention to detail and your hands.\n\nThe challenge is complete when you have folded one fully formed origami crane. Take your time, follow the folds carefully and enjoy turning something ordinary into something beautiful.",
+  "difficulty_level": "BEGINNER",
+  "verification_type": "VIDEO_UPLOAD",
+  "estimated_effort_min_minutes": 10,
+  "estimated_effort_max_minutes": 20,
+  "estimated_duration_minutes": 20,
+  "metrics": [
+    {
+      "key": "cranes_completed",
+      "label": "Origami cranes completed",
+      "kind": "COUNT",
+      "unit": "crane",
+      "target": 1,
+      "direction": "AT_LEAST",
+      "is_primary": true,
+      "format": "INTEGER"
+    }
+  ],
+  "requirements": [
+    {
+      "metric_key": "cranes_completed",
+      "operator": "AT_LEAST",
+      "value": 1,
+      "unit": "crane",
+      "label": "Fold one complete origami crane"
+    }
+  ],
+  "verification_instructions": "Upload a 5–10 second video showing your completed origami crane clearly from multiple angles. Show the wings, neck and tail so the finished fold can be verified. The crane must be made from a single sheet of paper without cutting or gluing.",
+  "resources": [
+    {
+      "title": "How to Fold an Origami Crane",
+      "url": "https://nerdmaxxing.com/blog?slug=fold-an-origami-crane-turn-one-sheet-into-a-bird",
+      "resource_type": "ARTICLE",
+      "rationale": "A beginner-friendly visual walkthrough demonstrating each fold, from the initial square base to the finished crane."
+    }
+  ],
+  "milestones": [
+    {
+      "title": "Fold Your First Crane",
+      "description": "Follow the folding instructions and transform a single square sheet of paper into a complete origami crane with recognizable wings, neck and tail. Submit a video of your finished creation.",
+      "target_value": 1,
+      "resource_order_indexes": [0]
+    }
+  ]
 }
   ]
 }
