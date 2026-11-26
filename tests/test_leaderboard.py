@@ -35,14 +35,14 @@ def public_challenge(identifier: str) -> Challenge:
 def test_all_time_aura_pagination_viewer_and_competition_ties():
     db = make_db()
     users = [
-        User(id="one", username="one", aura_points=100),
-        User(id="two", username="two", aura_points=100),
+        User(id="one", username="one", aura_points=10_000),
+        User(id="two", username="two", aura_points=10_000),
         User(id="three", username="three", aura_points=0),
     ]
     db.add_all(users)
     db.add_all([
-        AuraTransaction(id="a1", user_id="one", amount=100, reason="test"),
-        AuraTransaction(id="a2", user_id="two", amount=100, reason="test"),
+        AuraTransaction(id="a1", user_id="one", amount=10_000, reason="test"),
+        AuraTransaction(id="a2", user_id="two", amount=10_000, reason="test"),
     ])
     db.commit()
 
@@ -61,13 +61,13 @@ def test_period_metrics_rank_filter_and_public_privacy():
     challenge = public_challenge("public-challenge")
     private_challenge = public_challenge("private-challenge")
     private_challenge.visibility = "PRIVATE"
-    active = User(id="active", username="active", aura_points=500, day_streak=4, last_daily_quest_at=now)
+    active = User(id="active", username="active", aura_points=50_000, day_streak=4, last_daily_quest_at=now)
     zero = User(id="zero", username="zero")
     deleted = User(id="deleted", username="deleted", is_deleted=True, aura_points=900)
     db.add_all([challenge, private_challenge, active, zero, deleted])
     db.flush()
     db.add_all([
-        AuraTransaction(id="current", user_id="active", amount=40, reason="test", created_at=now),
+        AuraTransaction(id="current", user_id="active", amount=2_000, reason="test", created_at=now),
         ChallengeParticipant(id="public-completion", challenge_id=challenge.id, user_id=active.id, completion_status="COMPLETED", completed_at=now),
         ChallengeParticipant(id="private-completion", challenge_id=private_challenge.id, user_id=active.id, completion_status="COMPLETED", completed_at=now),
         ChallengeParticipant(id="old-completion", challenge_id=challenge.id, user_id=zero.id, completion_status="COMPLETED", completed_at=now - timedelta(days=40)),

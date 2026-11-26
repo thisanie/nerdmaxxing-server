@@ -29,7 +29,7 @@ from app.core.time import utcnow
 from app.models.aura import AuraTransaction
 from app.models.base import Base
 from app.models.challenge import Challenge
-from app.models.daily_quest import DailyQuestAttempt, DailyQuestQuizSession
+from app.models.daily_quest import DailyQuest, DailyQuestAttempt, DailyQuestQuizSession
 from app.models.invitation import Notification
 from app.models.user import User
 from app.schemas.daily_quest import (
@@ -66,6 +66,23 @@ def test_legacy_quiz_session_schema_adds_timeout_state_columns():
     assert "result" in columns
 
 
+def test_schema_upgrade_normalizes_daily_quest_rewards():
+    db = make_db()
+    admin, _ = make_users(db)
+    quest_response = create_daily_quest(quest_payload(), db, admin)
+    db.execute(
+        text("UPDATE daily_quests SET aura_reward = 2 WHERE id = :quest_id"),
+        {"quest_id": quest_response.id},
+    )
+    db.commit()
+
+    ensure_local_schema(db.get_bind())
+
+    quest = db.get(DailyQuest, quest_response.id)
+    assert quest is not None
+    assert quest.aura_reward == 200
+
+
 def make_users(db: Session) -> tuple[User, User]:
     admin = User(id="admin-1", username="admin", is_admin=True)
     user = User(id="user-1", username="user", timezone_name="UTC")
@@ -88,7 +105,7 @@ def quest_payload(verification_type: str = "QUIZ") -> DailyQuestCreate:
             "estimated_minutes": 10,
             "verification_type": verification_type,
             "resource_url": "https://example.com/engine",
-            "aura_reward": 2,
+            "aura_reward": 200,
             "questions": questions if verification_type == "QUIZ" else [],
         }
     )
@@ -147,15 +164,15 @@ def test_daily_quest_quiz_hides_answers_and_allows_one_retry():
     assert second.passed is True
     assert second.score_percent == 100
     assert second.status == "COMPLETED"
-    assert second.aura_awarded == 2
+    assert second.aura_awarded == 200
     assert second.day_streak == 1
-    assert user.aura_points == 2
+    assert user.aura_points == 200
     assert db.scalar(select(AuraTransaction).where(AuraTransaction.reference_type == "DAILY_QUEST_ATTEMPT"))
 
     with pytest.raises(HTTPException) as error:
         submit_today_quiz(DailyQuestQuizSubmit(answers=[0, 0, 0, 0, 0]), "UTC", db, user)
     assert error.value.status_code == 409
-    assert user.aura_points == 2
+    assert user.aura_points == 200
 
 
 def test_quiz_second_failure_uses_only_retry_and_does_not_award():
@@ -294,7 +311,7 @@ def test_timed_quiz_marks_late_answers_wrong_and_replays_final_result_once():
         )
     assert result.result.passed is True
     assert result.result.score_percent == 80
-    assert result.result.aura_awarded == 2
+    assert result.result.aura_awarded == 200
     assert result.result.completion_status == "COMPLETED"
     assert result.result.completion_date == db.get(DailyQuestAttempt, started.attempt_id).local_date
 
@@ -305,7 +322,7 @@ def test_timed_quiz_marks_late_answers_wrong_and_replays_final_result_once():
         user,
     )
     assert replay.result == result.result
-    assert user.aura_points == 2
+    assert user.aura_points == 200
     rewards = db.scalars(
         select(AuraTransaction).where(
             AuraTransaction.reference_type == "DAILY_QUEST_ATTEMPT",
@@ -452,7 +469,7 @@ def test_approval_notification_result_and_owner_authorization(monkeypatch):
         admin,
     )
     result = get_daily_quest_attempt_result(attempt.id, db, user)
-    assert review.aura_awarded == result.aura_awarded == 2
+    assert review.aura_awarded == result.aura_awarded == 200
     assert result.completion_date == local_date
     assert result.day_streak == 1
     assert result.related_major_challenge.deep_link == "nerdmaxxing://challenge/learn-engines"

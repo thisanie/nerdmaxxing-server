@@ -71,11 +71,11 @@ def test_server_timed_quiz_scores_late_answer_unanswered_and_awards_once():
     assert final.result.score_percent == 80
     assert final.result.passed is True
     assert final.result.status == "COMPLETED"
-    assert final.result.aura_awarded == 2
+    assert final.result.aura_awarded == 200
     assert final.result.completion_status == "COMPLETED"
     assert final.result.completion_date == local_day_window("UTC")[0]
     assert db.get(DailyQuestAttempt, started.attempt_id).quiz_answers[0] == -1
-    assert user.aura_points == 2
+    assert user.aura_points == 200
     assert db.scalars(select(AuraTransaction).where(AuraTransaction.reference_id == started.attempt_id)).all().__len__() == 1
 
     replay = submit_today_quiz_answer(
@@ -87,7 +87,7 @@ def test_server_timed_quiz_scores_late_answer_unanswered_and_awards_once():
     assert replay.result is not None
     assert replay.result.score_percent == final.result.score_percent
     assert replay.result.aura_awarded == final.result.aura_awarded
-    assert user.aura_points == 2
+    assert user.aura_points == 200
 
 
 def test_approval_push_targets_active_token_with_daily_quest_routing(monkeypatch):
@@ -252,10 +252,10 @@ def test_media_result_is_owner_authorized_and_review_notification_does_not_leak_
     sent = []
     monkeypatch.setattr("app.api.admin_daily_quests.send_notification_push", lambda _db, n: sent.append(n))
     reviewed = review_daily_quest_evidence(attempt.id, DailyQuestReviewRequest(decision="APPROVE"), db, admin)
-    assert reviewed.aura_awarded == 2
+    assert reviewed.aura_awarded == 200
     result = get_daily_quest_attempt_result(attempt.id, db, user)
     assert result.completion_date == local_day_window("UTC")[0]
-    assert result.aura_awarded == 2
+    assert result.aura_awarded == 200
     assert result.day_streak == 1
     assert result.related_major_challenge.slug == "learn-engines"
     assert result.related_major_challenge.deep_link == "nerdmaxxing://challenge/learn-engines"
@@ -273,7 +273,7 @@ def test_media_result_is_owner_authorized_and_review_notification_does_not_leak_
     with pytest.raises(HTTPException) as duplicate_review:
         review_daily_quest_evidence(attempt.id, DailyQuestReviewRequest(decision="APPROVE"), db, admin)
     assert duplicate_review.value.status_code == 409
-    assert user.aura_points == 2
+    assert user.aura_points == 200
     assert len(sent) == 1
 
 

@@ -230,16 +230,16 @@ Requires authentication. The existing activity fields are preserved and rank fie
     { "date": "2026-11-09", "active": true },
     { "date": "2026-11-10", "active": true }
   ],
-  "rank": "B",
-  "rank_progress": 72,
-  "next_rank": "A",
-  "aura_to_next_rank": 140
+  "rank": "E",
+  "rank_progress": 9,
+  "next_rank": "D",
+  "aura_to_next_rank": 9140
 }
 ```
 
 The `timezone` query parameter accepts an IANA timezone (for example, `America/Los_Angeles`) and determines the seven calendar dates returned. It defaults to `UTC` for existing clients. Activity is derived from the same progress, resource-completion, and metric records that update streaks; no separate activity history is stored.
 
-Ranks are based on lifetime aura and use these centralized thresholds: `E` 0-99, `D` 100-249, `C` 250-499, `B` 500-999, `A` 1000-1999, and `S` 2000+. New users start at `E`. `rank_progress` is the percentage through the current interval. `S` always returns `rank_progress: 100`, `next_rank: null`, and `aura_to_next_rank: 0`.
+Ranks are based on lifetime Aura and use these centralized thresholds: `E` 0-9,999, `D` 10,000-24,999, `C` 25,000-49,999, `B` 50,000-74,999, `A` 75,000-99,999, and `S` 100,000+. New accounts receive a one-time 100-Aura welcome bonus and start at `E`. Daily quests award 200 Aura. Challenge base rewards are 1,000 for Easy, 2,000 for Medium, 3,250 for Hard, and 4,250 for Extreme, adjusted for estimated effort. `rank_progress` is the percentage through the current interval. `S` always returns `rank_progress: 100`, `next_rank: null`, and `aura_to_next_rank: 0`.
 
 ### `GET /api/v1/leaderboard`
 
@@ -266,7 +266,7 @@ Response:
       "username": "maya_chen",
       "display_name": "Maya Chen",
       "avatar_url": "https://example.com/avatar.png",
-      "player_rank": "A",
+      "player_rank": "E",
       "aura_points": 1280,
       "completed_challenge_count": 24,
       "day_streak": 18,
@@ -757,7 +757,7 @@ Final result example:
   "passed": true,
   "quiz_attempt_count": 1,
   "quiz_attempts_remaining": 0,
-  "aura_awarded": 2,
+  "aura_awarded": 200,
   "day_streak": 5,
   "completion_status": "COMPLETED",
   "completion_date": "2026-11-18",
@@ -782,7 +782,7 @@ Requires authentication. Only the attempt owner may fetch the result; foreign an
   "completion_status": "COMPLETED",
   "completion_date": "2026-11-18",
   "completed_at": "2026-11-18T12:00:30Z",
-  "aura_awarded": 2,
+  "aura_awarded": 200,
   "day_streak": 5,
   "timezone": "America/Los_Angeles",
   "score_percent": null,
@@ -1277,7 +1277,7 @@ Response `200 OK`: an array of [User skill](#user-skill-object) objects.
   "full_description": "Define the workflow, choose tools, and create an initial set of notes.",
   "creator_id": "user-id",
   "difficulty_level": "BEGINNER",
-  "aura_points": 20,
+  "aura_points": 1100,
   "status": "PUBLISHED",
   "visibility": "PUBLIC",
   "estimated_effort_min_minutes": 60,

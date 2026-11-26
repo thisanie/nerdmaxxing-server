@@ -6,15 +6,15 @@ from app.models.user import User
 
 def calculate_aura(challenge) -> int:
     difficulty_base_aura = {
-        "EASY": 20,
-        "BEGINNER": 20,
-        "MEDIUM": 40,
-        "INTERMEDIATE": 40,
-        "HARD": 65,
-        "ADVANCED": 65,
-        "EXTREME": 85,
+        "EASY": 1000,
+        "BEGINNER": 1000,
+        "MEDIUM": 2000,
+        "INTERMEDIATE": 2000,
+        "HARD": 3250,
+        "ADVANCED": 3250,
+        "EXTREME": 4250,
     }
-    base_aura = difficulty_base_aura.get(str(challenge.difficulty_level).upper(), 20)
+    base_aura = difficulty_base_aura.get(str(challenge.difficulty_level).upper(), 1000)
 
     effort_min = challenge.estimated_effort_min_minutes
     effort_max = challenge.estimated_effort_max_minutes
@@ -42,7 +42,7 @@ def calculate_aura(challenge) -> int:
     else:
         effort_multiplier = 1.4
 
-    return min(round(base_aura * effort_multiplier), 100)
+    return min(round(base_aura * effort_multiplier), 6000)
 
 
 def award_aura(

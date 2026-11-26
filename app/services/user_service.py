@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.identity import Identity
 from app.models.user import User
+from app.services.aura_service import award_aura
 
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,24}$")
@@ -87,6 +88,14 @@ def get_or_create_google_user(
 
     db.add(user)
     db.flush()
+    award_aura(
+        db,
+        user,
+        100,
+        "Welcome bonus",
+        reference_type="ACCOUNT_CREATION",
+        reference_id=user.id,
+    )
 
     identity = Identity(
         provider="google",

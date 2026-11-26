@@ -142,6 +142,13 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                                 connection.execute(text(f"ALTER TABLE daily_quest_attempts ADD COLUMN {name} {definition}"))
 
                 inspector = inspect(connection)
+                daily_quest_columns = {column["name"] for column in inspector.get_columns("daily_quests")}
+                if daily_quest_columns and "aura_reward" in daily_quest_columns:
+                        connection.execute(text(
+                                "UPDATE daily_quests SET aura_reward = 200 WHERE aura_reward != 200"
+                        ))
+
+                inspector = inspect(connection)
                 quiz_session_columns = {
                         column["name"] for column in inspector.get_columns("daily_quest_quiz_sessions")
                 }

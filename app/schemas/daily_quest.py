@@ -29,7 +29,7 @@ class DailyQuestCreate(BaseModel):
     verification_type: QuestVerification
     resource_url: AnyHttpUrl | None = None
     related_challenge_id: str | None = None
-    aura_reward: int = Field(default=2, ge=1, le=10)
+    aura_reward: Literal[200] = 200
     questions: list[DailyQuestQuestionCreate] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")

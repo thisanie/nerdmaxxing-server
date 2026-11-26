@@ -2,10 +2,16 @@ from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 import app.api.auth as auth_api
+import app.models
+from app.models.aura import AuraTransaction
+from app.models.base import Base
+from app.services.user_service import get_or_create_google_user
 
 
 def make_client() -> TestClient:
@@ -113,3 +119,37 @@ def test_regular_google_auth_keeps_account_creation_flow(monkeypatch):
     assert response.status_code == 200
     assert response.json()["is_new_user"] is True
     assert response.json()["user_id"] == "user-2"
+
+
+def test_new_google_account_receives_one_time_welcome_aura():
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    db = Session(engine)
+
+    user, is_new_user = get_or_create_google_user(
+        db,
+        google_user_id="google-user-3",
+        email="new@example.com",
+        name="New User",
+        picture=None,
+    )
+    existing_user, is_existing_user = get_or_create_google_user(
+        db,
+        google_user_id="google-user-3",
+        email="new@example.com",
+        name="New User",
+        picture=None,
+    )
+    welcome_transactions = db.scalars(
+        select(AuraTransaction).where(
+            AuraTransaction.user_id == user.id,
+            AuraTransaction.reference_type == "ACCOUNT_CREATION",
+        )
+    ).all()
+
+    assert is_new_user is True
+    assert is_existing_user is False
+    assert existing_user.id == user.id
+    assert user.aura_points == 100
+    assert len(welcome_transactions) == 1
+    assert welcome_transactions[0].amount == 100

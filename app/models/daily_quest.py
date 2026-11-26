@@ -25,7 +25,7 @@ class DailyQuest(Base):
     related_challenge_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("challenges.id", ondelete="SET NULL"), nullable=True
     )
-    aura_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    aura_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT", index=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
