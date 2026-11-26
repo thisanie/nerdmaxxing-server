@@ -321,7 +321,7 @@ The same routing fields are included in FCM data payloads. Direct invitation not
 
 ### `GET /api/v1/users/username-availability?username={username}`
 
-Checks availability for a username. Rate limited to 60 requests per minute. Usernames must be 3-24 characters and contain only letters, numbers, or underscores.
+Checks availability for a username. Rate limited to 60 requests per minute. Usernames must be 3-24 characters and contain only letters, numbers, or underscores. Reserved usernames listed in [`reserved_usernames.json`](reserved_usernames.json) are reported as unavailable.
 
 Response `200 OK`:
 

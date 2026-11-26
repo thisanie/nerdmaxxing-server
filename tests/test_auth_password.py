@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from app.services.password_service import (
     hash_password,
     verify_password,
 )
+from app.services.user_service import is_username_available
 
 
 def make_db() -> Session:
@@ -83,6 +85,29 @@ def test_password_status_reflects_stored_hash_and_updated_password_hashes():
     user.password_hash = hash_password(new_password)
     assert verify_password(new_password, user.password_hash)
     assert not verify_password(current_password, user.password_hash)
+
+
+def test_reserved_usernames_are_unavailable_case_insensitively():
+    db = make_db()
+
+    assert not is_username_available(db, username="ADMIN")
+    assert not is_username_available(db, username="SUPPORT")
+    assert is_username_available(db, username="ada_lovelace")
+
+
+def test_save_username_rejects_reserved_username():
+    db = make_db()
+    user = User(id="user-1")
+
+    try:
+        users_api.save_username(db, user, "SUPPORT")
+    except HTTPException as error:
+        assert error.status_code == 409
+        assert error.detail == "Username is unavailable."
+    else:
+        raise AssertionError("Expected reserved username to be rejected.")
+
+    assert user.username is None
 
 
 def test_self_profile_includes_admin_flag_without_changing_public_profile(monkeypatch):
