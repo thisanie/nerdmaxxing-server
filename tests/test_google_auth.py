@@ -153,3 +153,40 @@ def test_new_google_account_receives_one_time_welcome_aura():
     assert user.aura_points == 100
     assert len(welcome_transactions) == 1
     assert welcome_transactions[0].amount == 100
+
+
+def test_bulk_welcome_bonus_is_dry_run_safe_and_idempotent():
+    from app.models.aura import AuraTransaction
+    from app.models.base import Base
+    from app.models.user import User
+    from scripts.grant_welcome_bonus import grant_welcome_bonus
+
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    db = Session(engine)
+    old_user = User(id="old-user", username="old-user")
+    signed_up_user = User(id="signed-up-user", username="signed-up-user", aura_points=100)
+    deleted_user = User(id="deleted-user", username="deleted-user", is_deleted=True)
+    db.add_all([old_user, signed_up_user, deleted_user])
+    db.add(
+        AuraTransaction(
+            user_id=signed_up_user.id,
+            amount=100,
+            reason="Welcome bonus",
+            reference_type="ACCOUNT_CREATION",
+            reference_id=signed_up_user.id,
+        )
+    )
+    db.commit()
+
+    eligible_count, skipped_count = grant_welcome_bonus(db, apply=False)
+    assert (eligible_count, skipped_count) == (1, 1)
+    assert old_user.aura_points == 0
+
+    eligible_count, skipped_count = grant_welcome_bonus(db, apply=True)
+    assert (eligible_count, skipped_count) == (1, 1)
+    assert old_user.aura_points == 100
+
+    eligible_count, skipped_count = grant_welcome_bonus(db, apply=True)
+    assert (eligible_count, skipped_count) == (0, 2)
+    assert old_user.aura_points == 100
