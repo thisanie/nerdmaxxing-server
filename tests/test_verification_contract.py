@@ -336,6 +336,8 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
     assert participant_value.completion_status == "COMPLETED"
     assert participant_value.verification_status == "VERIFIED"
     assert participant_value.completed_at is not None
+    assert current_user.day_streak == 1
+    assert result.day_streak == 1
     assert current_user.aura_points == 2000
     assert db.scalar(
         select(func.count()).select_from(AuraTransaction).where(

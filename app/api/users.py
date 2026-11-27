@@ -378,9 +378,10 @@ def get_my_stats(
         )
     ) or 0
     local_today = now.replace(tzinfo=datetime_timezone.utc).astimezone(user_timezone).date()
+    last_streak_date = current_user.last_streak_date or current_user.last_daily_quest_date
     if (
-        current_user.last_daily_quest_date is None
-        or (local_today - current_user.last_daily_quest_date).days > 1
+        last_streak_date is None
+        or (local_today - last_streak_date).days > 1
     ) and current_user.day_streak != 0:
         current_user.day_streak = 0
         db.commit()

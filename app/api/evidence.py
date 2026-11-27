@@ -45,6 +45,7 @@ from app.services.verification_service import verification_config, verification_
 from app.services.chess_com import ChessComError, fetch_rapid_rating
 from app.services.aura_service import award_aura, calculate_aura
 from app.services.push_notification_service import send_notification_push
+from app.services.streak_service import refresh_day_streak
 
 
 router = APIRouter(prefix="/api/v1/evidence", tags=["Evidence"])
@@ -138,6 +139,7 @@ def evidence_response(
         ).all()
     )
     item = items[0] if items else None
+    owner = db.get(User, submission.user_id)
     file_url = None
     if item:
         file_url = (
@@ -177,6 +179,7 @@ def evidence_response(
         file_name=item.file_name if item else None,
         mime_type=item.content_type if item else None,
         review_reason=submission.review_reason,
+        day_streak=owner.day_streak if owner else None,
     )
 
 
@@ -575,6 +578,8 @@ def verify_evidence(
         participant.verification_status = "VERIFIED"
         participant.completed_at = datetime.utcnow()
         participant.last_activity_at = datetime.utcnow()
+        db.flush()
+        refresh_day_streak(db, owner)
         db.add(Activity(user_id=submission.user_id, action="COMPLETED_CHALLENGE", challenge_id=challenge.id))
         if db.scalar(
             select(UserSkill).where(

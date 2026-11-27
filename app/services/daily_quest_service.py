@@ -17,6 +17,7 @@ from app.schemas.daily_quest import (
     DailyQuestRelatedChallenge,
 )
 from app.services.aura_service import award_aura
+from app.services.streak_service import refresh_day_streak
 
 
 def utc_now() -> datetime:
@@ -214,12 +215,9 @@ def complete_quest(db: Session, user: User, attempt: DailyQuestAttempt, quest: D
     ).all())
     if completed_dates:
         latest_date = max(completed_dates)
-        streak = 1
-        while latest_date - timedelta(days=streak) in completed_dates:
-            streak += 1
         user.last_daily_quest_date = latest_date
-        user.day_streak = streak
         user.last_daily_quest_at = now
+    refresh_day_streak(db, user)
     attempt.aura_awarded = existing_reward.amount if existing_reward is not None else quest.aura_reward
     attempt.day_streak_at_completion = user.day_streak
     return quest.aura_reward if existing_reward is None else 0

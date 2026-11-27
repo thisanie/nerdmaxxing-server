@@ -53,6 +53,7 @@ class EvidenceResponse(BaseModel):
     file_name: str | None = None
     mime_type: str | None = None
     review_reason: str | None = None
+    day_streak: int | None = None
 
 
 class EvidenceSubmissionListResponse(BaseModel):

@@ -81,14 +81,14 @@ def _ranking_query(db: Session, period: str, metric: str, player_rank: str | Non
         metric_value = period_completed
     else:
         metric_value = User.day_streak if period == "all_time" else case(
-            (User.last_daily_quest_at >= start, User.day_streak), else_=0
+            (func.coalesce(User.last_streak_at, User.last_daily_quest_at) >= start, User.day_streak), else_=0
         )
     if metric == "aura":
         achievement_at = func.coalesce(aura_subquery.c.aura_achieved_at, User.created_at)
     elif metric == "completed":
         achievement_at = func.coalesce(completion_subquery.c.completed_achieved_at, User.created_at)
     else:
-        achievement_at = func.coalesce(User.last_daily_quest_at, User.created_at)
+        achievement_at = func.coalesce(User.last_streak_at, User.last_daily_quest_at, User.created_at)
     statement = (
         select(
             User,

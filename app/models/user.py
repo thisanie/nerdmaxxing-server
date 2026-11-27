@@ -36,6 +36,8 @@ class User(Base):
     timezone_name: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
     last_daily_quest_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     last_daily_quest_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_streak_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_streak_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_progress_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
