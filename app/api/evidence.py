@@ -140,6 +140,12 @@ def evidence_response(
     )
     item = items[0] if items else None
     owner = db.get(User, submission.user_id)
+    aura_rewarded = db.scalar(
+        select(AuraTransaction.amount).where(
+            AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
+            AuraTransaction.reference_id == submission.id,
+        )
+    ) or 0
     file_url = None
     if item:
         file_url = (
@@ -180,6 +186,7 @@ def evidence_response(
         mime_type=item.content_type if item else None,
         review_reason=submission.review_reason,
         day_streak=owner.day_streak if owner else None,
+        aura_rewarded=aura_rewarded,
     )
 
 

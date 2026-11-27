@@ -54,6 +54,7 @@ class EvidenceResponse(BaseModel):
     mime_type: str | None = None
     review_reason: str | None = None
     day_streak: int | None = None
+    aura_rewarded: int = 0
 
 
 class EvidenceSubmissionListResponse(BaseModel):
