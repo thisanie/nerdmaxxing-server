@@ -94,6 +94,17 @@ def send_notification_push(db: Session, notification: Notification) -> None:
                 "challenge_id": notification.challenge_id or "",
                 "challenge_slug": notification.challenge_slug or "",
                 "challenge_title": notification.challenge_title or "",
+                "submission_id": notification.submission_id or "",
+                "aura_rewarded": (
+                    str(notification.aura_rewarded)
+                    if notification.aura_rewarded is not None
+                    else ""
+                ),
+                "day_streak": (
+                    str(notification.day_streak)
+                    if notification.day_streak is not None
+                    else ""
+                ),
                 "group_id": notification.group_id or "",
                 "group_message_id": notification.group_message_id or "",
                 "daily_quest_id": notification.daily_quest_id or "",

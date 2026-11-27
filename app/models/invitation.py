@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -99,6 +99,9 @@ class Notification(Base):
     challenge_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     challenge_slug: Mapped[str | None] = mapped_column(String(180), nullable=True)
     challenge_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    submission_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    aura_rewarded: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    day_streak: Mapped[int | None] = mapped_column(Integer, nullable=True)
     group_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     group_message_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     daily_quest_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)

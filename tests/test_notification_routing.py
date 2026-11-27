@@ -106,6 +106,10 @@ def test_notification_list_preserves_routing_fields_and_invitation_status():
         actor_name="Grace Hopper",
         challenge_id="challenge-1",
         challenge_slug="debugging",
+        challenge_title="Debugging",
+        submission_id="submission-1",
+        aura_rewarded=150,
+        day_streak=4,
         discussion_id="discussion-1",
         reply_id="reply-1",
         is_read=False,
@@ -138,6 +142,9 @@ def test_notification_list_preserves_routing_fields_and_invitation_status():
 
     assert response[0].actor_username == "grace"
     assert response[0].challenge_slug == "debugging"
+    assert response[0].submission_id == "submission-1"
+    assert response[0].aura_rewarded == 150
+    assert response[0].day_streak == 4
     assert response[0].discussion_id == "discussion-1"
     assert response[0].reply_id == "reply-1"
     assert response[1].invitation_id == "invitation-1"

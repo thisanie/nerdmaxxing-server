@@ -116,15 +116,38 @@ def get_owned_participation(
 
 
 def get_submission(submission_id: str, db: Session, current_user: User) -> EvidenceSubmission:
-    if not current_user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
     submission = db.get(EvidenceSubmission, submission_id)
     if submission is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Evidence submission not found.",
         )
+    if not current_user.is_admin and submission.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Evidence submission not found.",
+        )
     return submission
+
+
+def evidence_reward_values(
+    submission: EvidenceSubmission,
+    db: Session,
+) -> tuple[int, int | None]:
+    aura_rewarded = submission.aura_rewarded
+    day_streak = submission.day_streak_at_completion
+    if submission.status == "VERIFIED":
+        if aura_rewarded == 0:
+            aura_rewarded = db.scalar(
+                select(AuraTransaction.amount).where(
+                    AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
+                    AuraTransaction.reference_id == submission.id,
+                )
+            ) or 0
+        if day_streak is None:
+            owner = db.get(User, submission.user_id)
+            day_streak = owner.day_streak if owner else None
+    return aura_rewarded, day_streak
 
 
 def evidence_response(
@@ -139,13 +162,7 @@ def evidence_response(
         ).all()
     )
     item = items[0] if items else None
-    owner = db.get(User, submission.user_id)
-    aura_rewarded = db.scalar(
-        select(AuraTransaction.amount).where(
-            AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
-            AuraTransaction.reference_id == submission.id,
-        )
-    ) or 0
+    aura_rewarded, day_streak = evidence_reward_values(submission, db)
     file_url = None
     if item:
         file_url = (
@@ -185,7 +202,7 @@ def evidence_response(
         file_name=item.file_name if item else None,
         mime_type=item.content_type if item else None,
         review_reason=submission.review_reason,
-        day_streak=owner.day_streak if owner else None,
+        day_streak=day_streak,
         aura_rewarded=aura_rewarded,
     )
 
@@ -539,9 +556,12 @@ def get_evidence_approval_status(
     submission = db.scalar(statement)
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence submission not found.")
+    aura_rewarded, day_streak = evidence_reward_values(submission, db)
     return EvidenceApprovalStatusResponse(
         is_approved=submission.status == "VERIFIED",
         note=submission.review_reason,
+        aura_rewarded=aura_rewarded,
+        day_streak=day_streak,
     )
 
 
@@ -587,6 +607,7 @@ def verify_evidence(
         participant.last_activity_at = datetime.utcnow()
         db.flush()
         refresh_day_streak(db, owner)
+        submission.day_streak_at_completion = owner.day_streak
         db.add(Activity(user_id=submission.user_id, action="COMPLETED_CHALLENGE", challenge_id=challenge.id))
         if db.scalar(
             select(UserSkill).where(
@@ -602,12 +623,13 @@ def verify_evidence(
                     verification_status="VERIFIED",
                 )
             )
-        if db.scalar(
-            select(AuraTransaction.id).where(
+        existing_reward = db.scalar(
+            select(AuraTransaction).where(
                 AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
                 AuraTransaction.reference_id == submission.id,
             )
-        ) is None:
+        )
+        if existing_reward is None:
             amount = calculate_aura(challenge)
             award_aura(
                 db,
@@ -617,7 +639,10 @@ def verify_evidence(
                 reference_type="EVIDENCE_SUBMISSION",
                 reference_id=submission.id,
             )
+            submission.aura_rewarded = amount
             db.add(Activity(user_id=submission.user_id, action="EARNED_AURA", challenge_id=challenge.id))
+        else:
+            submission.aura_rewarded = existing_reward.amount
         notifications.append(
             Notification(
                 user_id=owner.id,
@@ -630,6 +655,9 @@ def verify_evidence(
                 challenge_id=challenge.id,
                 challenge_slug=challenge.slug,
                 challenge_title=challenge.title,
+                submission_id=submission.id,
+                aura_rewarded=submission.aura_rewarded,
+                day_streak=submission.day_streak_at_completion,
             )
         )
         follower_ids = db.scalars(

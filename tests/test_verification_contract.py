@@ -315,10 +315,12 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
         UserFollow(follower_id=follower.id, following_id=current_user.id)
         for follower in followers
     )
+    outsider = User(id="outsider", username="outsider")
+    db.add(outsider)
     db.commit()
     with pytest.raises(HTTPException) as error:
-        get_evidence(submission.id, db, current_user)
-    assert error.value.status_code == 403
+        get_evidence(submission.id, db, outsider)
+    assert error.value.status_code == 404
 
     result = verify_evidence(
         submission.id,
@@ -340,6 +342,14 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
     assert result.day_streak == 1
     assert result.aura_rewarded == 2000
     assert current_user.aura_points == 2000
+    assert submission.aura_rewarded == 2000
+    assert submission.day_streak_at_completion == 1
+    owner_result = get_evidence(submission.id, db, current_user)
+    assert owner_result.aura_rewarded == 2000
+    assert owner_result.day_streak == 1
+    approval_status = get_evidence_approval_status(submission.id, db, current_user)
+    assert approval_status.aura_rewarded == 2000
+    assert approval_status.day_streak == 1
     assert db.scalar(
         select(func.count()).select_from(AuraTransaction).where(
             AuraTransaction.user_id == current_user.id,
@@ -362,6 +372,12 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
         ("follower-2", "FOLLOWING_CHALLENGE_COMPLETED"),
     }
     assert all(item.challenge_id == challenge_value.id for item in notifications)
+    approval_notification = next(item for item in notifications if item.notification_type == "EVIDENCE_APPROVED")
+    assert approval_notification.submission_id == submission.id
+    assert approval_notification.challenge_slug == challenge_value.slug
+    assert approval_notification.challenge_title == challenge_value.title
+    assert approval_notification.aura_rewarded == 2000
+    assert approval_notification.day_streak == 1
     assert len(pushed_notifications) == 3
     assert get_evidence_approval_status(submission.id, db, current_user).is_approved is True
     with pytest.raises(HTTPException) as error:
@@ -372,6 +388,60 @@ def test_admin_approval_completes_and_awards_aura_once(monkeypatch):
             reviewer,
         )
     assert error.value.status_code == 409
+    assert current_user.aura_points == 2000
+    assert db.scalar(
+        select(func.count()).select_from(AuraTransaction).where(
+            AuraTransaction.user_id == current_user.id,
+            AuraTransaction.reference_type == "EVIDENCE_SUBMISSION",
+            AuraTransaction.reference_id == submission.id,
+        )
+    ) == 1
+
+
+def test_approval_extends_streak_across_user_local_midnight(monkeypatch):
+    db, current_user, reviewer, challenge_value, _, submission = create_review_database()
+    current_user.timezone_name = "America/Los_Angeles"
+    previous_challenge = Challenge(
+        id="previous-challenge",
+        title="Previous challenge",
+        image_url="https://example.com/previous.png",
+        slug="previous-challenge",
+        short_description="Previous challenge.",
+        full_description="A previous challenge.",
+        creator_id="creator",
+    )
+    previous_participant = ChallengeParticipant(
+        id="previous-participant",
+        challenge_id=previous_challenge.id,
+        user_id=current_user.id,
+        status="COMPLETED",
+        completion_status="COMPLETED",
+        completed_at=datetime(2026, 1, 2, 7, 30),
+    )
+    db.add_all([previous_challenge, previous_participant])
+    db.commit()
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def utcnow(cls):
+            return datetime(2026, 1, 3, 7, 30)
+
+    monkeypatch.setattr("app.api.evidence.datetime", FixedDateTime)
+    monkeypatch.setattr(
+        "app.services.streak_service.utcnow",
+        lambda: datetime(2026, 1, 3, 7, 30),
+    )
+
+    result = verify_evidence(
+        submission.id,
+        EvidenceVerificationRequest(decision="APPROVE"),
+        db,
+        reviewer,
+    )
+
+    assert result.day_streak == 2
+    assert current_user.last_streak_date.isoformat() == "2026-01-02"
+    assert submission.day_streak_at_completion == 2
 
 
 def test_rejection_note_is_visible_as_unapproved_status_and_can_retry(monkeypatch):
@@ -397,6 +467,10 @@ def test_rejection_note_is_visible_as_unapproved_status_and_can_retry(monkeypatc
     status_result = get_evidence_approval_status(submission.id, db, current_user)
     assert status_result.is_approved is False
     assert status_result.note == "Please provide clearer proof."
+    assert status_result.aura_rewarded == 0
+    assert status_result.day_streak is None
+    assert submission.aura_rewarded == 0
+    assert submission.day_streak_at_completion is None
     assert current_user.aura_points == 0
     notifications = list(db.scalars(select(Notification)).all())
     assert len(notifications) == 1

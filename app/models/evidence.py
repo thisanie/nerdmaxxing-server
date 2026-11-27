@@ -30,6 +30,8 @@ class EvidenceSubmission(Base):
     provider_metric: Mapped[str | None] = mapped_column(String(100), nullable=True)
     provider_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
     provider_observed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    aura_rewarded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    day_streak_at_completion: Mapped[int | None] = mapped_column(Integer, nullable=True)
     review_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

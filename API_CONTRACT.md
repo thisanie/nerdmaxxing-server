@@ -318,6 +318,9 @@ Comment replies include the parent comment and challenge route:
 ```
 
 The same routing fields are included in FCM data payloads. Direct invitation notifications use `invitation_id` and `invitation_status`; group challenge invitation notifications use `group_invitation_id`.
+`EVIDENCE_APPROVED` notifications also include `submission_id`, `challenge_id`,
+`challenge_slug`, `challenge_title`, `aura_rewarded`, and `day_streak` so the app
+can reopen the completed challenge and its reward details.
 
 ### `GET /api/v1/users/username-availability?username={username}`
 
@@ -1105,7 +1108,8 @@ Response `200 OK`:
 
 ### `GET /api/v1/evidence/{submission_id}`
 
-Requires an admin account. Returns the evidence metadata and a one-hour
+Requires the submission owner or an admin. Returns evidence metadata, the saved
+`aura_rewarded` and `day_streak` values after verification, and a one-hour
 presigned `video_url`. Evidence is never exposed through a public R2 URL.
 
 ### `GET /api/v1/evidence/admin/active?limit={limit}&offset={offset}`
@@ -1146,11 +1150,12 @@ Request:
 `decision` must be `APPROVE` or `REJECT`; `note` may be omitted or `null`.
 The response is the reviewed evidence submission. Rejected submissions return
 the participation to `IN_PROGRESS` so the user can submit evidence again.
-Evidence responses include `day_streak`, the submitter's current streak after
+Evidence responses include `day_streak`, the submitter's streak snapshot at
 approval. The streak advances on consecutive local dates with at least one
 completed daily quest or verified major challenge. They also include
 `aura_rewarded`, the aura amount awarded for the submission (zero before
-approval).
+approval). Both values are saved and remain available from the evidence GET
+route and the owner-facing approval-status route.
 The submitter receives an `EVIDENCE_APPROVED` or `EVIDENCE_REJECTED`
 notification. On approval, each follower of the submitter also receives a
 `FOLLOWING_CHALLENGE_COMPLETED` notification. Notifications are persisted and
@@ -1158,8 +1163,9 @@ push delivery is attempted when Firebase is configured.
 
 ### `GET /api/v1/evidence/{submission_id}/is-approved`
 
-Requires authentication by the submission owner or an admin. Returns only the
-verdict and reviewer note, not evidence contents.
+Requires authentication by the submission owner or an admin. Returns the
+verdict, reviewer note, `aura_rewarded`, and `day_streak` without evidence
+contents.
 
 Response `200 OK`:
 

@@ -411,12 +411,18 @@ def get_my_stats(
         DailyQuestAttempt.user_id == current_user.id,
         DailyQuestAttempt.completed_at.is_not(None),
     )
+    challenge_completion_activity = select(ChallengeParticipant.completed_at.label("activity_at")).where(
+        ChallengeParticipant.user_id == current_user.id,
+        ChallengeParticipant.completion_status == "COMPLETED",
+        ChallengeParticipant.completed_at.is_not(None),
+    )
     activity_timestamps = union_all(
         select(ChallengeProgressLog.created_at.label("activity_at")).where(
             ChallengeProgressLog.user_id == current_user.id
         ),
         resource_activity,
         metric_activity,
+        challenge_completion_activity,
         daily_quest_activity,
     ).subquery()
     timestamps = db.scalars(

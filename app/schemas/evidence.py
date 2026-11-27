@@ -25,6 +25,8 @@ class EvidenceCreatedResponse(BaseModel):
 class EvidenceApprovalStatusResponse(BaseModel):
     is_approved: bool
     note: str | None = None
+    aura_rewarded: int = 0
+    day_streak: int | None = None
 
 
 class EvidenceVerificationRequest(BaseModel):

@@ -39,7 +39,9 @@ def test_stats_activity_days_use_local_dates_and_all_streak_activity_sources(mon
         id="participant-1",
         challenge_id=challenge.id,
         user_id=user.id,
-        status="IN_PROGRESS",
+        status="COMPLETED",
+        completion_status="COMPLETED",
+        completed_at=datetime(2026, 11, 10, 7, 30),
     )
     milestone = ChallengeMilestone(
         id="milestone-1",
@@ -112,7 +114,7 @@ def test_stats_activity_days_use_local_dates_and_all_streak_activity_sources(mon
         ("2026-11-06", True),
         ("2026-11-07", False),
         ("2026-11-08", True),
-        ("2026-11-09", False),
+        ("2026-11-09", True),
         ("2026-11-10", True),
     ]
 

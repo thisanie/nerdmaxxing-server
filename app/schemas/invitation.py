@@ -65,6 +65,9 @@ class NotificationResponse(BaseModel):
     daily_quest_local_date: date | None = None
     daily_quest_attempt_id: str | None = None
     deep_link: str | None = None
+    submission_id: str | None = None
+    aura_rewarded: int | None = None
+    day_streak: int | None = None
 
 
 class PushTokenCreate(BaseModel):

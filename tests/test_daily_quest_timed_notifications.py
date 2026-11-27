@@ -108,6 +108,9 @@ def test_approval_push_targets_active_token_with_daily_quest_routing(monkeypatch
         daily_quest_local_date=date(2026, 11, 20),
         daily_quest_attempt_id="attempt-1",
         deep_link="nerdmaxxing://daily-quest/result/attempt-1",
+        submission_id="submission-1",
+        aura_rewarded=150,
+        day_streak=4,
     )
     db.add_all([token, notification])
     db.commit()
@@ -129,6 +132,9 @@ def test_approval_push_targets_active_token_with_daily_quest_routing(monkeypatch
     assert sent[0].data["daily_quest_local_date"] == "2026-11-20"
     assert sent[0].data["daily_quest_attempt_id"] == "attempt-1"
     assert sent[0].data["deep_link"] == "nerdmaxxing://daily-quest/result/attempt-1"
+    assert sent[0].data["submission_id"] == "submission-1"
+    assert sent[0].data["aura_rewarded"] == "150"
+    assert sent[0].data["day_streak"] == "4"
 
 
 def test_single_retry_limit_and_duplicate_session_are_server_controlled():

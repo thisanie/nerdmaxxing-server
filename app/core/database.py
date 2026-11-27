@@ -122,6 +122,9 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                         "group_invitation_id": "VARCHAR(36)",
                         "challenge_id": "VARCHAR(36)",
                         "challenge_slug": "VARCHAR(180)",
+                        "submission_id": "VARCHAR(36)",
+                        "aura_rewarded": "INTEGER",
+                        "day_streak": "INTEGER",
                         "actor_username": "VARCHAR(24)",
                         "actor_name": "VARCHAR(100)",
                         "group_id": "VARCHAR(36)",
@@ -141,6 +144,15 @@ def ensure_local_schema(database_engine= schema_engine) -> None:
                                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_dedupe_key "
                                 "ON notifications (dedupe_key)"
                         ))
+
+                inspector = inspect(connection)
+                evidence_columns = {column["name"] for column in inspector.get_columns("evidence_submissions")}
+                for name, definition in {
+                        "aura_rewarded": "INTEGER NOT NULL DEFAULT 0",
+                        "day_streak_at_completion": "INTEGER",
+                }.items():
+                        if evidence_columns and name not in evidence_columns:
+                                connection.execute(text(f"ALTER TABLE evidence_submissions ADD COLUMN {name} {definition}"))
 
                 inspector = inspect(connection)
                 daily_attempt_columns = {column["name"] for column in inspector.get_columns("daily_quest_attempts")}
