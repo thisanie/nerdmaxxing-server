@@ -1146,6 +1146,9 @@ Request:
 `decision` must be `APPROVE` or `REJECT`; `note` may be omitted or `null`.
 The response is the reviewed evidence submission. Rejected submissions return
 the participation to `IN_PROGRESS` so the user can submit evidence again.
+Evidence responses include `day_streak`, the submitter's current streak after
+approval. The streak advances on consecutive local dates with at least one
+completed daily quest or verified major challenge.
 The submitter receives an `EVIDENCE_APPROVED` or `EVIDENCE_REJECTED`
 notification. On approval, each follower of the submitter also receives a
 `FOLLOWING_CHALLENGE_COMPLETED` notification. Notifications are persisted and
